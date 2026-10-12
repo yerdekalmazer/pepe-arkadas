@@ -185,6 +185,13 @@ enum TrelloAPI {
     }
 
     func card() -> AnyView { AnyView(TrelloCard(pill: self)) }
+
+    /// Yalnızca anlık görüntü için: ağa çıkmadan örnek veri.
+    func preview(lists: [(String, Int)], cards: [String]) {
+        self.lists = lists.map { (name: $0.0, count: $0.1) }
+        self.cards = cards.enumerated().map { TrelloAPI.Card(id: "\($0.offset)", name: $0.element, url: "", due: nil, listName: focus) }
+        error = nil
+    }
 }
 
 private struct TrelloCard: View {

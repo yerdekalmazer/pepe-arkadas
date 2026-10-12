@@ -200,6 +200,13 @@ enum DemoScript {
         model.selectedSession = nil
         app.selectedPill = nil
         Reminders.shared.showForSnapshot("Tessera 1.4'ü App Store incelemesine gönder", project: "tessera-ios")
+        let trello = TrelloPill()
+        trello.preview(lists: [("📥 Lead Takip", 1), ("📝 İçerik Kuyruğu", 3), ("Inbox", 3), ("Ürün Geliştirme", 3),
+                               ("Divizyon", 4), ("Deepdive", 1), ("Diğer", 1)],
+                       cards: ["📊 Hafta 32 Raporu", "Tessera ekran görüntüleri", "VizeX bülten taslağı"])
+        app.pills.persists = false
+        app.pills.register(trello)
+        app.pills.setActive("trello", true)
         _ = Briefing.shared.text(weekly: true)
         Briefing.shared.visible = true
         shot("15-kisisel")

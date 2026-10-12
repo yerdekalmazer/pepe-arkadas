@@ -6,10 +6,13 @@ import SwiftUI
     static let shared = Briefing()
 
     struct Section: Identifiable {
+        enum Kind { case lines, trello }
         let id = UUID()
         let title: String
         let icon: String
         var lines: [String]
+        var tint: Color = .white
+        var kind: Kind = .lines
     }
 
     @Published private(set) var sections: [Section] = []
@@ -76,18 +79,24 @@ import SwiftUI
             let open = d.section("Sıradaki").components(separatedBy: "\n").filter { $0.hasPrefix("- [ ]") }
             if !entries.isEmpty, let first = open.first { next.append("\(d.name): \(first.dropFirst(6))") }
         }
-        if !worked.isEmpty { out.append(Section(title: "Dün çalışılanlar", icon: "clock.arrow.circlepath", lines: worked)) }
-        if !next.isEmpty { out.append(Section(title: "Kaldığın yerler", icon: "arrow.turn.down.right", lines: next)) }
+        if !worked.isEmpty { out.append(Section(title: "Dün çalışılanlar", icon: "clock.arrow.circlepath", lines: worked, tint: Palette.blue)) }
+        if !next.isEmpty { out.append(Section(title: "Kaldığın yerler", icon: "arrow.turn.down.right", lines: next, tint: Palette.green)) }
 
         let todayReminders = Reminders.shared.upcoming.filter { cal.isDateInToday($0.at) }
         if !todayReminders.isEmpty {
             out.append(Section(title: "Bugünkü hatırlatmalar", icon: "alarm",
-                               lines: todayReminders.map { "\(Reminders.format($0.at)) \($0.text)" }))
+                               lines: todayReminders.map { "\(Reminders.format($0.at)) \($0.text)" }, tint: Palette.amber))
         }
-        for id in ["trello", "github", "calcom"] {
+        // Trello kendi karosunda (liste çipleri + kartlar); diğer pill'lerin cümleleri satırlara bölünür.
+        if let p = AppState.shared.pills.provider("trello") as? TrelloPill, AppState.shared.pills.isActive("trello") {
+            out.append(Section(title: "Trello · Kişisel Alan", icon: "rectangle.stack.fill", lines: [p.voiceSummary],
+                               tint: p.color, kind: .trello))
+        }
+        for (id, icon) in [("github", "arrow.triangle.pull"), ("calcom", "calendar")] {
             guard let p = AppState.shared.pills.provider(id), AppState.shared.pills.isActive(id) else { continue }
-            let s = p.voiceSummary
-            if !s.isEmpty { out.append(Section(title: p.title, icon: "capsule", lines: [s])) }
+            let lines = p.voiceSummary.components(separatedBy: ". ").map { $0.trimmingCharacters(in: CharacterSet(charactersIn: ". ")) }
+                .filter { !$0.isEmpty }
+            if !lines.isEmpty { out.append(Section(title: p.title, icon: icon, lines: lines, tint: p.color)) }
         }
         if weekly {
             let weekAgo = cal.date(byAdding: .day, value: -7, to: Date())!
@@ -101,11 +110,12 @@ import SwiftUI
             }
             _ = weekAgo
             if !counts.isEmpty {
-                out.append(Section(title: "Geçen hafta", icon: "calendar",
-                                   lines: counts.sorted { $0.1 > $1.1 }.prefix(6).map { "\($0.0): \($0.1) oturum" }))
+                out.append(Section(title: "Geçen hafta", icon: "chart.bar.fill",
+                                   lines: counts.sorted { $0.1 > $1.1 }.prefix(6).map { "\($0.0): \($0.1) oturum" },
+                                   tint: Color(red: 0.69, green: 0.55, blue: 1.0)))
             }
         }
-        if out.isEmpty { out.append(Section(title: "Bugün", icon: "sun.max", lines: ["Kayıtlı bir iş yok; temiz bir sayfa."])) }
+        if out.isEmpty { out.append(Section(title: "Bugün", icon: "sun.max.fill", lines: ["Kayıtlı bir iş yok; temiz bir sayfa."], tint: Palette.amber)) }
         sections = out
     }
 
@@ -123,27 +133,157 @@ struct BriefingCard: View {
 
     var body: some View {
         if briefing.visible {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: "sun.max.fill").foregroundStyle(Palette.amber)
-                    Text(briefing.title).font(.system(size: 13, weight: .semibold))
-                    Spacer()
-                    Button { briefing.visible = false } label: {
-                        Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                ForEach(briefing.sections) { s in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Label(s.title, systemImage: s.icon).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
-                        ForEach(s.lines.prefix(4), id: \.self) { l in
-                            Text("· " + l).font(.system(size: 12)).lineLimit(2)
+            VStack(alignment: .leading, spacing: 12) {
+                header
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 8, alignment: .top), GridItem(.flexible(), spacing: 8, alignment: .top)],
+                          alignment: .leading, spacing: 8) {
+                    ForEach(briefing.sections) { s in
+                        if s.kind == .trello, let pill = AppState.shared.pills.provider("trello") as? TrelloPill {
+                            BriefTile(section: s) { TrelloBrief(pill: pill) }
+                        } else {
+                            BriefTile(section: s) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    ForEach(Array(s.lines.prefix(4).enumerated()), id: \.offset) { _, l in
+                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                            Circle().fill(s.tint.opacity(0.7)).frame(width: 4, height: 4).offset(y: -1)
+                                            Text(l).font(.system(size: 11.5)).foregroundStyle(.white.opacity(0.85))
+                                                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
+                                    if s.lines.count > 4 {
+                                        Text("+\(s.lines.count - 4) daha").font(.system(size: 10)).foregroundStyle(.tertiary)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white.opacity(0.05)))
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(.white.opacity(0.04)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.06)))
+        }
+    }
+
+    private var header: some View {
+        let parts = briefing.title.components(separatedBy: " — ")
+        return HStack(spacing: 10) {
+            Bird(mood: .happy, size: 30)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(parts.first ?? "Günaydın").font(.system(size: 15, weight: .bold))
+                if parts.count > 1 {
+                    Text(parts[1]).font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Button { briefing.visible = false } label: {
+                Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
+                    .frame(width: 22, height: 22)
+                    .background(Circle().fill(.white.opacity(0.08)))
+            }
+            .buttonStyle(.plain)
+            .help("Kapat")
+        }
+    }
+}
+
+/// Brifingin tek bölümü: renkli ikon + başlık, altında içerik.
+private struct BriefTile<Content: View>: View {
+    let section: Briefing.Section
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: section.icon)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(section.tint)
+                    .frame(width: 18, height: 18)
+                    .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(section.tint.opacity(0.16)))
+                Text(section.title).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.7)).lineLimit(1)
+            }
+            content
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.035)))
+    }
+}
+
+/// Trello karosu: açık listelerin çipleri (emoji ayıklanmış ad + sayı), altında odaktaki listenin ilk kartları.
+private struct TrelloBrief: View {
+    @ObservedObject var pill: TrelloPill
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            if let e = pill.error {
+                Text(e).font(.system(size: 11)).foregroundStyle(Palette.amber).lineLimit(2)
+            } else {
+                FlowChips(items: pill.lists.map { (Self.clean($0.name), $0.count, TrelloAPI.normalize($0.name) == TrelloAPI.normalize(pill.focus)) },
+                          tint: pill.color)
+                ForEach(pill.cards.prefix(3)) { c in
+                    HStack(spacing: 6) {
+                        RoundedRectangle(cornerRadius: 1.5).fill(pill.color.opacity(0.8)).frame(width: 3, height: 12)
+                        Text(Self.clean(c.name)).font(.system(size: 11.5)).foregroundStyle(.white.opacity(0.85)).lineLimit(1)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture { if let u = URL(string: c.url) { NSWorkspace.shared.open(u) } }
+                }
+            }
+        }
+    }
+
+    /// Liste/kart adlarının başındaki emoji ve boşluğu atar ("📥 Lead Takip" → "Lead Takip").
+    static func clean(_ s: String) -> String {
+        let trimmed = s.drop { ch in ch.unicodeScalars.allSatisfy { $0.properties.isEmojiPresentation || $0.properties.isEmoji && $0.value > 0x2000 || $0 == " " || $0.value == 0xFE0F } }
+        let out = String(trimmed).trimmingCharacters(in: .whitespaces)
+        return out.isEmpty ? s : out
+    }
+}
+
+/// Satıra sığdığı kadar çip, taşan alt satıra.
+private struct FlowChips: View {
+    let items: [(String, Int, Bool)]
+    let tint: Color
+
+    var body: some View {
+        FlowLayout(spacing: 4) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                HStack(spacing: 4) {
+                    Text(item.0).font(.system(size: 10, weight: item.2 ? .semibold : .medium))
+                    Text("\(item.1)").font(.system(size: 10, weight: .bold)).foregroundStyle(item.2 ? .white : tint)
+                }
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .foregroundStyle(.white.opacity(item.2 ? 1 : 0.75))
+                .background(Capsule().fill(item.2 ? tint.opacity(0.45) : .white.opacity(0.06)))
+            }
+        }
+    }
+}
+
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 4
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 300
+        var x: CGFloat = 0, y: CGFloat = 0, row: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x + s.width > width, x > 0 { x = 0; y += row + spacing; row = 0 }
+            x += s.width + spacing
+            row = max(row, s.height)
+        }
+        return CGSize(width: width, height: y + row)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX, y = bounds.minY, row: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x + s.width > bounds.maxX, x > bounds.minX { x = bounds.minX; y += row + spacing; row = 0 }
+            v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
+            x += s.width + spacing
+            row = max(row, s.height)
         }
     }
 }
