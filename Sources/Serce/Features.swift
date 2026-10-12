@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor enum Features {
     static func register(_ app: AppState) {
         // pill'ler
+        Integrations.register(app)
         // ajanlar
         // karakter
         // sohbet
