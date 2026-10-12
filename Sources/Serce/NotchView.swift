@@ -870,6 +870,15 @@ struct ApprovalView: View {
                         Button("Hep izin ver") { actions.decide(approval, .always) }
                             .buttonStyle(Pill(kind: .quiet))
                     }
+                    if approval.agent == AgentCatalog.claude, approval.onDecision == nil {
+                        Button {
+                            AppState.shared.store.decide(approval, switchingTo: "auto")
+                        } label: {
+                            Label("Otomatiğe geç", systemImage: "bolt.fill")
+                        }
+                        .buttonStyle(Pill(kind: .quiet))
+                        .help("Bu isteği onaylar ve oturumu Claude Code'un otomatik moduna alır; bundan sonra Claude kendisi karar verir")
+                    }
                     Button("İzin ver") { actions.decide(approval, .allow) }
                         .buttonStyle(Pill(kind: .primary))
                         .keyboardShortcut(.return, modifiers: [])

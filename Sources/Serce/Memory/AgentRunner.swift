@@ -39,10 +39,10 @@ import AppKit
         (nil, "Oturumdaki gibi", "Claude Code ayarların neyse o"),
         ("manual", "Sor", "Her izinde notch'ta sorar"),
         ("acceptEdits", "Düzenlemeleri kabul et", "Dosya düzenlemeleri sormadan, komutlar sorarak"),
-        ("auto", "Otomatik", "Claude güvenli bulduklarını kendisi onaylar"),
+        ("auto", "Otomatik", "Claude güvenli bulduklarını kendisi onaylar; terminaldeki oturuma da sonraki izinde uygulanır"),
         ("plan", "Plan", "Değişiklik yapmaz, yalnızca plan çıkarır"),
         ("dontAsk", "Sorma", "İzin gerektireni sormadan reddeder"),
-        ("bypassPermissions", "Tüm izinleri atla ⚠︎", "Hiçbir şey sormaz — dikkat"),
+        ("bypassPermissions", "Tüm izinleri atla ⚠︎", "Hiçbir şey sormaz — yalnızca Serçe'den gönderilenlerde; terminaldeki oturuma uygulanamaz"),
     ]
     static let models: [(id: String?, title: String)] = [
         (nil, "Varsayılan"), ("fable", "Fable"), ("opus", "Opus"), ("sonnet", "Sonnet"), ("haiku", "Haiku"),

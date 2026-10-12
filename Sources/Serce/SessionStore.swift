@@ -117,7 +117,7 @@ struct Approval: Identifiable {
             if e.pid > 0 { s.pid = e.pid }
             if e.name != "SessionEnd" { s.ended = false }
             if let pm = p["permission_mode"] as? String, !pm.isEmpty { s.permissionMode = pm }
-            if let ef = p["effort"] as? String, !ef.isEmpty { s.effort = ef }
+            if let ef = (p["effort"] as? String) ?? ((p["effort"] as? [String: Any])?["level"] as? String), !ef.isEmpty { s.effort = ef }
         }
         s.updated = Date()
         if isNew, e.name != "SessionEnd" { RecapStore.shared.recordSession(project: s.project, agent: e.agent) }
@@ -174,6 +174,16 @@ struct Approval: Identifiable {
                 } else {
                     responder.respond("")
                 }
+                break
+            }
+            // Mod çipinde Otomatik / Düzenlemeleri kabul et seçildiyse: terminaldeki oturumu o moda geçir
+            // (bu isteği onaylayıp setMode ile); Claude Code bundan sonra kendisi karar verir, kart açılmaz.
+            if e.agent == AgentCatalog.claude, !e.fromSerce,
+               let mode = AgentRunner.shared.options(for: sid).mode, Self.switchableModes.contains(mode), s.permissionMode != mode {
+                responder.respond(Self.setModeOutput(mode))
+                s.permissionMode = mode
+                s.status = .working
+                showFlash("\(s.project): \(RunControls.modeTitle(mode)) moda geçti")
                 break
             }
             let a = Approval(sessionId: sid, project: s.project, agent: e.agent, tool: tool,
@@ -246,6 +256,33 @@ struct Approval: Identifiable {
         }
         upsert(s)
         return approvalId
+    }
+
+    /// Çipten seçilince bir sonraki izin isteğinde terminaldeki oturuma kendiliğinden uygulanan modlar.
+    /// "Sor" ve "Plan" kendiliğinden uygulanmaz (onay vermeden mod değiştirilemez); bypassPermissions ise
+    /// Claude Code'da yalnızca başlangıçta açılabilir.
+    static let switchableModes: Set<String> = ["auto", "acceptEdits"]
+
+    /// İzin ver + oturumun modunu değiştir (Claude Code `setMode` güncellemesi).
+    static func setModeOutput(_ mode: String) -> String {
+        AgentCatalog.permissionOutput(agent: AgentCatalog.claude, decision: .always,
+                                      suggestions: [["type": "setMode", "mode": mode == "manual" ? "default" : mode, "destination": "session"]])
+    }
+
+    /// Kartta "Otomatiğe geç": bu isteği onayla ve terminaldeki oturumu o moda al; seçim oturuma da kaydedilir.
+    func decide(_ a: Approval, switchingTo mode: String) {
+        var o = AgentRunner.shared.options(for: a.sessionId)
+        o.mode = mode
+        AgentRunner.shared.setOptions(o, for: a.sessionId)
+        RecapStore.shared.recordDecision(.allow)
+        a.responder.respond(Self.setModeOutput(mode))
+        approvals.removeAll { $0.id == a.id }
+        if let i = sessions.firstIndex(where: { $0.id == a.sessionId }) {
+            sessions[i].status = .working
+            sessions[i].permissionMode = mode
+            sessions[i].action = "\(RunControls.modeTitle(mode)) moda geçti"
+            if let j = sessions[i].steps.lastIndex(where: { $0.key == a.key }) { sessions[i].steps[j].status = .running }
+        }
     }
 
     func decide(_ a: Approval, _ d: Decision) {
