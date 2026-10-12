@@ -34,6 +34,7 @@ struct ChatTabView: View {
     private var header: some View {
         HStack(spacing: 8) {
             if snapshot { modelLabel } else { modelMenu }
+            MCPChip(hub: .shared, active: chat.provider == .anthropic)
             Spacer()
             if !chat.messages.isEmpty {
                 Button(action: chat.newChat) {
@@ -284,6 +285,28 @@ struct AttachmentChip: View {
             Image(systemName: "photo.fill").font(.system(size: 10)).foregroundStyle(Palette.blue)
         } else {
             FileBadge(ext: ext)
+        }
+    }
+}
+
+/// Sohbet başlığında bağlı MCP araçları; tıklayınca Ayarlar → MCP açılır.
+private struct MCPChip: View {
+    @ObservedObject var hub: MCPHub
+    let active: Bool
+
+    var body: some View {
+        if hub.toolCount > 0 {
+            Button { SettingsWindowController.shared.show(section: "mcp") } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "point.3.connected.trianglepath.dotted").font(.system(size: 9, weight: .semibold))
+                    Text("\(hub.readyCount) MCP · \(hub.toolCount) araç").font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(active ? .white.opacity(0.75) : .white.opacity(0.35))
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Capsule().fill(.white.opacity(0.06)))
+            }
+            .buttonStyle(.plain)
+            .help(active ? "Bu sohbette MCP araçları kullanılabilir" : "MCP araçları yalnızca Claude seçiliyken kullanılır")
         }
     }
 }

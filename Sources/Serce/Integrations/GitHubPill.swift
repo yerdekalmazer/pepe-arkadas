@@ -25,12 +25,14 @@ final class GitHubPill: PollingPill<GitHubData>, PillProvider {
     let color = Color(hex: 0xEF4444)
     static let keyName = "github.token"
 
-    override var configured: Bool { frozen || (Keychain.get(Self.keyName) != nil) }
+    override var configured: Bool { frozen || Self.token != nil }
+    /// Token girilmemişse `gh` CLI girişi kullanılır (sıfır kurulum).
+    static var token: String? { Keychain.get(keyName) ?? GhCLI.token() }
     var isConfigured: Bool { configured }
     var needsAttention: Bool { model.map { $0.failing > 0 || !$0.reviewRequested.isEmpty } ?? false }
 
     private var headers: [String: String] {
-        ["Authorization": "Bearer \(Keychain.get(Self.keyName) ?? "")",
+        ["Authorization": "Bearer \(Self.token ?? "")",
          "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"]
     }
 
@@ -129,7 +131,7 @@ final class GitHubPill: PollingPill<GitHubData>, PillProvider {
     func settings() -> AnyView? {
         AnyView(VStack(alignment: .leading, spacing: 6) {
             SecretField(title: "Kişisel erişim token'ı", key: Self.keyName, placeholder: "github_pat_… ya da ghp_…") { [weak self] in self?.refresh() }
-            Text("Fine-grained token: Pull requests ve Checks için okuma izni yeterli.").font(.caption).foregroundStyle(.secondary)
+            Text(GhCLI.token() != nil && Keychain.get(Self.keyName) == nil ? "Şu an `gh` girişin kullanılıyor; ayrı token gerekmez." : "Fine-grained token: Pull requests ve Checks için okuma izni yeterli.").font(.caption).foregroundStyle(.secondary)
         })
     }
 }

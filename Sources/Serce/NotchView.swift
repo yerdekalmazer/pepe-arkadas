@@ -675,8 +675,10 @@ struct ApprovalView: View {
             VStack(spacing: 10) {
                 Viewer(step: approval.preview, cwd: "", prompt: "")
                 HStack(spacing: 8) {
-                    Button("Terminalde yanıtla") { actions.decide(approval, .terminal) }
-                        .buttonStyle(Pill(kind: .ghost))
+                    if approval.onDecision == nil {
+                        Button("Terminalde yanıtla") { actions.decide(approval, .terminal) }
+                            .buttonStyle(Pill(kind: .ghost))
+                    }
                     Spacer()
                     Button("Reddet") { actions.decide(approval, .deny) }
                         .buttonStyle(Pill(kind: .quiet))

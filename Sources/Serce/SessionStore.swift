@@ -34,6 +34,8 @@ struct Approval: Identifiable {
     let preview: Step
     let suggestions: [Any]
     let responder: Responder
+    /// Serçe'nin kendi istekleri (MCP araçları) için: karar hook'a değil buraya gider.
+    var onDecision: ((Decision) -> Void)? = nil
 }
 
 /// Bütün oturumların ve bekleyen izinlerin tek kaynağı. Yalnızca ana iş parçacığında yaşar.
@@ -217,6 +219,11 @@ struct Approval: Identifiable {
     }
 
     func decide(_ a: Approval, _ d: Decision) {
+        if let done = a.onDecision {
+            done(d)
+            approvals.removeAll { $0.id == a.id }
+            return
+        }
         let body = AgentCatalog.permissionOutput(agent: a.agent, decision: d, suggestions: a.suggestions)
         RecapStore.shared.recordDecision(d)
         a.responder.respond(body)
@@ -285,7 +292,10 @@ struct Approval: Identifiable {
     }
 
     private func dropApprovals(where match: (Approval) -> Bool) {
-        for a in approvals where match(a) { a.responder.respond("") }
+        for a in approvals where match(a) {
+            a.responder.respond("")
+            a.onDecision?(.deny)
+        }
         approvals.removeAll(where: match)
     }
 
@@ -313,6 +323,35 @@ struct Approval: Identifiable {
         flashTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(4))
             if !Task.isCancelled { self?.flash = nil }
+        }
+    }
+
+    /// Serçe'nin kendisi (sohbet/sesli asistan) bir MCP aracı çalıştırmadan önce notch'ta onay ister.
+    /// 2 dakika içinde cevap gelmezse reddedilmiş sayılır.
+    func requestLocalApproval(project: String, tool: String, title: String, input: [String: Any], allowAlways: Bool) async -> Decision {
+        let json = (try? JSONSerialization.data(withJSONObject: input, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        let key = UUID().uuidString
+        let preview = Step(tool: "MCP", key: key, title: tool, subtitle: "", path: nil, status: .waiting,
+                           content: .text(json.isEmpty ? "(parametre yok)" : json))
+        return await withCheckedContinuation { (c: CheckedContinuation<Decision, Never>) in
+            let once = Responder { _ in }
+            var resumed = false
+            var a = Approval(sessionId: "serce-yerel", project: project, tool: tool, key: key, title: title,
+                             detail: json, preview: preview, suggestions: allowAlways ? [["type": "serce"]] : [], responder: once)
+            a.onDecision = { d in
+                guard !resumed else { return }
+                resumed = true
+                c.resume(returning: d)
+            }
+            approvals.append(a)
+            play(.approval)
+            onAttention?()
+            let id = a.id
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(120))
+                self?.dropApprovals { $0.id == id }
+            }
         }
     }
 

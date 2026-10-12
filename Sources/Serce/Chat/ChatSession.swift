@@ -54,8 +54,14 @@ import SwiftUI
         let history = messages.dropLast().filter { !$0.isError }
         let provider = provider, model = model, system = Self.systemPrompt()
         streaming = true
+        // Claude seçiliyse ve bağlı MCP aracı varsa araç döngüsü; yoksa düz akış.
+        let useTools = provider == .anthropic && MCPHub.shared.toolCount > 0
         task = Task { [weak self] in
-            await self?.run(provider: provider, model: model, system: system, history: Array(history))
+            if useTools {
+                await self?.runWithTools(model: model, system: system, history: Array(history))
+            } else {
+                await self?.run(provider: provider, model: model, system: system, history: Array(history))
+            }
         }
     }
 
@@ -103,6 +109,30 @@ import SwiftUI
         } catch {
             fail(error.localizedDescription)
         }
+    }
+
+    /// MCP araçlı Claude turu: akış yerine adım adım; araç çalışırken baloncukta durum satırı görünür.
+    private func runWithTools(model: String, system: String, history: [ChatMessage]) async {
+        defer { streaming = false }
+        var msgs: [[String: Any]] = history.map { ["role": $0.role.rawValue, "content": ChatRequestBuilder.anthropicContent($0)] }
+        var o = ClaudeToolLoop.Options(model: model, system: system + "\nBağlı MCP sunucularının araçlarını (GitHub, Notion…) kullanabilirsin; çok araç varsa araç aramasıyla bul. Yazma işlemleri kullanıcıdan notch'ta onay ister.")
+        o.askedBy = "Sohbet"
+        o.onProgress = { [weak self] label in self?.setLast("⚙︎ \(label)…") }
+        do {
+            switch try await ClaudeToolLoop.run(messages: &msgs, o) {
+            case .answer(let t): setLast(t.isEmpty ? "Tamam." : t)
+            case .refusal: setLast(""); fail("Model bu isteği yanıtlamayı reddetti.")
+            }
+        } catch is CancellationError {
+        } catch {
+            setLast("")
+            fail(error.localizedDescription)
+        }
+    }
+
+    private func setLast(_ t: String) {
+        guard !messages.isEmpty else { return }
+        messages[messages.count - 1].text = t
     }
 
     private static func check(_ resp: URLResponse, _ bytes: URLSession.AsyncBytes) async throws {

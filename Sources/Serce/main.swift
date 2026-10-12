@@ -205,6 +205,14 @@ MainActor.assumeIsolated {
         AgentSelfTest.run(home: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
         exit(0)
     }
+    // MCP bağlantılarını gerçek sunuculara karşı dener (tarayıcı açmaz): Serce --mcp-test
+    if CommandLine.arguments.contains("--mcp-test") {
+        Task { @MainActor in
+            await MCPHub.shared.selfTest()
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

@@ -15,6 +15,8 @@ import SwiftUI
         CharacterFeature.register(app)
         // sohbet
         ChatFeature.register(app)
+        // mcp
+        MCPFeature.register(app)
         // ses
         VoiceFeature.register(app)
     }
