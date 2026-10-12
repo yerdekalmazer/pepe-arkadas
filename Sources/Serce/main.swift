@@ -37,6 +37,7 @@ import SwiftUI
             self?.notch.setExpanded(true)
         }
         app.actions.openSettings = { SettingsWindowController.shared.show() }
+        app.actions.isExpanded = { [weak self] in self?.notch.model.expanded ?? false }
         app.actions.openTerminal = { [weak self] s in self?.store.openTerminal(for: s) }
         app.actions.jumpToAlert = { [weak self] in
             if !app.store.approvals.isEmpty { self?.notch.setExpanded(true) }

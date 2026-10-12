@@ -7,6 +7,7 @@ import SwiftUI
         // pill'ler
         // ajanlar
         // karakter
+        CharacterFeature.register(app)
         // sohbet
         // ses
     }

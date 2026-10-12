@@ -12,6 +12,8 @@ struct AppActions {
     var openSettings: () -> Void = {}
     var openTerminal: (AgentSession) -> Void = { _ in }
     var jumpToAlert: () -> Void = {}
+    /// Ada şu an açık mı (kısayolla aç/kapat için).
+    var isExpanded: () -> Bool = { false }
 }
 
 /// Paylaşılan durum merkezi: oturumlar, pill'ler, açık sekme. Özellikler buraya kaydolur.
