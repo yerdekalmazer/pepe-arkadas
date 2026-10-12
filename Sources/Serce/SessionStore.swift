@@ -5,6 +5,9 @@ enum SessionStatus { case idle, working, waiting, done }
 enum Decision { case allow, always, deny, terminal }
 
 struct AgentSession: Identifiable {
+    /// Terminaldeki oturumun izin modu ve eforu (hook verisinden; bilinmiyorsa boş).
+    var permissionMode = ""
+    var effort = ""
     /// Terminaldeki ajan sürecinin kimliği (Serçe'den kapatmak için); Serçe'nin kendi çalıştırmaları bunu değiştirmez.
     var pid: Int32 = 0
     /// Terminal oturumu kapandı; kart durur, Serçe'den yazınca arka planda sürer.
@@ -113,6 +116,8 @@ struct Approval: Identifiable {
             if e.tty.hasPrefix("/dev/tty") { s.tty = e.tty }
             if e.pid > 0 { s.pid = e.pid }
             if e.name != "SessionEnd" { s.ended = false }
+            if let pm = p["permission_mode"] as? String, !pm.isEmpty { s.permissionMode = pm }
+            if let ef = p["effort"] as? String, !ef.isEmpty { s.effort = ef }
         }
         s.updated = Date()
         if isNew, e.name != "SessionEnd" { RecapStore.shared.recordSession(project: s.project, agent: e.agent) }

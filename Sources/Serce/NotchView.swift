@@ -489,6 +489,11 @@ struct SessionDetail: View {
                 } else {
                     Viewer(step: selected, cwd: session.cwd, prompt: session.prompt)
                 }
+                if session.agent == AgentCatalog.claude {
+                    RunControls(options: Binding(get: { AgentRunner.shared.options(for: session.id) },
+                                                 set: { AgentRunner.shared.setOptions($0, for: session.id) }),
+                                terminalMode: session.permissionMode)
+                }
                 composer
             }
         }
@@ -1021,6 +1026,7 @@ struct NewSessionView: View {
     @State private var cwd = ""
     @State private var task = ""
     @State private var worktree = false
+    @State private var runOptions = AgentRunner.RunOptions(mode: nil, model: AgentRunner.model, effort: nil)
     @State private var error: String?
     @Environment(\.snapshotMode) private var snapshot
 
@@ -1086,6 +1092,7 @@ struct NewSessionView: View {
                 }
             }
             .toggleStyle(.switch).controlSize(.mini)
+            RunControls(options: $runOptions)
             if let error { Text(error).font(.system(size: 10)).foregroundStyle(Palette.red) }
             HStack {
                 Text("Terminal gerekmez; adımlar ve izinler notch'ta.").font(.system(size: 10)).foregroundStyle(.tertiary)
@@ -1115,12 +1122,93 @@ struct NewSessionView: View {
 
     private func start() {
         let text = task.trimmingCharacters(in: .whitespacesAndNewlines)
+        AgentRunner.shared.pendingOptions = runOptions
         if let err = AgentRunner.shared.start(text, in: cwd, worktree: worktree) {
+            AgentRunner.shared.pendingOptions = nil
             error = err
             return
         }
         task = ""
         model.newSessionCwd = nil
         model.showAllSessions = true
+    }
+}
+
+/// Serçe'den gönderilen mesajlar için izin modu / model / efor: terminaldeki Claude Code alt çubuğu gibi.
+/// Seçimler oturum başına saklanır; terminalde açık oturumu etkilemez, yalnızca Serçe'nin gönderdiklerini.
+struct RunControls: View {
+    @Binding var options: AgentRunner.RunOptions
+    var terminalMode = ""
+    @ObservedObject private var runner = AgentRunner.shared
+    @Environment(\.snapshotMode) private var snapshot
+
+    var body: some View {
+        let o = options
+        HStack(spacing: 6) {
+            if !terminalMode.isEmpty {
+                Text("terminalde: \(Self.modeTitle(terminalMode))")
+                    .font(.system(size: 10)).foregroundStyle(.tertiary).lineLimit(1)
+            }
+            Spacer(minLength: 4)
+            chip(icon: modeIcon(o.mode), text: o.mode.map(Self.modeTitle) ?? "Mod", warn: o.mode == "bypassPermissions") {
+                ForEach(AgentRunner.modes, id: \.title) { m in
+                    Button { options.mode = m.id } label: {
+                        Text(m.title + (o.mode == m.id ? "  ✓" : "") + "\n" + m.hint)
+                    }
+                }
+            }
+            chip(icon: "cpu", text: o.model == nil ? "Model" : (AgentRunner.models.first { $0.id == o.model }?.title ?? o.model!), warn: false) {
+                ForEach(AgentRunner.models, id: \.title) { m in
+                    Button((o.model == m.id ? "✓ " : "") + m.title) { options.model = m.id }
+                }
+            }
+            chip(icon: "gauge.with.dots.needle.50percent", text: o.effort.map(Self.effortTitle) ?? "Efor", warn: false) {
+                ForEach(AgentRunner.efforts, id: \.self) { e in
+                    Button((o.effort == e ? "✓ " : "") + (e.map(Self.effortTitle) ?? "Varsayılan")) {
+                        options.effort = e
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func chip<Content: View>(icon: String, text: String, warn: Bool, @ViewBuilder menu: () -> Content) -> some View {
+        let label = HStack(spacing: 4) {
+            Image(systemName: icon).font(.system(size: 9, weight: .semibold))
+            Text(text).font(.system(size: 10, weight: .medium)).lineLimit(1)
+            Image(systemName: "chevron.down").font(.system(size: 7, weight: .bold)).foregroundStyle(.tertiary)
+        }
+        .foregroundStyle(warn ? Palette.red : .white.opacity(0.8))
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Capsule().fill(warn ? Palette.red.opacity(0.15) : .white.opacity(0.07)))
+        if snapshot {
+            label
+        } else {
+            Menu { menu() } label: { label }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+        }
+    }
+
+    private func modeIcon(_ m: String?) -> String {
+        switch m {
+        case "auto": "bolt.fill"
+        case "acceptEdits": "pencil.and.outline"
+        case "plan": "list.bullet.clipboard"
+        case "dontAsk": "hand.raised.slash"
+        case "bypassPermissions": "exclamationmark.triangle.fill"
+        case "manual": "hand.raised"
+        default: "shield.lefthalf.filled"
+        }
+    }
+
+    static func modeTitle(_ m: String) -> String {
+        AgentRunner.modes.first { $0.id == m }?.title ?? (m == "default" ? "Sor" : m)
+    }
+
+    static func effortTitle(_ e: String) -> String {
+        ["low": "Düşük", "medium": "Orta", "high": "Yüksek", "xhigh": "Çok yüksek", "max": "En yüksek"][e] ?? e
     }
 }

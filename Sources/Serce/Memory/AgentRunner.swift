@@ -20,17 +20,67 @@ import AppKit
 
     func isRunning(_ key: String) -> Bool { running[key] != nil }
 
+    /// Serçe'den gönderilen mesajlar için oturum başına seçimler (nil = Claude Code'daki/oturumdaki gibi).
+    struct RunOptions: Codable, Equatable {
+        var mode: String?
+        var model: String?
+        var effort: String?
+
+        var args: [String] {
+            var a: [String] = []
+            if let mode { a += ["--permission-mode", mode] }
+            if let model { a += ["--model", model] }
+            if let effort { a += ["--effort", effort] }
+            return a
+        }
+    }
+
+    static let modes: [(id: String?, title: String, hint: String)] = [
+        (nil, "Oturumdaki gibi", "Claude Code ayarların neyse o"),
+        ("manual", "Sor", "Her izinde notch'ta sorar"),
+        ("acceptEdits", "Düzenlemeleri kabul et", "Dosya düzenlemeleri sormadan, komutlar sorarak"),
+        ("auto", "Otomatik", "Claude güvenli bulduklarını kendisi onaylar"),
+        ("plan", "Plan", "Değişiklik yapmaz, yalnızca plan çıkarır"),
+        ("dontAsk", "Sorma", "İzin gerektireni sormadan reddeder"),
+        ("bypassPermissions", "Tüm izinleri atla ⚠︎", "Hiçbir şey sormaz — dikkat"),
+    ]
+    static let models: [(id: String?, title: String)] = [
+        (nil, "Varsayılan"), ("fable", "Fable"), ("opus", "Opus"), ("sonnet", "Sonnet"), ("haiku", "Haiku"),
+    ]
+    static let efforts: [String?] = [nil, "low", "medium", "high", "xhigh", "max"]
+
+    @Published private(set) var options: [String: RunOptions] = {
+        guard let d = UserDefaults.standard.data(forKey: "oturumAyarlari"),
+              let v = try? JSONDecoder().decode([String: RunOptions].self, from: d) else { return [:] }
+        return v
+    }()
+
+    /// Oturumun seçimleri; hiç seçilmediyse model genel "arka plan modeli"nden gelir.
+    func options(for sid: String) -> RunOptions {
+        options[sid] ?? RunOptions(mode: nil, model: Self.model, effort: nil)
+    }
+
+    func setOptions(_ o: RunOptions, for sid: String) {
+        options[sid] = o
+        // Son 200 oturum saklanır.
+        if options.count > 200, let k = options.keys.first { options.removeValue(forKey: k) }
+        if let d = try? JSONEncoder().encode(options) { UserDefaults.standard.set(d, forKey: "oturumAyarlari") }
+    }
+
     /// Var olan oturuma yaz. Oturum o an terminalde çalışıyorsa iki kopya çakışmasın diye reddedilir.
     @discardableResult
     func send(_ text: String, to s: AgentSession) -> String? {
         guard s.agent == AgentCatalog.claude else { return "Şimdilik yalnızca Claude Code oturumlarına yazılabiliyor." }
         guard s.status != .working, running[s.id] == nil else { return "\(s.project) şu an çalışıyor; bitince tekrar dene." }
-        return launch(key: s.id, cwd: s.cwd, args: ["-p", text, "--resume", s.id])
+        return launch(key: s.id, cwd: s.cwd, args: ["-p", text, "--resume", s.id] + options(for: s.id).args)
     }
 
     /// Serçe'nin başlattığı oturumların modeli (nil = Claude Code'daki varsayılan). Token tasarrufu için ayarlanabilir.
     nonisolated(unsafe) static var modelOverride: String?
     static var model: String? { modelOverride ?? UserDefaults.standard.string(forKey: "arkaPlanModel").flatMap { $0.isEmpty ? nil : $0 } }
+
+    /// Yeni oturum ekranında seçilen ayarlar; bir sonraki start() kullanır.
+    var pendingOptions: RunOptions?
 
     /// Aynı anda en fazla kaç terminalsiz oturum (maliyet freni).
     var maxParallel: Int { UserDefaults.standard.object(forKey: "paralelOturum") as? Int ?? 4 }
@@ -51,7 +101,10 @@ import AppKit
         if worktree, !isGit { return "Ayrı çalışma kopyası için proje bir git deposu olmalı." }
         let sid = UUID().uuidString.lowercased()
         var args = ["-p", text, "--session-id", sid, "-n", String(text.prefix(40))]
-        if let m = Self.model { args += ["--model", m] }
+        let opts = pendingOptions ?? RunOptions(mode: nil, model: Self.model, effort: nil)
+        pendingOptions = nil
+        args += opts.args
+        setOptions(opts, for: sid)
         if worktree { args += ["--worktree", "serce-" + sid.prefix(6)] }
         if let err = launch(key: sid, cwd: cwd, args: args) { return err }
         AppState.shared.store.registerLaunched(id: sid, cwd: cwd, prompt: text)
