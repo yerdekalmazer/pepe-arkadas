@@ -225,9 +225,13 @@ import SwiftUI
         NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
     }
 
+    /// Kuşun eve uçtuğu nokta: çentiğin tamamen solunda (kameranın altına girmez).
     private var notchOrigin: CGPoint {
         guard let s = screen else { return .zero }
-        return CGPoint(x: s.frame.midX - Self.panelSize.width / 2 - 100, y: s.frame.maxY - Self.panelSize.height + 30)
+        var notchLeft = s.frame.midX - 75
+        if let l = s.auxiliaryTopLeftArea { notchLeft = l.maxX }
+        // Panel 150 pt, kuş ortada 100 pt: kuşun sağ kenarı = origin.x + 125; çentiğe 12 pt pay bırak.
+        return CGPoint(x: notchLeft - 125 - 12, y: s.frame.maxY - Self.panelSize.height + 30)
     }
 
     private func originUnderMouse() -> CGPoint {

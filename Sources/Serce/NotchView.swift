@@ -19,7 +19,8 @@ import UniformTypeIdentifiers
     @Published var newSessionCwd: String?
     /// Ana sayfada tüm oturumlar mı (en çok 8) yoksa ilk 3 mü gösterilsin.
     @Published var showAllSessions = false
-    let wing: CGFloat = 40
+    /// Çentiğin iki yanındaki kanatlar. Kuş sol kanatta, çentikten uzağa yaslı durur (kamera altına girmesin).
+    let wing: CGFloat = 48
     let ear: CGFloat = 7
     let expandedWidth: CGFloat = 660
 
@@ -125,7 +126,10 @@ struct CollapsedView: View {
         HStack(spacing: 0) {
             Bird(mood: AppState.shared.mood, size: model.notchHeight * 0.78, interactive: true)
                 .birdDragSource()
-                .frame(width: model.wing)
+                .padding(.leading, 8)
+                // Zıplama, dans, kıyafet ya da baş dönmesi kuşu çentiğin (kameranın) altına taşımasın.
+                .frame(width: model.wing, alignment: .leading)
+                .clipped()
             Color.clear.frame(width: model.notchWidth)
             indicator.frame(width: model.wing)
         }
