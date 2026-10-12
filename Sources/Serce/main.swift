@@ -360,6 +360,8 @@ MainActor.assumeIsolated {
             _ = store.handle(ev("UserPromptSubmit", sid: "a", serce: true))
             _ = store.handle(ev("SessionEnd", sid: "a", serce: true))
             print("Pepe çalıştırması bitti → kart duruyor:", store.sessions.contains { $0.id == "a" && !$0.ended } ? "✓" : "✗")
+            let a = store.sessions.first { $0.id == "a" }!
+            print("Süreçsiz Pepe oturumu kapat:", store.closeSession(a) ?? "hatasız", "| kart kapalı:", store.sessions.first { $0.id == "a" }?.ended == true ? "✓" : "✗")
             _ = store.handle(ev("UserPromptSubmit", sid: "b", serce: false))
             _ = store.handle(ev("SessionEnd", sid: "b", serce: false))
             print("Terminal kapandı → kart 'kapalı':", store.sessions.first { $0.id == "b" }?.ended == true ? "✓" : "✗")

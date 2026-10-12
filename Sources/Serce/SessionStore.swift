@@ -451,20 +451,32 @@ struct Approval: Identifiable {
 
     /// Terminaldeki ajan sürecini sonlandırır (Ctrl+C'nin iki kez basılması gibi: önce SIGINT, sonra SIGTERM).
     /// Terminal sekmesi açık kalır; Claude Code kapanınca SessionEnd gelir ve kart "kapandı" olur.
+    /// Pepe'nin yürüttüğü oturumlarda süreç yalnızca bir mesaj boyunca yaşar: çalışıyorsa durdurulur, değilse kart kapanır.
     func closeSession(_ s: AgentSession) -> String? {
+        let runner = AgentRunner.shared
+        if runner.isRunning(s.id) { runner.stop(s.id) }
         let pid = s.pid > 0 && Self.isAgentProcess(s.pid) ? s.pid : Self.agentPid(onTTY: s.tty)
-        guard let pid, pid > 0 else { return "Bu oturumun süreci bulunamadı; zaten kapanmış olabilir." }
+        guard let pid, pid > 0 else {
+            markClosed(s.id)
+            return nil
+        }
         kill(pid, SIGINT)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { _ = kill(pid, SIGINT) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
             if Self.isAgentProcess(pid) { kill(pid, SIGTERM) }
-            guard let self, let i = self.sessions.firstIndex(where: { $0.id == s.id }), !self.sessions[i].ended else { return }
-            self.sessions[i].ended = true
-            self.sessions[i].pid = 0
-            self.sessions[i].status = .idle
-            self.sessions[i].action = "Pepe'den kapatıldı"
+            self?.markClosed(s.id)
         }
         return nil
+    }
+
+    private func markClosed(_ id: String) {
+        dropApprovals { $0.sessionId == id }
+        dropQuestions { $0.sessionId == id }
+        guard let i = sessions.firstIndex(where: { $0.id == id }), !sessions[i].ended else { return }
+        sessions[i].ended = true
+        sessions[i].pid = 0
+        sessions[i].status = .idle
+        sessions[i].action = "Pepe'den kapatıldı"
     }
 
     private static func isAgentProcess(_ pid: Int32) -> Bool {
