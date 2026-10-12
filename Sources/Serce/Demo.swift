@@ -36,7 +36,7 @@ enum DemoScript {
         let after: [(Double, HookEvent)] = [
             (1.5, ev("PostToolUse", ["tool_name": "Bash", "tool_input": bashInput, "tool_response": [
                 "stdout": "> kesit@1.0.0 test\n> vitest run\n\n ✓ tests/fatura.test.ts (6)\n   ✓ KDV %20 uygulanır (3 ms)\n\n Test Files  1 passed (1)\n      Tests  48 passed (48)", "stderr": ""]])),
-            (2.3, ev("Stop")),
+            (2.3, ev("Stop", ["last_assistant_message": "KDV oranını **%20** yaptım ve `npm test` çalıştırdım: 48 testin hepsi geçti.\n\nDeğişen dosya: `src/fatura.ts`. Fatura PDF şablonundaki oran metnini de güncellememi ister misin?"])),
         ]
         return (steps, after)
     }

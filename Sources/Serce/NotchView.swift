@@ -378,6 +378,7 @@ struct SessionDetail: View {
     @ObservedObject private var runner = AgentRunner.shared
     @State private var draft = ""
     @State private var sendError: String?
+    @Environment(\.snapshotMode) private var snapshot
 
     /// Adım listesinde "Yanıt" satırının sabit kimliği.
     static let replyId = UUID()
@@ -439,11 +440,17 @@ struct SessionDetail: View {
         let canSend = session.agent == AgentCatalog.claude && session.status != .working && !busy
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
-                TextField(placeholder(busy: busy), text: $draft)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12))
-                    .disabled(!canSend)
-                    .onSubmit(send)
+                if snapshot {
+                    // ImageRenderer metin kutusunu çizemez.
+                    Text(placeholder(busy: busy)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.35))
+                        .frame(maxWidth: .infinity, alignment: .leading).lineLimit(1)
+                } else {
+                    TextField(placeholder(busy: busy), text: $draft)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 12))
+                        .disabled(!canSend)
+                        .onSubmit(send)
+                }
                 if busy {
                     Button { runner.stop(session.id) } label: {
                         Image(systemName: "stop.circle.fill").font(.system(size: 16)).foregroundStyle(.white.opacity(0.7))
