@@ -46,7 +46,8 @@ enum DemoScript {
 @MainActor enum Snapshot {
     static func run(into dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let store = SessionStore()
+        let app = AppState.shared
+        let store = app.store
         let model = NotchModel()
         model.expanded = true
         model.hooksInstalled = true
@@ -56,7 +57,7 @@ enum DemoScript {
         let (steps, after) = DemoScript.make()
 
         func shot(_ name: String) {
-            let view = ExpandedView(store: store, model: model, actions: actions)
+            let view = ExpandedView(app: app, store: store, pills: app.pills, model: model, actions: actions)
                 .frame(width: model.expandedWidth)
                 .fixedSize(horizontal: false, vertical: true)
                 .background(NotchShape(ear: model.ear, radius: 26).fill(.black))

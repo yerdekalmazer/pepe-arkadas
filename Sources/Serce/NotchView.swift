@@ -55,6 +55,7 @@ private struct HeightKey: PreferenceKey {
 }
 
 struct NotchRoot: View {
+    @ObservedObject var app: AppState
     @ObservedObject var store: SessionStore
     @ObservedObject var model: NotchModel
     let actions: NotchActions
@@ -65,7 +66,7 @@ struct NotchRoot: View {
             : model.collapsedSize
         ZStack(alignment: .top) {
             if model.expanded {
-                ExpandedView(store: store, model: model, actions: actions)
+                ExpandedView(app: app, store: store, pills: app.pills, model: model, actions: actions)
                     .fixedSize(horizontal: false, vertical: true)
                     .background(GeometryReader { Color.clear.preference(key: HeightKey.self, value: $0.size.height) })
                     .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
@@ -93,7 +94,7 @@ struct CollapsedView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Bird(mood: store.mood, size: model.notchHeight * 0.78)
+            Bird(mood: AppState.shared.mood, size: model.notchHeight * 0.78)
                 .frame(width: model.wing)
             Color.clear.frame(width: model.notchWidth)
             indicator.frame(width: model.wing)
@@ -141,7 +142,9 @@ struct WorkingDots: View {
 // MARK: - Açık hal
 
 struct ExpandedView: View {
+    @ObservedObject var app: AppState
     @ObservedObject var store: SessionStore
+    @ObservedObject var pills: PillRegistry
     @ObservedObject var model: NotchModel
     let actions: NotchActions
 
@@ -161,8 +164,32 @@ struct ExpandedView: View {
     @ViewBuilder private var panel: some View {
         if let a = store.approvals.first {
             ApprovalView(approval: a, more: store.approvals.count - 1, actions: actions)
-        } else if let id = model.selectedSession, let s = store.sessions.first(where: { $0.id == id }) {
+        } else {
+            switch app.tab {
+            case .chat: ChatTabView(app: app)
+            case .drop: DropTabView(app: app)
+            case .home: home
+            }
+        }
+    }
+
+    @ViewBuilder private var home: some View {
+        if let id = model.selectedSession, let s = store.sessions.first(where: { $0.id == id }) {
             SessionDetail(session: s, model: model, open: { actions.openTerminal(s) })
+        } else if pills.active.isEmpty {
+            leftCard
+        } else {
+            HStack(alignment: .top, spacing: 10) {
+                leftCard.frame(maxWidth: .infinity, alignment: .topLeading)
+                PillGrid(app: app, registry: pills).frame(width: 230)
+            }
+        }
+    }
+
+    /// Seçili pill'in kartı; seçim yoksa ajan oturumları.
+    @ViewBuilder private var leftCard: some View {
+        if let id = app.selectedPill, let p = pills.provider(id) {
+            p.card()
         } else if !model.hooksInstalled {
             ConnectCard(install: actions.installHooks)
         } else if store.sessions.isEmpty {
@@ -191,14 +218,13 @@ struct ExpandedView: View {
 
     private var topBar: some View {
         HStack(spacing: 4) {
-            TabIcon(symbol: "house.fill", selected: model.selectedSession == nil) {
+            TabIcon(symbol: "house.fill", selected: app.tab == .home) {
+                app.tab = .home
                 model.selectedSession = nil
                 model.pinnedStep = nil
             }
-            TabIcon(symbol: "terminal.fill", selected: model.selectedSession != nil) {
-                if model.selectedSession == nil { model.selectedSession = store.sessions.first?.id }
-            }
-            .opacity(store.sessions.isEmpty ? 0.35 : 1)
+            TabIcon(symbol: "bubble.left.fill", selected: app.tab == .chat) { app.tab = .chat }
+            TabIcon(symbol: "plus", selected: app.tab == .drop) { app.tab = .drop }
             Spacer(minLength: model.notchWidth)
             TabIcon(symbol: "gearshape", selected: false, action: actions.showMenu)
             TabIcon(symbol: store.soundsOn ? "speaker.wave.2" : "speaker.slash", selected: false) {

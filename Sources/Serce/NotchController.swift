@@ -13,7 +13,7 @@ final class NotchPanel: NSPanel {
     private let panel: NotchPanel
     private var monitors: [Any] = []
     private var hoverWork: DispatchWorkItem?
-    private let panelSize = CGSize(width: 720, height: 520)
+    private let panelSize = CGSize(width: 760, height: 620)
 
     init(store: SessionStore, actions: NotchActions) {
         self.store = store
@@ -27,7 +27,7 @@ final class NotchPanel: NSPanel {
         panel.isMovable = false
         panel.ignoresMouseEvents = true
 
-        let host = NSHostingView(rootView: NotchRoot(store: store, model: model, actions: actions))
+        let host = NSHostingView(rootView: NotchRoot(app: .shared, store: store, model: model, actions: actions))
         host.sizingOptions = []
         panel.contentView = host
 

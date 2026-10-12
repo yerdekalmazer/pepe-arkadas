@@ -31,6 +31,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSAppleEventsUsageDescription</key><string>Serçe müzik çalarları kontrol etmek, Mail'de e-posta açmak ve doğru terminal sekmesine gitmek için diğer uygulamalarla konuşur.</string>
+  <key>NSMicrophoneUsageDescription</key><string>Serçe sesli komutları ve dikteyi dinlemek için mikrofonu kullanır.</string>
+  <key>NSSpeechRecognitionUsageDescription</key><string>Konuşmanı yazıya çevirmek için; tanıma mümkünse bu Mac'te yapılır.</string>
+  <key>NSScreenCaptureUsageDescription</key><string>Serçe'yi bir pencerenin üstüne bıraktığında o pencerenin görüntüsünü sohbete eklemek için.</string>
 </dict></plist>
 PLIST
 

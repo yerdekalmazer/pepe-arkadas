@@ -1,6 +1,6 @@
 import AppKit
 
-enum Mood { case sleep, idle, working, alert, happy }
+enum Mood { case sleep, idle, working, alert, happy, dance }
 enum SessionStatus { case idle, working, waiting, done }
 enum Decision { case allow, always, deny, terminal }
 

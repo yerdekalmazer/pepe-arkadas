@@ -3,7 +3,7 @@ import ServiceManagement
 import SwiftUI
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    let store = SessionStore()
+    var store: SessionStore { AppState.shared.store }
     private var server: HookServer!
     private var notch: NotchController!
     private var statusItem: NSStatusItem!
@@ -25,14 +25,24 @@ import SwiftUI
                 guard let self, Date().timeIntervalSince(self.lastDecision) > 0.8 else { return }
                 self.toggleHooks()
             },
-            showMenu: { [weak self] in
-                guard let self else { return }
-                let menu = NSMenu()
-                self.menuNeedsUpdate(menu)
-                menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
-            }
+            showMenu: { SettingsWindowController.shared.show() }
         ))
         notch.show()
+
+        let app = AppState.shared
+        app.actions.expand = { [weak self] in self?.notch.setExpanded(true) }
+        app.actions.collapse = { [weak self] in self?.notch.setExpanded(false) }
+        app.actions.openTab = { [weak self] tab in
+            app.tab = tab
+            self?.notch.setExpanded(true)
+        }
+        app.actions.openSettings = { SettingsWindowController.shared.show() }
+        app.actions.openTerminal = { [weak self] s in self?.store.openTerminal(for: s) }
+        app.actions.jumpToAlert = { [weak self] in
+            if !app.store.approvals.isEmpty { self?.notch.setExpanded(true) }
+        }
+        CoreSettings.register(app)
+        Features.register(app)
 
         let store = self.store
         server = HookServer(token: Support.token) { event, responder, onClose in
@@ -73,6 +83,7 @@ import SwiftUI
         let login = item("Girişte başlat", #selector(toggleLogin))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
+        menu.addItem(item("Ayarlar…", #selector(openSettings), key: ","))
         menu.addItem(item("Demo göster", #selector(runDemo)))
         menu.addItem(.separator())
         menu.addItem(item("Serçe'den çık", #selector(quit), key: "q"))
@@ -94,6 +105,8 @@ import SwiftUI
     }
 
     @objc private func toggleSound() { store.soundsOn.toggle() }
+
+    @objc private func openSettings() { SettingsWindowController.shared.show() }
 
     @objc private func toggleLogin() {
         do {
