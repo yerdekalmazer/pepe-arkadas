@@ -132,7 +132,11 @@ enum MCPConfigLoader {
         }
         if let cmd = c["command"] as? String {
             let args = (c["args"] as? [String] ?? []).map(expand)
-            return MCPServerConfig(name: name, source: source, transport: .stdio(command: expand(cmd), args: args, env: env))
+            let command = expand(cmd)
+            // Başka bir uygulamanın paketindeki iç araçlar (ör. ChatGPT'nin node_repl'i) kendiliğinden başlatılmaz.
+            let insideApp = command.contains(".app/Contents/")
+            return MCPServerConfig(name: name, source: source, transport: .stdio(command: command, args: args, env: env),
+                                   summary: insideApp ? "Başka bir uygulamanın iç aracı" : "", enabledByDefault: !insideApp)
         }
         return nil
     }
