@@ -147,6 +147,7 @@ struct GeneralSettings: View {
                 login = SMAppService.mainApp.status == .enabled
             }))
         }
+        LegacyKeysGroup()
         SettingsGroup(title: "Hakkında", footer: "Serçe, Claude Code oturumlarını notch'ta izler. Her şey bu Mac'te kalır; yalnızca kendi anahtarınla açtığın servislere istek gider.") {
             Text("Serçe 0.2").font(.system(.body, design: .rounded).weight(.semibold))
         }
@@ -217,6 +218,32 @@ struct PillSettings: View {
         ForEach(registry.all, id: \.id) { p in
             if let v = p.settings() {
                 SettingsGroup(title: p.title) { v }
+            }
+        }
+    }
+}
+
+/// Eski sürümlerin Keychain'de bıraktığı anahtarlar: tek seferlik, kullanıcı isteyince taşınır.
+struct LegacyKeysGroup: View {
+    @State private var accounts = Keychain.legacyAccounts()
+    @State private var result: String?
+
+    var body: some View {
+        if !accounts.isEmpty || result != nil {
+            SettingsGroup(title: "Eski anahtarlar",
+                          footer: "Serçe artık anahtarları Keychain yerine yalnızca senin okuyabildiğin bir dosyada tutuyor; böylece güncellemelerde parola sormuyor. Eski sürümlerden kalan kayıtları bir kez taşıyabilirsin (macOS her biri için son kez parola sorar) ya da anahtarı Ayarlar'dan yeniden girebilirsin.") {
+                if let result { Text(result).foregroundStyle(.secondary) }
+                if !accounts.isEmpty {
+                    HStack {
+                        Text("\(accounts.count) kayıt Keychain'de bekliyor")
+                        Spacer()
+                        Button("Taşı") {
+                            let n = Keychain.importLegacy()
+                            accounts = Keychain.legacyAccounts()
+                            result = "\(n) anahtar taşındı."
+                        }
+                    }
+                }
             }
         }
     }
