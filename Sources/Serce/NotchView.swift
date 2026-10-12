@@ -91,6 +91,8 @@ struct NotchRoot: View {
 struct CollapsedView: View {
     @ObservedObject var store: SessionStore
     @ObservedObject var model: NotchModel
+    /// Müzik çalarken sağ kanatta ekolayzır göstermek için.
+    @ObservedObject var app: AppState = .shared
 
     var body: some View {
         HStack(spacing: 0) {
@@ -115,6 +117,9 @@ struct CollapsedView: View {
                 .foregroundStyle(Palette.green)
         } else if store.workingCount > 0 {
             WorkingDots(count: store.workingCount)
+        } else if app.musicPlaying {
+            // Müzik pill'i çalıyor: küçük ekolayzır.
+            Equalizer(color: Palette.green, bars: 4, height: 11)
         }
     }
 }

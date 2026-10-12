@@ -5,6 +5,9 @@ import SwiftUI
 @MainActor enum Features {
     static func register(_ app: AppState) {
         // pill'ler
+        // pill'ler: müzik (Spotify, Apple Music)
+        app.pills.register(MusicController(.spotify))
+        app.pills.register(MusicController(.music))
         // ajanlar
         // karakter
         // sohbet
