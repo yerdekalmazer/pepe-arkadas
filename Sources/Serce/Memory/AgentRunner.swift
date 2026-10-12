@@ -192,6 +192,7 @@ import AppKit
 
     private func finished(_ key: String, status: Int32, output: Data) {
         running[key] = nil
+        defer { ComposerStore.shared.flush(key) }
         // Düz JSON (tek nesne) ya da akış (satır satır; sonuç "result" satırında).
         var json = (try? JSONSerialization.jsonObject(with: output)) as? [String: Any]
         if json == nil {

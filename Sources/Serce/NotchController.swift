@@ -60,6 +60,14 @@ final class NotchPanel: NSPanel {
         if let g = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: track) {
             monitors.append(g)
         }
+        // ⌘V: oturum detayı açıksa ve panoda görsel varsa, görsel o oturumun mesajına eklenir.
+        _ = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
+            guard e.modifierFlags.contains(.command), e.charactersIgnoringModifiers == "v",
+                  let self, self.model.expanded, AppState.shared.tab == .home,
+                  let sid = self.model.selectedSession,
+                  ComposerStore.shared.pasteImages(into: sid) else { return e }
+            return nil
+        }
         if let l = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: { e in track(e); return e }) {
             monitors.append(l)
         }
@@ -123,7 +131,7 @@ final class NotchPanel: NSPanel {
             hoverWork?.cancel()
             hoverWork = nil
             // Bekleyen izin varken ve bir alana yazı yazılırken (panel klavyede) ada açık kalır.
-            if model.expanded, !store.hasPending, !panel.isKeyWindow { setExpanded(false) }
+            if model.expanded, !store.hasPending, !panel.isKeyWindow, !model.holdOpen { setExpanded(false) }
         }
     }
 
@@ -134,7 +142,9 @@ final class NotchPanel: NSPanel {
               board.types?.contains(.fileURL) == true,
               activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) else { return }
         panel.ignoresMouseEvents = false
-        if AppState.shared.tab != .drop { AppState.shared.tab = .drop }
+        // Bir oturumun detayı açıksa sürüklenen görsel o oturumun mesajına gider; + sekmesine atlanmaz.
+        let onSession = model.expanded && AppState.shared.tab == .home && model.selectedSession != nil
+        if !onSession, AppState.shared.tab != .drop { AppState.shared.tab = .drop }
         if !model.expanded { setExpanded(true) }
     }
 
@@ -147,7 +157,7 @@ final class NotchPanel: NSPanel {
 
     /// Karar sonrası: fare dışarıdaysa ve başka bekleyen yoksa adayı kapat.
     func settle() {
-        if !store.hasPending, !activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) {
+        if !store.hasPending, !model.holdOpen, !activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) {
             setExpanded(false)
         }
     }

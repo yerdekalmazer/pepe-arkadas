@@ -373,6 +373,25 @@ MainActor.assumeIsolated {
         }
         exit(0)
     }
+    // Mesaj kuyruğu: çalışan oturuma yazılan mesaj sıraya alınır, Stop gelince gönderilir: Serce --kuyruk-testi klasor
+    if let i = CommandLine.arguments.firstIndex(of: "--kuyruk-testi"), i + 1 < CommandLine.arguments.count {
+        Task { @MainActor in
+            let store = AppState.shared.store, c = ComposerStore.shared
+            let sid = "00000000-0000-4000-8000-000000000001", cwd = CommandLine.arguments[i + 1]
+            _ = store.handle(HookEvent(name: "UserPromptSubmit", payload: ["session_id": sid, "cwd": cwd, "prompt": "x"], bundleId: "", term: ""))
+            c.setText("şunu da ekle", for: sid)
+            c.addImage(Data([0x89, 0x50, 0x4E, 0x47]), to: sid)
+            let s = store.sessions.first { $0.id == sid }!
+            print("çalışırken gönder:", c.submit(for: s) ?? "ok", "| sırada:", c.queued[sid] != nil, "| taslak boş:", c.draft(sid).isEmpty)
+            _ = store.handle(HookEvent(name: "Stop", payload: ["session_id": sid, "cwd": cwd], bundleId: "", term: ""))
+            try? await Task.sleep(for: .milliseconds(300))
+            print("Stop sonrası: sırada:", c.queued[sid] != nil, "| gönderim başladı:", AgentRunner.shared.isRunning(sid))
+            while AgentRunner.shared.isRunning(sid) { try? await Task.sleep(for: .milliseconds(300)) }
+            print("claude sonucu:", (AgentRunner.shared.lastError[sid] ?? "hata yok").prefix(90))
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

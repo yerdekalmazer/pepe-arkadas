@@ -232,6 +232,8 @@ struct Approval: Identifiable {
             }
         case "Stop":
             if let m = p["last_assistant_message"] as? String, !m.isEmpty { s.lastReply = String(m.suffix(4000)) }
+            // Sıradaki mesaj varsa oturum durunca gönderilir (durum kaydedildikten sonra).
+            Task { @MainActor in ComposerStore.shared.flush(sid) }
             dropApprovals { $0.sessionId == sid }
             dropQuestions { $0.sessionId == sid }
             s.status = .done

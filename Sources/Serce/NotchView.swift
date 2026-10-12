@@ -3,6 +3,8 @@ import UniformTypeIdentifiers
 
 @MainActor final class NotchModel: ObservableObject {
     @Published var expanded = false
+    /// Dosya seçme penceresi gibi bir şey açıkken ada kendiliğinden kapanmasın.
+    @Published var holdOpen = false
     @Published var notchWidth: CGFloat = 185
     @Published var notchHeight: CGFloat = 32
     @Published var expandedHeight: CGFloat = 180
@@ -413,10 +415,9 @@ struct SessionDetail: View {
     @ObservedObject var model: NotchModel
     let open: () -> Void
     @ObservedObject private var runner = AgentRunner.shared
-    @State private var draft = ""
+    @ObservedObject private var composerStore = ComposerStore.shared
     @State private var sendError: String?
     @State private var confirmClose = false
-    @State private var images: [Data] = []
     @State private var dropTargeted = false
     @Environment(\.snapshotMode) private var snapshot
 
@@ -530,22 +531,30 @@ struct SessionDetail: View {
             }
         }
         .frame(height: 320)
+        // Görseli detayın herhangi bir yerine bırakabilirsin; o oturumun mesajına eklenir.
+        .onDrop(of: snapshot ? [] : [.fileURL, .image], isTargeted: $dropTargeted) { providers in
+            guard session.agent == AgentCatalog.claude else { return false }
+            ComposerStore.shared.addDropped(providers, to: session.id)
+            return true
+        }
     }
 
     /// Terminal açık olmasa da bu oturuma yaz: `claude -p --resume` arka planda çalışır.
     @ViewBuilder private var composer: some View {
         let busy = runner.isRunning(session.id)
-        let canSend = session.agent == AgentCatalog.claude && session.status != .working && !busy
+        let isClaude = session.agent == AgentCatalog.claude
+        let draft = composerStore.draft(session.id)
+        let queued = composerStore.queued[session.id] != nil
         VStack(alignment: .leading, spacing: 4) {
-            if !images.isEmpty {
+            if !draft.images.isEmpty {
                 HStack(spacing: 6) {
-                    ForEach(images.indices, id: \.self) { i in
+                    ForEach(draft.images.indices, id: \.self) { i in
                         ZStack(alignment: .topTrailing) {
-                            if let img = NSImage(data: images[i]) {
+                            if let img = NSImage(data: draft.images[i]) {
                                 Image(nsImage: img).resizable().scaledToFill()
                                     .frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 8))
                             }
-                            Button { images.remove(at: i) } label: {
+                            Button { composerStore.removeImage(at: i, from: session.id) } label: {
                                 Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(.white, .black.opacity(0.7))
                             }
                             .buttonStyle(.plain).offset(x: 4, y: -4)
@@ -554,44 +563,50 @@ struct SessionDetail: View {
                 }
                 .padding(.leading, 6)
             }
+            if queued {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock").font(.system(size: 10))
+                    Text("Sırada — oturum bitince gönderilecek").font(.system(size: 10))
+                    Button("Geri al") { composerStore.cancelQueued(session.id) }
+                        .buttonStyle(.plain).font(.system(size: 10, weight: .semibold)).foregroundStyle(Palette.amber)
+                }
+                .foregroundStyle(.secondary).padding(.leading, 6)
+            }
             HStack(spacing: 8) {
                 Button(action: pickImages) {
-                    Image(systemName: "paperclip").font(.system(size: 13)).foregroundStyle(.white.opacity(canSend ? 0.7 : 0.25))
+                    Image(systemName: "paperclip").font(.system(size: 13)).foregroundStyle(.white.opacity(isClaude ? 0.7 : 0.25))
                 }
-                .buttonStyle(.plain).disabled(!canSend).help("Görsel ekle (sürükleyip bırakabilir ya da ⌘V ile yapıştırabilirsin)")
+                .buttonStyle(.plain).disabled(!isClaude).help("Görsel ekle — sürükleyip bırakabilir ya da ⌘V ile yapıştırabilirsin")
                 if snapshot {
                     // ImageRenderer metin kutusunu çizemez.
                     Text(placeholder(busy: busy)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.35))
                         .frame(maxWidth: .infinity, alignment: .leading).lineLimit(1)
                 } else {
-                    TextField(placeholder(busy: busy), text: $draft)
+                    TextField(placeholder(busy: busy), text: Binding(get: { composerStore.draft(session.id).text },
+                                                                     set: { composerStore.setText($0, for: session.id) }))
                         .textFieldStyle(.plain)
                         .font(.system(size: 12))
-                        .disabled(!canSend)
+                        .disabled(!isClaude)
                         .onSubmit(send)
-                        .onPasteCommand(of: [.png, .tiff, .jpeg, .fileURL]) { providers in addImages(providers) }
                 }
                 if busy {
                     Button { runner.stop(session.id) } label: {
                         Image(systemName: "stop.circle.fill").font(.system(size: 16)).foregroundStyle(.white.opacity(0.7))
                     }
                     .buttonStyle(.plain).help("Durdur")
-                } else {
-                    Button(action: send) {
-                        Image(systemName: "arrow.up.circle.fill").font(.system(size: 18))
-                            .foregroundStyle(canSend && hasContent ? .white : .white.opacity(0.25))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canSend || !hasContent)
                 }
+                Button(action: send) {
+                    Image(systemName: (session.status == .working || busy) ? "clock.arrow.circlepath" : "arrow.up.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(isClaude && !draft.isEmpty ? .white : .white.opacity(0.25))
+                }
+                .buttonStyle(.plain)
+                .disabled(!isClaude || draft.isEmpty)
+                .help(session.status == .working ? "Sıraya al — oturum bitince gönderilir" : "Gönder")
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
             .background(Capsule().fill(.white.opacity(dropTargeted ? 0.16 : 0.07)))
-            .onDrop(of: snapshot ? [] : [.fileURL, .image], isTargeted: $dropTargeted) { providers in
-                addImages(providers)
-                return true
-            }
-            if let err = sendError ?? runner.lastError[session.id] {
+            if let err = sendError ?? composerStore.errors[session.id] ?? runner.lastError[session.id] {
                 Text(err).font(.system(size: 10)).foregroundStyle(Palette.red).lineLimit(2)
             }
         }
@@ -617,52 +632,30 @@ struct SessionDetail: View {
     }
 
     private func placeholder(busy: Bool) -> String {
-        if busy { return "Serçe bu oturumu yürütüyor…" }
+        if busy { return "Serçe yürütüyor — yazarsan sıraya alınır" }
         if session.ended, session.agent == AgentCatalog.claude { return "Terminal kapalı — yazarsan Serçe arka planda sürdürür" }
         if session.agent != AgentCatalog.claude { return "Şimdilik yalnızca Claude Code oturumlarına yazılabiliyor" }
-        if session.status == .working { return "Oturum çalışıyor; bitince yazabilirsin" }
+        if session.status == .working { return "Oturum çalışıyor — yaz, bitince gönderilir" }
         return "\(session.project) oturumuna yaz — terminal kapalı olsa da devam eder"
     }
 
-    private var hasContent: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !images.isEmpty }
-
     private func send() {
-        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty || !images.isEmpty else { return }
-        sendError = AgentRunner.shared.send(text.isEmpty ? "Bu görsele bak." : text, images: images, to: session)
-        if sendError == nil {
-            draft = ""
-            images = []
-            model.pinnedStep = nil
-        }
+        sendError = composerStore.submit(for: session)
+        if sendError == nil { model.pinnedStep = nil }
     }
 
-    /// Görsel dosyası seç (terminale görsel yapıştırmak gibi; en fazla 5).
+    /// Görsel dosyası seç. Pencere açıkken ada kapanmaz; seçilenler taslakta kalır.
     private func pickImages() {
+        let sid = session.id
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = true
+        model.holdOpen = true
         NSApp.activate()
-        guard panel.runModal() == .OK else { return }
-        for url in panel.urls.prefix(5 - images.count) { if let d = try? Data(contentsOf: url) { images.append(d) } }
-    }
-
-    /// Sürüklenen ya da yapıştırılan görseller / görsel dosyaları.
-    private func addImages(_ providers: [NSItemProvider]) {
-        for p in providers {
-            if p.canLoadObject(ofClass: URL.self) {
-                _ = p.loadObject(ofClass: URL.self) { url, _ in
-                    guard let url, let type = UTType(filenameExtension: url.pathExtension), type.conforms(to: .image),
-                          let d = try? Data(contentsOf: url) else { return }
-                    Task { @MainActor in if images.count < 5 { images.append(d) } }
-                }
-            } else if p.canLoadObject(ofClass: NSImage.self) {
-                _ = p.loadObject(ofClass: NSImage.self) { obj, _ in
-                    guard let img = obj as? NSImage, let tiff = img.tiffRepresentation else { return }
-                    Task { @MainActor in if images.count < 5 { images.append(tiff) } }
-                }
-            }
-        }
+        let ok = panel.runModal() == .OK
+        model.holdOpen = false
+        guard ok else { return }
+        for url in panel.urls { if let d = try? Data(contentsOf: url) { ComposerStore.shared.addImage(d, to: sid) } }
     }
 }
 
