@@ -147,7 +147,7 @@ import SwiftUI
             CGRequestScreenCaptureAccess()
             let a = NSAlert()
             a.messageText = "Ekran kaydı izni gerekli"
-            a.informativeText = "Serçe'nin bir pencereyi sohbete ekleyebilmesi için Sistem Ayarları → Gizlilik ve Güvenlik → Ekran ve Sistem Ses Kaydı listesinde Serçe'yi aç, sonra kuşu tekrar bırak."
+            a.informativeText = "Pepe'nin bir pencereyi sohbete ekleyebilmesi için Sistem Ayarları → Gizlilik ve Güvenlik → Ekran ve Sistem Ses Kaydı listesinde Pepe'yi aç, sonra Pepe'yi tekrar bırak."
             NSApp.activate()
             a.runModal()
             return

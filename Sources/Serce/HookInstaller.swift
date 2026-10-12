@@ -1,6 +1,6 @@
 import Foundation
 
-/// ~/.claude/settings.json içine Serçe hook'larını ekler/kaldırır. Diğer hook'lara dokunmaz, yazmadan önce yedek alır.
+/// ~/.claude/settings.json içine Pepe hook'larını ekler/kaldırır. Diğer hook'lara dokunmaz, yazmadan önce yedek alır.
 enum HookInstaller {
     static let events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse",
                          "PermissionRequest", "Notification", "Stop", "SessionEnd"]
@@ -37,7 +37,7 @@ enum HookInstaller {
         try save(root)
     }
 
-    /// Eski sürümle kurulmuş (soru hook'u eksik) bağlantıyı sessizce tamamlar. Yalnızca Serçe satırlarına dokunur.
+    /// Eski sürümle kurulmuş (soru hook'u eksik) bağlantıyı sessizce tamamlar. Yalnızca Pepe satırlarına dokunur.
     static func upgradeIfNeeded() {
         guard isInstalled(), let hooks = (try? load())?["hooks"] as? [String: Any] else { return }
         let hasAsk = groups(hooks["PreToolUse"]).contains { ($0["matcher"] as? String) == "AskUserQuestion" && isOurs($0) }
@@ -64,7 +64,7 @@ enum HookInstaller {
         let fm = FileManager.default
         try fm.createDirectory(at: settingsURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         let backup = settingsURL.appendingPathExtension("serce-yedek")
-        // Yedek yalnızca ilk kez alınır: Serçe'den önceki hal hiçbir zaman ezilmez.
+        // Yedek yalnızca ilk kez alınır: Pepe'den önceki hal hiçbir zaman ezilmez.
         if fm.fileExists(atPath: settingsURL.path), !fm.fileExists(atPath: backup.path) {
             try fm.copyItem(at: settingsURL, to: backup)
         }
@@ -78,7 +78,7 @@ enum HookInstaller {
         (group["hooks"] as? [[String: Any]] ?? []).contains { ($0["command"] as? String ?? "").contains(marker) }
     }
 
-    /// Serçe'ye ait komutları çıkarır; boş kalan grupları ve olayları siler.
+    /// Pepe'ye ait komutları çıkarır; boş kalan grupları ve olayları siler.
     private static func stripped(_ hooks: [String: Any]) -> [String: Any] {
         var out: [String: Any] = [:]
         for (ev, value) in hooks {

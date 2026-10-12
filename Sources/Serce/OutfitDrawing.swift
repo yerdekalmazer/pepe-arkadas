@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Kıyafet ve tepki çizimleri. Bird'ün birim koordinatlarında (0…1) çalışır:
-/// gövde merkezi (0.5, 0.58), başın tepesi ~y 0.23, göz (0.64, 0.44), gaga 0.82–0.97.
+/// gövde merkezi (0.5, 0.58), başın tepesi ~y 0.23, göz (0.64, 0.44), burun 0.80–0.97, tasma ~y 0.75.
 enum OutfitArt {
     private static func oval(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> Path {
         Path(ellipseIn: CGRect(x: x - w / 2, y: y - h / 2, width: w, height: h))
@@ -45,11 +45,11 @@ enum OutfitArt {
     private static func scarf(_ ctx: inout GraphicsContext) {
         let red = rgb(0.85, 0.22, 0.25), cream = rgb(0.96, 0.92, 0.84)
         var band = Path()
-        band.move(to: CGPoint(x: 0.30, y: 0.57))
-        band.addQuadCurve(to: CGPoint(x: 0.86, y: 0.58), control: CGPoint(x: 0.58, y: 0.70))
+        band.move(to: CGPoint(x: 0.30, y: 0.66))
+        band.addQuadCurve(to: CGPoint(x: 0.88, y: 0.70), control: CGPoint(x: 0.58, y: 0.84))
         ctx.stroke(band, with: .color(red), style: StrokeStyle(lineWidth: 0.09, lineCap: .round))
         var tail = ctx
-        tail.translateBy(x: 0.40, y: 0.66)
+        tail.translateBy(x: 0.42, y: 0.75)
         tail.rotate(by: .radians(0.25))
         let r = CGRect(x: -0.045, y: 0, width: 0.09, height: 0.22)
         tail.fill(Path(roundedRect: r, cornerRadius: 0.02), with: .color(red))
@@ -101,12 +101,12 @@ enum OutfitArt {
     private static func bowtie(_ ctx: inout GraphicsContext) {
         let c = rgb(0.25, 0.45, 0.95)
         var l = Path()
-        l.move(to: CGPoint(x: 0.75, y: 0.68)); l.addLine(to: CGPoint(x: 0.66, y: 0.625)); l.addLine(to: CGPoint(x: 0.66, y: 0.735)); l.closeSubpath()
+        l.move(to: CGPoint(x: 0.740, y: 0.755)); l.addLine(to: CGPoint(x: 0.650, y: 0.700)); l.addLine(to: CGPoint(x: 0.650, y: 0.810)); l.closeSubpath()
         var r = Path()
-        r.move(to: CGPoint(x: 0.75, y: 0.68)); r.addLine(to: CGPoint(x: 0.84, y: 0.625)); r.addLine(to: CGPoint(x: 0.84, y: 0.735)); r.closeSubpath()
+        r.move(to: CGPoint(x: 0.740, y: 0.755)); r.addLine(to: CGPoint(x: 0.830, y: 0.700)); r.addLine(to: CGPoint(x: 0.830, y: 0.810)); r.closeSubpath()
         ctx.fill(l, with: .color(c))
         ctx.fill(r, with: .color(c))
-        ctx.fill(oval(0.75, 0.68, 0.05, 0.05), with: .color(rgb(0.15, 0.30, 0.75)))
+        ctx.fill(oval(0.74, 0.755, 0.05, 0.05), with: .color(rgb(0.15, 0.30, 0.75)))
     }
 
     private static func partyHat(_ ctx: inout GraphicsContext) {
@@ -163,7 +163,7 @@ enum OutfitArt {
 
     // MARK: - Tepki çizimleri
 
-    /// Sinirli: kabarmış tepe tüyleri, çatık kaş, öfke işareti.
+    /// Sinirli: kabarmış tepe tüyleri (kulak renginde), çatık kaş, öfke işareti.
     static func annoyedSpikes(_ ctx: inout GraphicsContext, feather: Color, k: Double) {
         for (i, x) in [0.43, 0.51, 0.59].enumerated() {
             var spike = Path()

@@ -10,11 +10,11 @@ struct AgentSession: Identifiable {
     /// Terminaldeki oturumun izin modu ve eforu (hook verisinden; bilinmiyorsa boş).
     var permissionMode = ""
     var effort = ""
-    /// Terminaldeki ajan sürecinin kimliği (Serçe'den kapatmak için); Serçe'nin kendi çalıştırmaları bunu değiştirmez.
+    /// Terminaldeki ajan sürecinin kimliği (Pepe'den kapatmak için); Pepe'nin kendi çalıştırmaları bunu değiştirmez.
     var pid: Int32 = 0
-    /// Terminal oturumu kapandı; kart durur, Serçe'den yazınca arka planda sürer.
+    /// Terminal oturumu kapandı; kart durur, Pepe'den yazınca arka planda sürer.
     var ended = false
-    /// Ajanın son mesajı (Stop hook'u); Serçe'den yazınca cevap burada görünür.
+    /// Ajanın son mesajı (Stop hook'u); Pepe'den yazınca cevap burada görünür.
     var lastReply = ""
     let id: String
     var cwd: String
@@ -29,7 +29,7 @@ struct AgentSession: Identifiable {
     var prompt = ""
     var steps: [Step] = []
     var finished = false
-    /// Serçe'nin başlattığı (terminalsiz) oturum mu?
+    /// Pepe'nin başlattığı (terminalsiz) oturum mu?
     var launchedBySerce = false
     /// Proje adı ana depodan gelir: çalışma kopyasındaki oturum da aynı projede görünür.
     var project: String { cwd.isEmpty ? "oturum" : ProjectNames.name(for: cwd) }
@@ -50,7 +50,7 @@ struct Approval: Identifiable {
     let preview: Step
     let suggestions: [Any]
     let responder: Responder
-    /// Serçe'nin kendi istekleri (MCP araçları) için: karar hook'a değil buraya gider.
+    /// Pepe'nin kendi istekleri (MCP araçları) için: karar hook'a değil buraya gider.
     var onDecision: ((Decision) -> Void)? = nil
 }
 
@@ -246,11 +246,11 @@ struct Approval: Identifiable {
         case "SessionEnd":
             dropApprovals { $0.sessionId == sid }
             dropQuestions { $0.sessionId == sid }
-            // Kart silinmez: Serçe'nin kendi çalıştırması bittiyse terminal hâlâ açık olabilir;
-            // terminal kapandıysa oturum Serçe'den sürdürülebilir.
+            // Kart silinmez: Pepe'nin kendi çalıştırması bittiyse terminal hâlâ açık olabilir;
+            // terminal kapandıysa oturum Pepe'den sürdürülebilir.
             if s.status == .working || s.status == .waiting { s.status = .idle }
             if e.fromSerce {
-                s.action = "Serçe üzerinden yanıtladı"
+                s.action = "Pepe üzerinden yanıtladı"
             } else {
                 s.ended = true
                 s.pid = 0
@@ -374,7 +374,7 @@ struct Approval: Identifiable {
     // MARK: - Yardımcılar
 
     /// Kartlar yerinde güncellenir; tıklamak üzereyken altından kaymasın diye yalnızca yeni oturum en üste girer.
-    /// Serçe'nin başlattığı oturumu hook'lar gelmeden önce kart olarak göster.
+    /// Pepe'nin başlattığı oturumu hook'lar gelmeden önce kart olarak göster.
     func registerLaunched(id: String, cwd: String, prompt: String) {
         var s = sessions.first { $0.id == id } ?? AgentSession(id: id, cwd: cwd)
         s.status = .working
@@ -409,7 +409,7 @@ struct Approval: Identifiable {
         }
     }
 
-    /// Serçe'nin kendisi (sohbet/sesli asistan) bir MCP aracı çalıştırmadan önce notch'ta onay ister.
+    /// Pepe'nin kendisi (sohbet/sesli asistan) bir MCP aracı çalıştırmadan önce notch'ta onay ister.
     /// 2 dakika içinde cevap gelmezse reddedilmiş sayılır.
     func requestLocalApproval(project: String, tool: String, title: String, input: [String: Any], allowAlways: Bool) async -> Decision {
         let json = (try? JSONSerialization.data(withJSONObject: input, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]))
@@ -462,7 +462,7 @@ struct Approval: Identifiable {
             self.sessions[i].ended = true
             self.sessions[i].pid = 0
             self.sessions[i].status = .idle
-            self.sessions[i].action = "Serçe'den kapatıldı"
+            self.sessions[i].action = "Pepe'den kapatıldı"
         }
         return nil
     }
@@ -495,7 +495,7 @@ struct Approval: Identifiable {
     }
 
     private func prune() {
-        // Kartlar 3 saat dokunulmazsa kalkar (kapanmış oturumlar da Serçe'den sürdürülebildiği için kısa tutulmaz).
+        // Kartlar 3 saat dokunulmazsa kalkar (kapanmış oturumlar da Pepe'den sürdürülebildiği için kısa tutulmaz).
         let limit = Date().addingTimeInterval(-3 * 3600)
         let waiting = Set(approvals.map(\.sessionId))
         sessions.removeAll { $0.updated < limit && $0.status != .waiting && !waiting.contains($0.id) }

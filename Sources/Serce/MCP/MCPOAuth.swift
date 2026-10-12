@@ -23,7 +23,7 @@ enum MCPOAuth {
         var errorDescription: String? {
             switch self {
             case .discovery(let m): "Yetki sunucusu bulunamadı: \(m)"
-            case .registration(let m): "Serçe bu sunucuya kaydolamadı: \(m)"
+            case .registration(let m): "Pepe bu sunucuya kaydolamadı: \(m)"
             case .denied(let m): "Giriş tamamlanmadı: \(m)"
             case .token(let m): "Jeton alınamadı: \(m)"
             }
@@ -164,7 +164,7 @@ enum MCPOAuth {
         r.httpMethod = "POST"
         r.setValue("application/json", forHTTPHeaderField: "Content-Type")
         r.httpBody = try JSONSerialization.data(withJSONObject: [
-            "client_name": "Serçe",
+            "client_name": "Pepe",
             "redirect_uris": [redirectURI],
             "grant_types": ["authorization_code", "refresh_token"],
             "response_types": ["code"],
@@ -259,7 +259,7 @@ private final class CallbackServer: @unchecked Sendable {
             let q = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { a, _ in a })
             let ok = q["code"] != nil && q["state"] == self.state
             let html = ok
-                ? "<h2 style='font-family:-apple-system'>Serçe'ye bağlandı ✓</h2><p style='font-family:-apple-system'>Bu sekmeyi kapatabilirsin.</p>"
+                ? "<h2 style='font-family:-apple-system'>Pepe'ye bağlandı ✓</h2><p style='font-family:-apple-system'>Bu sekmeyi kapatabilirsin.</p>"
                 : "<h2 style='font-family:-apple-system'>Bağlantı tamamlanmadı</h2><p style='font-family:-apple-system'>\(q["error_description"] ?? q["error"] ?? "")</p>"
             let body = Data(html.utf8)
             var resp = Data("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n".utf8)

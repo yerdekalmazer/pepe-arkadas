@@ -51,7 +51,7 @@ import Foundation
                purpose: purpose)
     }
 
-    /// Claude Code'un kendi raporladığı maliyet (Serçe'nin başlattığı terminalsiz oturumlar).
+    /// Claude Code'un kendi raporladığı maliyet (Pepe'nin başlattığı terminalsiz oturumlar).
     func recordCost(_ cost: Double, purpose: Purpose) {
         let day = Self.dayKey(Date())
         var t = days[day]?[purpose.rawValue] ?? Totals()

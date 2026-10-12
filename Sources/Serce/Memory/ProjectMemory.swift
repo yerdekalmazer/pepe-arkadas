@@ -1,7 +1,7 @@
 import Foundation
 
 /// Proje başına bir md: ~/Library/Application Support/Serce/Hafiza/<proje>.md
-/// (Obsidian'da "(05) Projeler/Serçe Hafızası" bağlantısıyla görünür.)
+/// (Obsidian'da "(05) Projeler/Pepe Hafızası" bağlantısıyla görünür.)
 ///
 /// Token ilkesi: oturum günlüğü hook verisinden LLM'siz yazılır. LLM yalnızca anlamlı bir oturum bitince,
 /// sınırlı bir girdiyle (özet + bu oturumun kısa kaydı) ve yalnızca "Durum / Sıradaki / Kararlar" için çalışır.
@@ -247,7 +247,7 @@ import Foundation
         guard UserDefaults.standard.object(forKey: "hafizaBaglam") as? Bool ?? true else { return nil }
         let root = projectRoot(cwd)
         guard !isContainer(root), let doc = ProjectDoc.read(ProjectDoc.url(for: root)) else { return nil }
-        var parts = ["Serçe proje hafızası (\(doc.name)) — kısa özet; ayrıntı: \(ProjectDoc.url(for: root).path)"]
+        var parts = ["Pepe proje hafızası (\(doc.name)) — kısa özet; ayrıntı: \(ProjectDoc.url(for: root).path)"]
         for (title, cap) in [("Özet", 500), ("Durum", 400), ("Sıradaki", 400)] {
             let body = doc.section(title).trimmingCharacters(in: .whitespacesAndNewlines)
             if !body.isEmpty, !body.hasPrefix("_") { parts.append("\(title): \(body.prefix(cap))") }
@@ -329,7 +329,7 @@ struct ProjectDoc {
         if let d = read(u) { return d }
         let name = (root as NSString).lastPathComponent
         var d = ProjectDoc(url: u, name: name, root: root, updated: "", sections: [])
-        d.setSection("Özet", seedSummary(root: root) ?? "_Bu projenin ne olduğunu bir iki cümleyle yaz; Serçe ve ajanlar bunu okur._")
+        d.setSection("Özet", seedSummary(root: root) ?? "_Bu projenin ne olduğunu bir iki cümleyle yaz; Pepe ve ajanlar bunu okur._")
         d.setSection("Durum", "_Henüz özet yok._")
         d.setSection("Sıradaki", "")
         d.setSection("Kararlar", "")
@@ -386,7 +386,7 @@ struct ProjectDoc {
     private func render() -> String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let shownRoot = root.hasPrefix(home) ? "~" + root.dropFirst(home.count) : root
-        var out = "---\nproje: \(name)\nklasor: \(shownRoot)\nguncellendi: \(updated)\nkaynak: Serçe\n---\n\n# \(name)\n"
+        var out = "---\nproje: \(name)\nklasor: \(shownRoot)\nguncellendi: \(updated)\nkaynak: Pepe\n---\n\n# \(name)\n"
         let known = Self.order.compactMap { t in sections.first { $0.0 == t } }
         let extra = sections.filter { s in !Self.order.contains(s.0) }
         for (title, body) in known.dropLast() + extra + known.suffix(1) {

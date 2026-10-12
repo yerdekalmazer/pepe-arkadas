@@ -8,7 +8,7 @@ struct MCPSettings: View {
 
     var body: some View {
         SettingsGroup(title: "Durum",
-                      footer: "Bağlı MCP araçlarını sohbet (Claude seçiliyken) ve « OK Serçe » kullanır. Salt okuma araçları doğrudan çalışır; yazma yapanlar notch'ta onay ister. Claude Code, Claude Desktop, Cursor ve Codex'te tanımlı sunucular kendiliğinden içe alınır; anahtarları kendi dosyalarında kalır.") {
+                      footer: "Bağlı MCP araçlarını sohbet (Claude seçiliyken) ve « OK Pepe » kullanır. Salt okuma araçları doğrudan çalışır; yazma yapanlar notch'ta onay ister. Claude Code, Claude Desktop, Cursor ve Codex'te tanımlı sunucular kendiliğinden içe alınır; anahtarları kendi dosyalarında kalır.") {
             HStack {
                 Image(systemName: "point.3.connected.trianglepath.dotted")
                 Text("\(hub.readyCount) sunucu bağlı · \(hub.toolCount) araç")

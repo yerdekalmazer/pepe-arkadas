@@ -204,7 +204,7 @@ enum ScriptRunner {
     func card() -> AnyView { AnyView(MusicCard(controller: self)) }
 
     func settings() -> AnyView? {
-        AnyView(Text("İlk kullanımda macOS, Serçe'nin \(app.name)'i kontrol etmesine izin vermeni ister. \(app.name) kapalıyken Serçe onu açmaz ve yoklamaz.")
+        AnyView(Text("İlk kullanımda macOS, Pepe'nin \(app.name)'i kontrol etmesine izin vermeni ister. \(app.name) kapalıyken Pepe onu açmaz ve yoklamaz.")
             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true))
     }
 

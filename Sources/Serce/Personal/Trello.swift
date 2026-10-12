@@ -15,7 +15,7 @@ enum TrelloAPI {
         var errorDescription: String? {
             switch self {
             case .noCredentials: "Trello anahtarı bulunamadı (~/.config/trello/.env)."
-            case .forbidden(let b): "\(b) panosu salt okunur; Serçe yalnızca Kişisel Alan ve VizeX panolarına yazar."
+            case .forbidden(let b): "\(b) panosu salt okunur; Pepe yalnızca Kişisel Alan ve VizeX panolarına yazar."
             case .notFound(let s): "\(s) bulunamadı."
             case .http(let c): "Trello yanıt vermedi (\(c))."
             }

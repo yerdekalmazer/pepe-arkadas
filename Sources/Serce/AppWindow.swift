@@ -13,8 +13,8 @@ extension EnvironmentValues {
     }
 }
 
-/// Serçe'yi normal bir uygulama gibi kullanmak için: adanın içeriği boyutlandırılabilir bir pencerede.
-/// Pencere açıkken Serçe Dock'ta ve ⌘Tab'da görünür; kapanınca yine yalnızca çentikte yaşar.
+/// Pepe'yi normal bir uygulama gibi kullanmak için: adanın içeriği boyutlandırılabilir bir pencerede.
+/// Pencere açıkken Pepe Dock'ta ve ⌘Tab'da görünür; kapanınca yine yalnızca çentikte yaşar.
 @MainActor final class AppWindowController: NSObject, NSWindowDelegate {
     static let shared = AppWindowController()
     /// Pencerenin kendi durumu (seçili oturum vb.); adanınkinden bağımsız.
@@ -45,7 +45,7 @@ extension EnvironmentValues {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 940, height: 680),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
-            w.title = "Serçe"
+            w.title = "Pepe"
             w.titlebarAppearsTransparent = true
             w.titleVisibility = .hidden
             w.isReleasedWhenClosed = false
@@ -85,8 +85,8 @@ extension EnvironmentValues {
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Ayarlar…", action: #selector(AppDelegate.openSettingsFromMenu), keyEquivalent: ",")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Serçe'yi gizle", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "Serçe'den çık", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Pepe'yi gizle", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Pepe'den çık", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
 

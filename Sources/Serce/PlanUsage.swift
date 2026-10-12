@@ -146,7 +146,7 @@ enum CodexRateLimits {
     }
 }
 
-/// Claude Code'un statusLine'ını Serçe'ye yönlendirir; kullanıcının önceki komutu saklanır ve çalışmaya devam eder.
+/// Claude Code'un statusLine'ını Pepe'ye yönlendirir; kullanıcının önceki komutu saklanır ve çalışmaya devam eder.
 enum StatusLineInstaller {
     nonisolated(unsafe) static var previousURL = Support.dir.appendingPathComponent("statusline-previous.json")
     static var settingsURL: URL { HookInstaller.settingsURL }
@@ -192,7 +192,7 @@ enum StatusLineInstaller {
         let fm = FileManager.default
         try fm.createDirectory(at: settingsURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         let backup = settingsURL.appendingPathExtension("serce-yedek")
-        // Yedek yalnızca ilk kez alınır: Serçe'den önceki hal hiçbir zaman ezilmez.
+        // Yedek yalnızca ilk kez alınır: Pepe'den önceki hal hiçbir zaman ezilmez.
         if fm.fileExists(atPath: settingsURL.path), !fm.fileExists(atPath: backup.path) {
             try fm.copyItem(at: settingsURL, to: backup)
         }
@@ -349,8 +349,8 @@ struct PlanSettings: View {
             } catch let e { error = e.localizedDescription }
             relay = StatusLineInstaller.isInstalled()
         }))
-        Text(relay ? "Durum satırı Serçe üzerinden geçiyor; önceki durum satırın aynen çalışmaya devam ediyor."
-                   : "Açınca ~/.claude/settings.json'daki statusLine Serçe'ye yönlendirilir, eski komut saklanıp çağrılır. Pro/Max planlarında çalışır.")
+        Text(relay ? "Durum satırı Pepe üzerinden geçiyor; önceki durum satırın aynen çalışmaya devam ediyor."
+                   : "Açınca ~/.claude/settings.json'daki statusLine Pepe'ye yönlendirilir, eski komut saklanıp çağrılır. Pro/Max planlarında çalışır.")
             .font(.caption).foregroundStyle(.secondary)
         Toggle("Codex planını notch'ta göster", isOn: Binding(get: { plan.showCodex }, set: { plan.showCodex = $0 }))
             .disabled(CodexRateLimits.executable() == nil)

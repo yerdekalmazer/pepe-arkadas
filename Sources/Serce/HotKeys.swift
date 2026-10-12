@@ -39,9 +39,9 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .terminal: "Son oturumun terminaline git"
         case .nextPill: "Sonraki pill"
         case .mute: "Sesi aç / kapat"
-        case .desktop: "Kuşu masaüstüne gönder / eve çağır"
+        case .desktop: "Pepe'yi masaüstüne gönder / eve çağır"
         case .wardrobe: "Gardırobu aç"
-        case .listen: "Serçe'ye konuş (« OK Serçe » demeden)"
+        case .listen: "Pepe'ye konuş (« OK Pepe » demeden)"
         }
     }
 

@@ -1,7 +1,7 @@
 import AppKit
 import AVFoundation
 
-/// Serçe'nin sesleri: hepsi açılışta matematikle üretilir (ses dosyası yok).
+/// Pepe'nin sesleri: hepsi açılışta matematikle üretilir (ses dosyası yok).
 /// ~/Library/Application Support/Serce/Sesler/<anahtar>.wav|.mp3|.aiff|.m4a varsa onun yerine o çalar.
 @MainActor final class SoundEngine {
     static let shared = SoundEngine()
@@ -11,7 +11,7 @@ import AVFoundation
 
         var title: String {
             switch self {
-            case .chirp: "Cıvıltı"
+            case .chirp: "Havlama"
             case .approval: "İzin isteği"
             case .done: "İş bitti"
             case .poke: "Dürtme"
@@ -20,7 +20,7 @@ import AVFoundation
             case .drop: "Dosya bırakma"
             case .error: "Hata"
             case .pop: "Bildirim"
-            case .whoosh: "Uçuş"
+            case .whoosh: "Fırlayış"
             }
         }
     }
@@ -106,7 +106,9 @@ enum Synth {
     static func render(_ cue: SoundEngine.Cue) -> [Float] {
         switch cue {
         case .chirp:
-            return mix([Note(f0: 2600, f1: 4300, dur: 0.06, amp: 0.35), Note(f0: 2800, f1: 4600, dur: 0.07, at: 0.09, amp: 0.35)])
+            // Küçük bir "hav": hızlı yükselip düşen, gürültülü, harmonikli kısa ses.
+            return mix([Note(f0: 560, f1: 900, dur: 0.045, amp: 0.45, harmonic: 0.8, noise: 0.12),
+                         Note(f0: 900, f1: 480, dur: 0.09, at: 0.04, amp: 0.45, harmonic: 0.8, noise: 0.12)])
         case .approval:
             return mix([Note(f0: 880, f1: 880, dur: 0.16, amp: 0.4, harmonic: 0.3),
                         Note(f0: 1320, f1: 1320, dur: 0.22, at: 0.12, amp: 0.4, harmonic: 0.3)])
@@ -120,8 +122,11 @@ enum Synth {
         case .dizzy:
             return mix([Note(f0: 1300, f1: 380, dur: 0.65, amp: 0.35, vibrato: 0.08)])
         case .greet:
-            return mix([Note(f0: 2400, f1: 4000, dur: 0.05, amp: 0.3), Note(f0: 2600, f1: 4200, dur: 0.05, at: 0.08, amp: 0.3),
-                        Note(f0: 3000, f1: 4800, dur: 0.09, at: 0.17, amp: 0.32)])
+            // "Hav hav!"
+            return mix([Note(f0: 600, f1: 980, dur: 0.045, amp: 0.42, harmonic: 0.8, noise: 0.1),
+                        Note(f0: 980, f1: 520, dur: 0.09, at: 0.04, amp: 0.42, harmonic: 0.8, noise: 0.1),
+                        Note(f0: 660, f1: 1080, dur: 0.045, at: 0.22, amp: 0.45, harmonic: 0.8, noise: 0.1),
+                        Note(f0: 1080, f1: 560, dur: 0.11, at: 0.26, amp: 0.45, harmonic: 0.8, noise: 0.1)])
         case .drop:
             return mix([Note(f0: 700, f1: 140, dur: 0.12, amp: 0.55)])
         case .error:

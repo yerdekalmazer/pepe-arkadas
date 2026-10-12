@@ -1,6 +1,6 @@
 import AVFoundation
 
-/// Serçe'nin sesi: Mac'in sesleri (kadın/erkek, perde, en kaliteli yüklü ses) ya da kullanıcının ElevenLabs anahtarı.
+/// Pepe'nin sesi: Mac'in sesleri (kadın/erkek, perde, en kaliteli yüklü ses) ya da kullanıcının ElevenLabs anahtarı.
 @MainActor final class VoiceSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
     private let synth = AVSpeechSynthesizer()
     private var player: AVAudioPlayer?

@@ -33,7 +33,7 @@ struct SettingsSection: Identifiable {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 540),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                              backing: .buffered, defer: false)
-            w.title = "Serçe Ayarları"
+            w.title = "Pepe Ayarları"
             w.titlebarAppearsTransparent = true
             w.isReleasedWhenClosed = false
             w.contentView = NSHostingView(rootView: SettingsView(registry: .shared))
@@ -148,8 +148,8 @@ struct GeneralSettings: View {
             }))
         }
         LegacyKeysGroup()
-        SettingsGroup(title: "Hakkında", footer: "Serçe, Claude Code oturumlarını notch'ta izler. Her şey bu Mac'te kalır; yalnızca kendi anahtarınla açtığın servislere istek gider.") {
-            Text("Serçe 0.2").font(.system(.body, design: .rounded).weight(.semibold))
+        SettingsGroup(title: "Hakkında", footer: "Pepe, Claude Code oturumlarını notch'ta izler. Her şey bu Mac'te kalır; yalnızca kendi anahtarınla açtığın servislere istek gider.") {
+            Text("Pepe 0.2").font(.system(.body, design: .rounded).weight(.semibold))
         }
     }
 }
@@ -231,7 +231,7 @@ struct LegacyKeysGroup: View {
     var body: some View {
         if !accounts.isEmpty || result != nil {
             SettingsGroup(title: "Eski anahtarlar",
-                          footer: "Serçe artık anahtarları Keychain yerine yalnızca senin okuyabildiğin bir dosyada tutuyor; böylece güncellemelerde parola sormuyor. Eski sürümlerden kalan kayıtları bir kez taşıyabilirsin (macOS her biri için son kez parola sorar) ya da anahtarı Ayarlar'dan yeniden girebilirsin.") {
+                          footer: "Pepe artık anahtarları Keychain yerine yalnızca senin okuyabildiğin bir dosyada tutuyor; böylece güncellemelerde parola sormuyor. Eski sürümlerden kalan kayıtları bir kez taşıyabilirsin (macOS her biri için son kez parola sorar) ya da anahtarı Ayarlar'dan yeniden girebilirsin.") {
                 if let result { Text(result).foregroundStyle(.secondary) }
                 if !accounts.isEmpty {
                     HStack {

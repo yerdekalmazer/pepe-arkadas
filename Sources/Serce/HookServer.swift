@@ -9,7 +9,7 @@ struct HookEvent {
     var tty = ""
     /// Ajanın süreç kimliği (hook betiği üst süreçlerden bulur).
     var pid: Int32 = 0
-    /// Olay Serçe'nin kendi başlattığı terminalsiz bir çalıştırmadan mı geliyor?
+    /// Olay Pepe'nin kendi başlattığı terminalsiz bir çalıştırmadan mı geliyor?
     var fromSerce = false
     /// Ajan kimliği ("claude", "codex", "gemini"…); AgentNormalizer belirler.
     var agent = AgentCatalog.claude
@@ -51,7 +51,7 @@ final class HookServer {
         let l = try NWListener(using: params)
         l.newConnectionHandler = { [weak self] c in self?.accept(c) }
         l.stateUpdateHandler = { state in
-            if case .failed(let err) = state { NSLog("Serçe: sunucu durdu: \(err)") }
+            if case .failed(let err) = state { NSLog("Pepe: sunucu durdu: \(err)") }
         }
         l.start(queue: queue)
         listener = l

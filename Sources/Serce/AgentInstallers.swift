@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 /// Claude Code dışındaki ajanların hook dosyalarını kurar/kaldırır.
-/// Yalnızca Serçe'nin satırlarına dokunur, yazmadan önce `.serce-yedek` alır. `home` testte geçici klasöre çevrilir.
+/// Yalnızca Pepe'nin satırlarına dokunur, yazmadan önce `.serce-yedek` alır. `home` testte geçici klasöre çevrilir.
 enum AgentInstallers {
     nonisolated(unsafe) static var home = FileManager.default.homeDirectoryForCurrentUser
 
@@ -28,7 +28,7 @@ enum AgentInstallers {
 
     static let codex = Spec(id: "codex", path: ".codex/hooks.json", style: .grouped(matcher: nil), events: [
         ("SessionStart", 10, [:]), ("UserPromptSubmit", 10, [:]), ("PreToolUse", 10, [:]),
-        ("PermissionRequest", 120, ["statusMessage": "Serçe notch'ta cevabını bekliyor"]),
+        ("PermissionRequest", 120, ["statusMessage": "Pepe notch'ta cevabını bekliyor"]),
         ("PostToolUse", 10, [:]), ("Stop", 10, [:]), ("SessionEnd", 5, [:]),
     ], detect: [".codex", "/opt/homebrew/bin/codex", "/usr/local/bin/codex"],
        footer: "~/.codex/hooks.json — izin istekleri notch'ta İzin ver / Reddet olarak gelir.")
@@ -44,7 +44,7 @@ enum AgentInstallers {
         ("permissionRequest", 120, [:]), ("postToolUse", 10, [:]), ("agentStop", 10, [:]),
         ("sessionEnd", 3, [:]), ("notification", 10, [:]),
     ], detect: [".copilot", "/opt/homebrew/bin/copilot", "/usr/local/bin/copilot"],
-       footer: "~/.copilot/hooks/serce.json — izin istekleri notch'ta; Serçe kapalıysa Copilot terminalde sorar.")
+       footer: "~/.copilot/hooks/serce.json — izin istekleri notch'ta; Pepe kapalıysa Copilot terminalde sorar.")
 
     static let cursor = Spec(id: "cursor", path: ".cursor/hooks.json", style: .cursor, events: [
         ("beforeSubmitPrompt", 0, [:]), ("afterFileEdit", 0, [:]), ("afterShellExecution", 0, [:]),
@@ -121,7 +121,7 @@ enum AgentInstallers {
         let u = url(spec)
         try fm.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
         let backup = URL(fileURLWithPath: u.path + ".serce-yedek")
-        // Yedek yalnızca ilk kez alınır: Serçe'den önceki hal hiçbir zaman ezilmez.
+        // Yedek yalnızca ilk kez alınır: Pepe'den önceki hal hiçbir zaman ezilmez.
         if fm.fileExists(atPath: u.path), !fm.fileExists(atPath: backup.path) {
             try fm.copyItem(at: u, to: backup)
         }
@@ -134,7 +134,7 @@ enum AgentInstallers {
         return false
     }
 
-    /// Serçe girdilerini çıkarır; boş kalan grup ve olayları siler, başkalarına dokunmaz.
+    /// Pepe girdilerini çıkarır; boş kalan grup ve olayları siler, başkalarına dokunmaz.
     private static func stripped(_ hooks: [String: Any]) -> [String: Any] {
         var out: [String: Any] = [:]
         for (event, value) in hooks {
@@ -155,7 +155,7 @@ enum AgentInstallers {
     }
 }
 
-/// OpenCode: hook dosyası yerine küçük bir JS eklentisi. Olayları Serçe'ye iletir, OpenCode'u hiç bekletmez.
+/// OpenCode: hook dosyası yerine küçük bir JS eklentisi. Olayları Pepe'ye iletir, OpenCode'u hiç bekletmez.
 enum OpenCodePlugin {
     static var url: URL { AgentInstallers.home.appendingPathComponent(".config/opencode/plugins/serce.js") }
     static var isAvailable: Bool {
@@ -175,7 +175,7 @@ enum OpenCodePlugin {
 
     static var source: String {
         """
-        // Serçe — OpenCode olaylarını notch'a iletir. Serçe ayarlarından kaldırılabilir.
+        // Pepe — OpenCode olaylarını notch'a iletir. Pepe ayarlarından kaldırılabilir.
         import { readFileSync } from "fs"
         import { homedir } from "os"
 

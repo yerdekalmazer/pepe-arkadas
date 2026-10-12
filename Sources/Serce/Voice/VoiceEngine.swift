@@ -2,7 +2,7 @@ import AVFoundation
 import Speech
 import SwiftUI
 
-/// « OK Serçe » akışı: sürekli dinler, uyandırma sözünü yakalar, komutu sessizlik gelene kadar toplar,
+/// « OK Pepe » akışı: sürekli dinler, uyandırma sözünü yakalar, komutu sessizlik gelene kadar toplar,
 /// Claude'a sorar, cevabı okur. Soru sorduysa uyandırma beklemeden tekrar dinler.
 /// Konuşma tanıma mümkünse bu Mac'te yapılır; ses kaydı hiçbir yere gönderilmez.
 @MainActor final class VoiceEngine: ObservableObject {
@@ -216,14 +216,14 @@ import SwiftUI
 
     /// Ayarlardaki "Dene" düğmesi.
     func preview() {
-        Task { await speaker.speak(language.hasPrefix("tr") ? "Merhaba, ben Serçe. Seni dinliyorum." : "Hi, I'm Serçe. I'm listening.",
+        Task { await speaker.speak(language.hasPrefix("tr") ? "Merhaba, ben Pepe. Seni dinliyorum." : "Hi, I'm Pepe. I'm listening.",
                                    language: language) }
     }
 }
 
-/// Uyandırma sözü eşleme: « OK Serçe », « Okey Serçe », « Hey Serçe » ve tanıyıcının sık yanlış yazdığı biçimler.
+/// Uyandırma sözü eşleme: « OK Pepe », « Okey Pepe », « Hey Pepe » ve tanıyıcının sık yanlış yazdığı biçimler.
 enum WakePhrase {
-    static let names = ["serçe", "serce", "sersey", "serje", "sercé"]
+    static let names = ["pepe", "pepé", "pepee", "bebe", "pepi", "peppe"]
     static let openers = ["ok", "okey", "okay", "o.k.", "hey", "hay", "selam"]
 
     /// Eşleşirse sözün bittiği konumu döner.
@@ -235,7 +235,7 @@ enum WakePhrase {
                 let before = lower[lower.startIndex..<r.lowerBound].trimmingCharacters(in: .whitespacesAndPunctuation)
                 if openers.contains(where: { before.hasSuffix($0) }) {
                     var end = r.upperBound
-                    // "Serçe," gibi noktalamayı da yut.
+                    // "Pepe," gibi noktalamayı da yut.
                     while end < lower.endIndex, lower[end].isPunctuation || lower[end] == " " { end = lower.index(after: end) }
                     return text.index(text.startIndex, offsetBy: lower.distance(from: lower.startIndex, to: end))
                 }

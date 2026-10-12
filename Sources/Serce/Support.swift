@@ -28,12 +28,12 @@ enum Support {
     }
 
     /// Ajanlar her olayda bu betiği çağırır: `serce-hook [--agent ad] Olay` ya da `serce-hook --statusline`.
-    /// Serçe kapalıysa sessizce çıkar; ajanı asla bekletmez. Yalnızca izin ve soru olayları yanıt bekler;
+    /// Pepe kapalıysa sessizce çıkar; ajanı asla bekletmez. Yalnızca izin ve soru olayları yanıt bekler;
     /// cevap gelmezse boş çıkar ve ajan terminalde sorar (Copilot için açıkça "ask").
     static var hookScript: String {
         """
         #!/bin/sh
-        # Serçe — ajan hook köprüsü. Uygulama tarafından her açılışta yeniden yazılır.
+        # Pepe — ajan hook köprüsü. Uygulama tarafından her açılışta yeniden yazılır.
         DIR="$(cd "$(dirname "$0")" && pwd)"
         TOKEN="$(cat "$DIR/token" 2>/dev/null)"
         BASE="http://127.0.0.1:\(port)/hook"
@@ -51,7 +51,7 @@ enum Support {
         fi
 
         # Hook'ların kendi terminali yok; ajan sürecine kadar üst süreçlerde ara.
-        # Aynı yolda ajanın kendi süreç kimliği de alınır (Serçe'den oturumu kapatmak için).
+        # Aynı yolda ajanın kendi süreç kimliği de alınır (Pepe'den oturumu kapatmak için).
         TTY=""; CPID=""; P=$$; N=0
         while [ -z "$TTY" ] && [ "$P" -gt 1 ] 2>/dev/null && [ $N -lt 8 ]; do
           T="$(ps -o tty= -p "$P" 2>/dev/null | tr -d ' ')"
@@ -69,7 +69,7 @@ enum Support {
             elif [ "$AGENT" = "copilot" ]; then printf '{"permissionDecision":"ask"}\\n'; fi
             ;;
           SessionStart)
-            # Serçe proje hafızasını bağlam olarak döndürebilir (yalnızca Claude Code okur).
+            # Pepe proje hafızasını bağlam olarak döndürebilir (yalnızca Claude Code okur).
             OUT="$(curl -s --connect-timeout 0.3 -m 1.5 -H "X-Serce-Token: $TOKEN" --data-binary @- "$URL" 2>/dev/null)"
             if [ -n "$OUT" ] && [ -z "$AGENT" ]; then printf '%s\\n' "$OUT"; fi
             ;;

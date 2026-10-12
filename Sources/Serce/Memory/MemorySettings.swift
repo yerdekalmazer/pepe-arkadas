@@ -13,7 +13,7 @@ struct MemorySettings: View {
 
     var body: some View {
         SettingsGroup(title: "Proje hafızası",
-                      footer: "Her proje için bir md: Application Support/Serce/Hafiza (Obsidian'da \"(05) Projeler/Serçe Hafızası\"). Oturum günlüğü LLM'siz yazılır; özet yalnızca dosya değiştiren ya da birkaç komut çalıştıran bir oturum bitince, kısa bir girdiyle güncellenir. Md'leri elle de düzenleyebilirsin.") {
+                      footer: "Her proje için bir md: Application Support/Serce/Hafiza (Obsidian'da \"(05) Projeler/Pepe Hafızası\"). Oturum günlüğü LLM'siz yazılır; özet yalnızca dosya değiştiren ya da birkaç komut çalıştıran bir oturum bitince, kısa bir girdiyle güncellenir. Md'leri elle de düzenleyebilirsin.") {
             Toggle("Oturumları proje md'lerine yaz", isOn: $on)
             Toggle("Yeni Claude Code oturumlarına projenin kısa özetini ver (~400 token)", isOn: $inject).disabled(!on)
             Toggle("Oturum bitince Durum / Sıradaki / Kararlar'ı özetle", isOn: $summarize).disabled(!on)
@@ -33,7 +33,7 @@ struct MemorySettings: View {
         }
         SettingsGroup(title: "Bütçe",
                       footer: "Arka plan özetleri günlük bütçeye ulaşınca o gün durur; sohbet ve ses etkilenmez. Maliyetler liste fiyatından tahmindir.") {
-            Picker("Serçe'nin başlattığı oturumlar", selection: $agentModel) {
+            Picker("Pepe'nin başlattığı oturumlar", selection: $agentModel) {
                 Text("Claude Code varsayılanı").tag("")
                 Text("Opus").tag("opus")
                 Text("Sonnet — daha ucuz").tag("sonnet")

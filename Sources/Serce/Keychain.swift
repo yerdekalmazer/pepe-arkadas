@@ -4,7 +4,7 @@ import Security
 /// Gizli anahtarlar (API anahtarları, OAuth jetonları): ~/Library/Application Support/Serce/anahtarlar.json,
 /// yalnızca kullanıcının okuyabildiği (0600) bir dosya — gh, Claude Code ve Trello'nun yaptığı gibi.
 ///
-/// Neden Keychain değil: Keychain her kaydı onu oluşturan uygulama imzasına bağlar. Serçe her derlendiğinde
+/// Neden Keychain değil: Keychain her kaydı onu oluşturan uygulama imzasına bağlar. Pepe her derlendiğinde
 /// (ve test için komut satırından çalıştırıldığında) macOS her kayıt için ayrı ayrı oturum parolası soruyordu.
 /// Ad "Keychain" olarak kaldı ki çağıran yerler değişmesin. Eski Keychain kayıtları kendiliğinden okunmaz
 /// (okumak parola sordurur); Ayarlar → Genel'deki "Eski anahtarları taşı" ile istenirse bir kez taşınır.

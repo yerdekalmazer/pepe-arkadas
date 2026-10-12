@@ -111,7 +111,7 @@ actor MCPConnection {
         let r = try await request("initialize", [
             "protocolVersion": protocolVersion,
             "capabilities": [:] as [String: Any],
-            "clientInfo": ["name": "Serçe", "version": "0.3"],
+            "clientInfo": ["name": "Pepe", "version": "0.3"],
         ])
         if let v = r["protocolVersion"] as? String { protocolVersion = v }
         initialized = true

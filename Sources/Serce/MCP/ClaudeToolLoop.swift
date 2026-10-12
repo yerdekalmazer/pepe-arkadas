@@ -16,7 +16,7 @@ import Foundation
         var webSearch = true
         var useMCP = true
         /// Onay kartında "kim istiyor" satırı.
-        var askedBy = "Serçe"
+        var askedBy = "Pepe"
         /// Kullanım sayacında hangi kaleme yazılacağı.
         var purpose: UsageMeter.Purpose = .chat
         /// Proje hafızası ve oturum araçları (yerel; token harcamaz, yalnızca sonuçları bağlama girer).

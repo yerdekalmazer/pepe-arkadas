@@ -1,12 +1,12 @@
 import AppKit
 
-/// Serçe'den bir Claude Code oturumuna mesaj göndermek: terminal açık olmasına gerek yok.
+/// Pepe'den bir Claude Code oturumuna mesaj göndermek: terminal açık olmasına gerek yok.
 /// `claude -p <mesaj> --resume <oturum>` oturumun klasöründe arka planda çalışır; adımlar, izinler ve
 /// son yanıt kurulu hook'lar sayesinde her zamanki gibi notch'ta görünür.
 @MainActor final class AgentRunner: ObservableObject {
     static let shared = AgentRunner()
 
-    /// Serçe'nin şu an yürüttüğü işler: oturum kimliği (yeni oturumda klasör) → süreç.
+    /// Pepe'nin şu an yürüttüğü işler: oturum kimliği (yeni oturumda klasör) → süreç.
     @Published private(set) var running: [String: Process] = [:]
     @Published private(set) var lastError: [String: String] = [:]
     /// Son çalıştırmanın sonucu ve oturum kimliği (yeni oturumlar için).
@@ -20,7 +20,7 @@ import AppKit
 
     func isRunning(_ key: String) -> Bool { running[key] != nil }
 
-    /// Serçe'den gönderilen mesajlar için oturum başına seçimler (nil = Claude Code'daki/oturumdaki gibi).
+    /// Pepe'den gönderilen mesajlar için oturum başına seçimler (nil = Claude Code'daki/oturumdaki gibi).
     struct RunOptions: Codable, Equatable {
         var mode: String?
         var model: String?
@@ -42,7 +42,7 @@ import AppKit
         ("auto", "Otomatik", "Claude güvenli bulduklarını kendisi onaylar; terminaldeki oturuma da sonraki izinde uygulanır"),
         ("plan", "Plan", "Değişiklik yapmaz, yalnızca plan çıkarır"),
         ("dontAsk", "Sorma", "İzin gerektireni sormadan reddeder"),
-        ("bypassPermissions", "Tüm izinleri atla ⚠︎", "Hiçbir şey sormaz — yalnızca Serçe'den gönderilenlerde; terminaldeki oturuma uygulanamaz"),
+        ("bypassPermissions", "Tüm izinleri atla ⚠︎", "Hiçbir şey sormaz — yalnızca Pepe'den gönderilenlerde; terminaldeki oturuma uygulanamaz"),
     ]
     static let models: [(id: String?, title: String)] = [
         (nil, "Varsayılan"), ("fable", "Fable"), ("opus", "Opus"), ("sonnet", "Sonnet"), ("haiku", "Haiku"),
@@ -90,7 +90,7 @@ import AppKit
                       stdin: line)
     }
 
-    /// Serçe'nin başlattığı oturumların modeli (nil = Claude Code'daki varsayılan). Token tasarrufu için ayarlanabilir.
+    /// Pepe'nin başlattığı oturumların modeli (nil = Claude Code'daki varsayılan). Token tasarrufu için ayarlanabilir.
     nonisolated(unsafe) static var modelOverride: String?
     static var model: String? { modelOverride ?? UserDefaults.standard.string(forKey: "arkaPlanModel").flatMap { $0.isEmpty ? nil : $0 } }
 
@@ -129,9 +129,9 @@ import AppKit
         return nil
     }
 
-    /// Serçe'nin yürüttüğü oturumu gerçek bir terminalde devral (`claude --resume`).
+    /// Pepe'nin yürüttüğü oturumu gerçek bir terminalde devral (`claude --resume`).
     func openInTerminal(_ s: AgentSession) -> String? {
-        guard running[s.id] == nil else { return "Önce Serçe'deki çalışma bitsin; iki kopya aynı oturumu sürmesin." }
+        guard running[s.id] == nil else { return "Önce Pepe'deki çalışma bitsin; iki kopya aynı oturumu sürmesin." }
         guard let claude = Self.claudePath else { return "claude komutu bulunamadı." }
         let cmd = "cd \(Self.quote(s.cwd)) && \(Self.quote(claude)) --resume \(s.id)"
         if let ghostty = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.mitchellh.ghostty") {

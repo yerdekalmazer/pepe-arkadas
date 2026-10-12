@@ -8,7 +8,7 @@ struct PersonalSettings: View {
     @AppStorage("brifingSesli") private var spoken = false
 
     var body: some View {
-        SettingsGroup(title: "Ben", footer: "Sohbet ve « OK Serçe » bu dosyayı her konuşmada okur (en fazla ~1500 karakter, önbellekten). Kısa tut.") {
+        SettingsGroup(title: "Ben", footer: "Sohbet ve « OK Pepe » bu dosyayı her konuşmada okur (en fazla ~1500 karakter, önbellekten). Kısa tut.") {
             HStack {
                 Text("Hafiza/_ben.md")
                 Spacer()
@@ -22,7 +22,7 @@ struct PersonalSettings: View {
                 set: { d in minute = Calendar.current.component(.hour, from: d) * 60 + Calendar.current.component(.minute, from: d) }),
                        displayedComponents: .hourAndMinute)
             .disabled(!briefingOn)
-            Toggle("« OK Serçe » açıksa sesli oku", isOn: $spoken).disabled(!briefingOn)
+            Toggle("« OK Pepe » açıksa sesli oku", isOn: $spoken).disabled(!briefingOn)
             Button("Şimdi göster") { Briefing.shared.show() }
         }
         SettingsGroup(title: "Hatırlatmalar", footer: "Sohbette ya da sesle kur: « yarın 10'da Tessera'yı hatırlat ».") {
@@ -38,7 +38,7 @@ struct PersonalSettings: View {
                 }
             }
         }
-        SettingsGroup(title: "Trello", footer: "Anahtarlar ~/.config/trello/.env'den okunur. Serçe yalnızca Kişisel Alan ve VizeX panolarına, yalnızca sen isteyince ve onaylayınca yazar.") {
+        SettingsGroup(title: "Trello", footer: "Anahtarlar ~/.config/trello/.env'den okunur. Pepe yalnızca Kişisel Alan ve VizeX panolarına, yalnızca sen isteyince ve onaylayınca yazar.") {
             HStack {
                 Image(systemName: TrelloAPI.credentials != nil ? "checkmark.circle.fill" : "xmark.circle").foregroundStyle(TrelloAPI.credentials != nil ? .green : .secondary)
                 Text(TrelloAPI.credentials != nil ? "Bağlı" : "Anahtar bulunamadı")

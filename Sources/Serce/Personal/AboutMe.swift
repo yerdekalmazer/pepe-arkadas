@@ -39,11 +39,11 @@ enum AboutMe {
         }
         let doc = """
         ---
-        kaynak: Serçe
+        kaynak: Pepe
         ---
         # Ben
 
-        _Serçe ve sohbet/ses bu dosyayı okur. Kısa tut: her satır her konuşmaya girer._
+        _Pepe ve sohbet/ses bu dosyayı okur. Kısa tut: her satır her konuşmaya girer._
 
         ## Hakkımda
         \(about.prefix(10).joined(separator: "\n"))

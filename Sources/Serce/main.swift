@@ -66,7 +66,7 @@ import SwiftUI
         do {
             try server.start()
         } catch {
-            alert("Serçe dinlemeye başlayamadı", "\(Support.port) numaralı port kullanımda olabilir.\n\(error.localizedDescription)")
+            alert("Pepe dinlemeye başlayamadı", "\(Support.port) numaralı port kullanımda olabilir.\n\(error.localizedDescription)")
         }
 
         setupStatusItem()
@@ -77,7 +77,7 @@ import SwiftUI
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "bird.fill", accessibilityDescription: "Serçe")
+        statusItem.button?.image = NSImage(systemSymbolName: "pawprint.fill", accessibilityDescription: "Pepe")
         let menu = NSMenu()
         menu.delegate = self
         statusItem.menu = menu
@@ -99,7 +99,7 @@ import SwiftUI
         menu.addItem(item("Ayarlar…", #selector(openSettings), key: ","))
         menu.addItem(item("Demo göster", #selector(runDemo)))
         menu.addItem(.separator())
-        menu.addItem(item("Serçe'den çık", #selector(quit), key: "q"))
+        menu.addItem(item("Pepe'den çık", #selector(quit), key: "q"))
     }
 
     private func item(_ title: String, _ sel: Selector, key: String = "") -> NSMenuItem {
@@ -160,7 +160,7 @@ import SwiftUI
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                 guard let self else { return }
                 let responder = e.name == "PermissionRequest" ? Responder { body in
-                    NSLog("Serçe demo kararı: \(body.isEmpty ? "(terminal)" : body)")
+                    NSLog("Pepe demo kararı: \(body.isEmpty ? "(terminal)" : body)")
                     for (d, e2) in after {
                         DispatchQueue.main.asyncAfter(deadline: .now() + d) { _ = self.store.handle(e2) }
                     }
@@ -191,11 +191,11 @@ MainActor.assumeIsolated {
     // Uyandırma sözü eşleyicisinin hızlı denetimi: Serce --selftest-wake
     if CommandLine.arguments.contains("--selftest-wake") {
         let cases: [(String, String?)] = [
-            ("OK Serçe Stripe'ta bugün ne kazandım", "Stripe'ta bugün ne kazandım"),
-            ("okey serçe, biraz müzik çal", "biraz müzik çal"),
-            ("Hey Serce hava nasıl", "hava nasıl"),
-            ("serçe çok güzel bir kuş", nil),
-            ("bugün ok dedim serçe gördüm", nil),
+            ("OK Pepe Stripe'ta bugün ne kazandım", "Stripe'ta bugün ne kazandım"),
+            ("okey pepe, biraz müzik çal", "biraz müzik çal"),
+            ("Hey Pepe hava nasıl", "hava nasıl"),
+            ("pepe çok tatlı bir köpek", nil),
+            ("bugün ok dedim pepe gördüm", nil),
         ]
         var ok = true
         for (input, want) in cases {
@@ -262,7 +262,7 @@ MainActor.assumeIsolated {
         print("── kırpma: \(t.count) mesaj, ilk \(t.first?.text ?? ""), ekli: \(t.filter { !$0.parts.isEmpty }.map(\.text))")
         exit(0)
     }
-    // Serçe'den oturum başlatma ve sürdürme (terminalsiz): Serce --gonder-testi klasor
+    // Pepe'den oturum başlatma ve sürdürme (terminalsiz): Serce --gonder-testi klasor
     if let i = CommandLine.arguments.firstIndex(of: "--gonder-testi"), i + 1 < CommandLine.arguments.count {
         let dir = CommandLine.arguments[i + 1]
         Task { @MainActor in
@@ -345,7 +345,7 @@ MainActor.assumeIsolated {
             }
             _ = store.handle(ev("UserPromptSubmit", sid: "a", serce: true))
             _ = store.handle(ev("SessionEnd", sid: "a", serce: true))
-            print("Serçe çalıştırması bitti → kart duruyor:", store.sessions.contains { $0.id == "a" && !$0.ended } ? "✓" : "✗")
+            print("Pepe çalıştırması bitti → kart duruyor:", store.sessions.contains { $0.id == "a" && !$0.ended } ? "✓" : "✗")
             _ = store.handle(ev("UserPromptSubmit", sid: "b", serce: false))
             _ = store.handle(ev("SessionEnd", sid: "b", serce: false))
             print("Terminal kapandı → kart 'kapalı':", store.sessions.first { $0.id == "b" }?.ended == true ? "✓" : "✗")

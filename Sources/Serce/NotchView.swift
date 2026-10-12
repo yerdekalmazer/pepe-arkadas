@@ -259,7 +259,7 @@ struct ExpandedView: View {
                     .birdDragSource()
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Ortalık sakin").font(.system(size: 13, weight: .semibold))
-                    Text("Bir terminalde claude'u başlat; Serçe her adımı burada gösterir.")
+                    Text("Bir terminalde claude'u başlat; Pepe her adımı burada gösterir.")
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                     RecapLine(store: .shared)
                 }
@@ -509,7 +509,7 @@ struct SessionDetail: View {
                 .padding(.bottom, 4)
                 let headless = session.launchedBySerce || session.ended || (session.tty.isEmpty && session.bundleId.isEmpty)
                 Button {
-                    // Terminali olmayan (Serçe'nin başlattığı ya da kapanmış) oturum: gerçek bir terminalde devral.
+                    // Terminali olmayan (Pepe'nin başlattığı ya da kapanmış) oturum: gerçek bir terminalde devral.
                     if headless {
                         sendError = AgentRunner.shared.openInTerminal(session)
                     } else {
@@ -682,8 +682,8 @@ struct SessionDetail: View {
     }
 
     private func placeholder(busy: Bool) -> String {
-        if busy { return "Serçe yürütüyor — yazarsan sıraya alınır" }
-        if session.ended, session.agent == AgentCatalog.claude { return "Terminal kapalı — yazarsan Serçe arka planda sürdürür" }
+        if busy { return "Pepe yürütüyor — yazarsan sıraya alınır" }
+        if session.ended, session.agent == AgentCatalog.claude { return "Terminal kapalı — yazarsan Pepe arka planda sürdürür" }
         if session.agent != AgentCatalog.claude { return "Şimdilik yalnızca Claude Code oturumlarına yazılabiliyor" }
         if session.status == .working { return "Oturum çalışıyor — yaz, bitince gönderilir" }
         return "\(session.project) oturumuna yaz — terminal kapalı olsa da devam eder"
@@ -1271,7 +1271,7 @@ struct NewSessionView: View {
     private func start() {
         let text = task.trimmingCharacters(in: .whitespacesAndNewlines)
         AgentRunner.shared.pendingOptions = runOptions
-        // Proje seçilmediyse Serçe'nin kendi "Projesiz" klasöründe çalışır.
+        // Proje seçilmediyse Pepe'nin kendi "Projesiz" klasöründe çalışır.
         let dir = cwd.isEmpty ? AgentRunner.projectlessDir : cwd
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         if let err = AgentRunner.shared.start(text, in: dir, worktree: worktree && !cwd.isEmpty) {
@@ -1285,8 +1285,8 @@ struct NewSessionView: View {
     }
 }
 
-/// Serçe'den gönderilen mesajlar için izin modu / model / efor: terminaldeki Claude Code alt çubuğu gibi.
-/// Seçimler oturum başına saklanır; terminalde açık oturumu etkilemez, yalnızca Serçe'nin gönderdiklerini.
+/// Pepe'den gönderilen mesajlar için izin modu / model / efor: terminaldeki Claude Code alt çubuğu gibi.
+/// Seçimler oturum başına saklanır; terminalde açık oturumu etkilemez, yalnızca Pepe'nin gönderdiklerini.
 struct RunControls: View {
     @Binding var options: AgentRunner.RunOptions
     var terminalMode = ""

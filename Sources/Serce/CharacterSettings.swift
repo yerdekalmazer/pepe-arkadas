@@ -8,7 +8,7 @@ struct CharacterSettings: View {
     private let columns = [GridItem(.adaptive(minimum: 92), spacing: 10)]
 
     var body: some View {
-        SettingsGroup(title: "Gardırop", footer: "Kuşa sağ tıklayarak da giydirebilirsin. \"Mevsime göre\" seçiliyken kışın atkı, yılbaşında şapka, baharda çiçek, yazın gözlük takar.") {
+        SettingsGroup(title: "Gardırop", footer: "Pepe'ye sağ tıklayarak da giydirebilirsin. \"Mevsime göre\" seçiliyken kışın atkı, yılbaşında şapka, baharda çiçek, yazın gözlük takar.") {
             LazyVGrid(columns: columns, spacing: 10) {
                 OutfitTile(title: "Mevsime göre", outfit: Outfit.seasonal(), selected: character.chosen == nil) {
                     character.choose(nil)
@@ -18,7 +18,7 @@ struct CharacterSettings: View {
                 }
             }
         }
-        SettingsGroup(title: "Masaüstü kuşu", footer: "Kuşu adadan aşağı sürükleyerek de bırakabilirsin. Bir pencerenin üstüne bırakırsan o pencerenin görüntüsü sohbete eklenir; çift tıklayınca eve döner.") {
+        SettingsGroup(title: "Masaüstünde Pepe", footer: "Pepe'yi adadan aşağı sürükleyerek de bırakabilirsin. Bir pencerenin üstüne bırakırsan o pencerenin görüntüsü sohbete eklenir; çift tıklayınca eve döner.") {
             HStack {
                 Button("Masaüstüne gönder") { DesktopBirdController.shared.sendToDesktop() }
                 Button("Eve çağır") { DesktopBirdController.shared.goHome() }

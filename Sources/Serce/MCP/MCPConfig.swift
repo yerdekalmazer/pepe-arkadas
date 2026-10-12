@@ -1,8 +1,8 @@
 import Foundation
 
-/// Bir MCP sunucusunun tanımı. Kaynak; Serçe kataloğu, kullanıcının eklediği ya da başka bir uygulamadan
+/// Bir MCP sunucusunun tanımı. Kaynak; Pepe kataloğu, kullanıcının eklediği ya da başka bir uygulamadan
 /// (Claude Code, Claude Desktop, Cursor, Codex) okunan yapılandırma olabilir. Gizli değerler diske kopyalanmaz:
-/// içe alınanlar her açılışta kendi dosyalarından okunur, Serçe'ninkiler Keychain'de durur.
+/// içe alınanlar her açılışta kendi dosyalarından okunur, Pepe'ninkiler Keychain'de durur.
 struct MCPServerConfig: Identifiable, Equatable {
     enum Transport: Equatable {
         case http(url: URL, headers: [String: String])
@@ -21,7 +21,7 @@ struct MCPServerConfig: Identifiable, Equatable {
     }
 
     enum Source: String, CaseIterable {
-        case catalog = "Serçe kataloğu"
+        case catalog = "Pepe kataloğu"
         case custom = "Senin eklediklerin"
         case claudeCode = "Claude Code"
         case claudeDesktop = "Claude Desktop"
@@ -106,7 +106,7 @@ enum MCPConfigLoader {
 
     // MARK: - Kaynaklar
 
-    /// `mcpServers` biçimi (Claude Code, Claude Desktop, Cursor ve Serçe'nin kendi dosyası).
+    /// `mcpServers` biçimi (Claude Code, Claude Desktop, Cursor ve Pepe'nin kendi dosyası).
     static func fromJSON(_ url: URL, source: MCPServerConfig.Source) -> [MCPServerConfig] {
         guard let data = try? Data(contentsOf: url),
               let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
@@ -212,7 +212,7 @@ enum MCPConfigLoader {
         return out + rest
     }
 
-    // MARK: - Serçe'nin kendi listesi
+    // MARK: - Pepe'nin kendi listesi
 
     static func loadCustom() -> [MCPServerConfig] {
         fromJSON(customURL, source: .custom).map { c in

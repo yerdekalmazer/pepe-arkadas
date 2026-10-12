@@ -105,35 +105,35 @@ struct DropTabView: View {
     }
 }
 
-/// Kutuya dönüşmüş serçe: tüy renginde karton kutu, kapağı başlık renginde, önünde gözü ve gagası.
+/// Kutuya dönüşmüş Pepe: beyaz kutu, kapağı kulak renginde, önünde gözü, burnu ve tasması.
 struct BirdBox: View {
     var open: Bool
     var size: CGFloat
 
-    private let feather = Color(red: 0.60, green: 0.42, blue: 0.27)
-    private let cap = Color(red: 0.42, green: 0.28, blue: 0.18)
-    private let belly = Color(red: 0.93, green: 0.86, blue: 0.75)
-    private let beak = Color(red: 0.98, green: 0.72, blue: 0.30)
+    private let fur = Color(red: 0.99, green: 0.975, blue: 0.94)
+    private let cap = Color(red: 0.94, green: 0.88, blue: 0.79)
+    private let collar = Color(red: 0.32, green: 0.21, blue: 0.15)
+    private let nose = Color(red: 0.12, green: 0.10, blue: 0.10)
 
     var body: some View {
         let s = size
         ZStack(alignment: .top) {
             // Gövde
             RoundedRectangle(cornerRadius: s * 0.12, style: .continuous)
-                .fill(feather)
+                .fill(fur)
                 .frame(width: s, height: s * 0.72)
                 .overlay(alignment: .bottom) {
-                    RoundedRectangle(cornerRadius: s * 0.1).fill(belly).frame(width: s * 0.5, height: s * 0.22).offset(y: -s * 0.08)
+                    Rectangle().fill(collar).frame(height: s * 0.07).offset(y: -s * 0.16)
                 }
                 .overlay(alignment: .topTrailing) {
                     ZStack {
-                        Circle().fill(.white).frame(width: s * 0.17)
-                        Circle().fill(.black).frame(width: s * 0.11)
+                        Ellipse().fill(nose).frame(width: s * 0.12, height: s * 0.135)
+                        Circle().fill(.white).frame(width: s * 0.045).offset(x: s * 0.022, y: -s * 0.03)
                     }
                     .offset(x: -s * 0.2, y: s * 0.14)
                 }
                 .overlay(alignment: .trailing) {
-                    Triangle().fill(beak).frame(width: s * 0.14, height: s * 0.12).offset(x: s * 0.1, y: -s * 0.02)
+                    Capsule().fill(nose).frame(width: s * 0.13, height: s * 0.09).offset(x: s * 0.05, y: -s * 0.02)
                 }
                 .offset(y: s * 0.22)
             // Kapak: açılınca geriye devrilir
@@ -156,16 +156,5 @@ private struct FileDrop: ViewModifier {
 
     func body(content: Content) -> some View {
         if enabled { content.onDrop(of: [.fileURL], isTargeted: $targeted, perform: perform) } else { content }
-    }
-}
-
-private struct Triangle: Shape {
-    func path(in r: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: r.minX, y: r.minY))
-        p.addLine(to: CGPoint(x: r.maxX, y: r.midY))
-        p.addLine(to: CGPoint(x: r.minX, y: r.maxY))
-        p.closeSubpath()
-        return p
     }
 }

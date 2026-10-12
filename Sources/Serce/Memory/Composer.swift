@@ -50,7 +50,7 @@ import UniformTypeIdentifiers
         if let d = queued.removeValue(forKey: sid) { drafts[sid] = d }
     }
 
-    /// Oturum durduğunda (Stop) ya da Serçe'nin çalıştırması bitince sıradaki mesajı gönderir.
+    /// Oturum durduğunda (Stop) ya da Pepe'nin çalıştırması bitince sıradaki mesajı gönderir.
     func flush(_ sid: String) {
         guard let d = queued[sid], let s = AppState.shared.store.sessions.first(where: { $0.id == sid }),
               s.status != .working, !AgentRunner.shared.isRunning(sid) else { return }

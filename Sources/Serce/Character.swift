@@ -9,7 +9,7 @@ enum Outfit: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .none: "Çıplak serçe"
+        case .none: "Sade Pepe"
         case .beanie: "Bere"
         case .scarf: "Atkı"
         case .sunglasses: "Güneş gözlüğü"
@@ -198,7 +198,7 @@ struct WardrobeMenu: View {
         HotKeyCenter.shared.start(app)
         DesktopBirdController.shared.start(app)
         let r = SettingsRegistry.shared
-        r.add(SettingsSection(id: "karakter", title: "Karakter", icon: "bird", order: 5) {
+        r.add(SettingsSection(id: "karakter", title: "Karakter", icon: "pawprint", order: 5) {
             AnyView(CharacterSettings(character: .shared))
         })
         r.add(SettingsSection(id: "kisayollar", title: "Kısayollar", icon: "keyboard", order: 30) {

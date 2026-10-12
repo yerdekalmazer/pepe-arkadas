@@ -73,8 +73,8 @@ struct VoiceSettings: View {
     @AppStorage("elevenlabsSes") private var elevenVoice = ""
 
     var body: some View {
-        SettingsGroup(title: "« OK Serçe »",
-                      footer: "« OK Serçe » de, sonra sor: « Stripe'ta bugün ne kazandım? », « GitHub yerine Stripe koy », « biraz Daft Punk çal », « Enzo'ya görselin hazır olduğunu yaz ». Konuşma tanıma mümkünse bu Mac'te yapılır; Anthropic'e ses değil, yalnızca söylediğin cümle ve cevap için okunan veri gider. E-postalar taslak olarak açılır, sen Gönder'e basmadan gitmez.") {
+        SettingsGroup(title: "« OK Pepe »",
+                      footer: "« OK Pepe » de, sonra sor: « Stripe'ta bugün ne kazandım? », « GitHub yerine Stripe koy », « biraz Daft Punk çal », « Enzo'ya görselin hazır olduğunu yaz ». Konuşma tanıma mümkünse bu Mac'te yapılır; Anthropic'e ses değil, yalnızca söylediğin cümle ve cevap için okunan veri gider. E-postalar taslak olarak açılır, sen Gönder'e basmadan gitmez.") {
             Toggle("Sesli asistan açık", isOn: Binding(get: { on }, set: { engine.setEnabled($0); on = engine.enabled }))
             Picker("Dil", selection: $language) {
                 Text("Türkçe").tag("tr-TR")
@@ -91,7 +91,7 @@ struct VoiceSettings: View {
                 Text(error).font(.caption).foregroundStyle(.red)
             }
         }
-        SettingsGroup(title: "Serçe'nin sesi", footer: "Mac sesleri arasında en kalitelisi kendiliğinden seçilir. Premium sesler için: Sistem Ayarları → Erişilebilirlik → Sözlü İçerik → Sesler.") {
+        SettingsGroup(title: "Pepe'nin sesi", footer: "Mac sesleri arasında en kalitelisi kendiliğinden seçilir. Premium sesler için: Sistem Ayarları → Erişilebilirlik → Sözlü İçerik → Sesler.") {
             Picker("Ses", selection: $female) {
                 Text("Kadın").tag(true)
                 Text("Erkek").tag(false)

@@ -55,7 +55,7 @@ enum AgentCatalog {
             case .always:
                 d = ["behavior": "allow"]
                 if agent == claude || agent == "claude-desktop", !suggestions.isEmpty { d["updatedPermissions"] = suggestions }
-            case .deny: d = ["behavior": "deny", "message": "Serçe'den reddedildi"]
+            case .deny: d = ["behavior": "deny", "message": "Pepe'den reddedildi"]
             case .terminal: d = [:]
             }
             obj = d.isEmpty ? nil : ["hookSpecificOutput": ["hookEventName": "PermissionRequest", "decision": d]]
