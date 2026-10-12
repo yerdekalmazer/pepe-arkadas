@@ -6,6 +6,7 @@ import SwiftUI
     static func register(_ app: AppState) {
         // pill'ler
         // ajanlar
+        AgentFeatures.register(app)
         // karakter
         // sohbet
         // ses

@@ -29,8 +29,19 @@ enum HookInstaller {
             if toolEvents.contains(ev) { group["matcher"] = "*" }
             hooks[ev] = groups(hooks[ev]) + [group]
         }
+        // AskUserQuestion için ayrı, bekleyen PreToolUse hook'u: sorular notch'ta cevaplanır.
+        let ask: [String: Any] = ["matcher": "AskUserQuestion",
+                                  "hooks": [["type": "command", "command": "'\(Support.hookURL.path)' Ask", "timeout": 130]]]
+        hooks["PreToolUse"] = groups(hooks["PreToolUse"]) + [ask]
         root["hooks"] = hooks
         try save(root)
+    }
+
+    /// Eski sürümle kurulmuş (soru hook'u eksik) bağlantıyı sessizce tamamlar. Yalnızca Serçe satırlarına dokunur.
+    static func upgradeIfNeeded() {
+        guard isInstalled(), let hooks = (try? load())?["hooks"] as? [String: Any] else { return }
+        let hasAsk = groups(hooks["PreToolUse"]).contains { ($0["matcher"] as? String) == "AskUserQuestion" && isOurs($0) }
+        if !hasAsk { try? install() }
     }
 
     static func uninstall() throws {

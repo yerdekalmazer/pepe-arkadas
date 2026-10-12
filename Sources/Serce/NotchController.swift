@@ -99,7 +99,7 @@ final class NotchPanel: NSPanel {
             hoverWork?.cancel()
             hoverWork = nil
             // Bekleyen izin varken ada açık kalır.
-            if model.expanded, store.approvals.isEmpty { setExpanded(false) }
+            if model.expanded, !store.hasPending { setExpanded(false) }
         }
     }
 
@@ -112,7 +112,7 @@ final class NotchPanel: NSPanel {
 
     /// Karar sonrası: fare dışarıdaysa ve başka bekleyen yoksa adayı kapat.
     func settle() {
-        if store.approvals.isEmpty, !activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) {
+        if !store.hasPending, !activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) {
             setExpanded(false)
         }
     }

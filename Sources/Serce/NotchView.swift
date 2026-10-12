@@ -22,6 +22,8 @@ struct NotchActions {
     var openTerminal: (AgentSession) -> Void
     var installHooks: () -> Void
     var showMenu: () -> Void
+    var answer: (QuestionRequest, [[String]]) -> Void = { _, _ in }
+    var questionToTerminal: (QuestionRequest) -> Void = { _ in }
 }
 
 /// Ekranın üst kenarına yapışan siyah ada: iki yanda içe kıvrılan "kulaklar", altta yuvarlak köşeler.
@@ -104,7 +106,7 @@ struct CollapsedView: View {
     }
 
     @ViewBuilder private var indicator: some View {
-        if !store.approvals.isEmpty {
+        if store.hasPending {
             Text("!")
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
                 .foregroundStyle(Palette.amber)
@@ -147,6 +149,7 @@ struct ExpandedView: View {
     @ObservedObject var pills: PillRegistry
     @ObservedObject var model: NotchModel
     let actions: NotchActions
+    @ObservedObject var plan = PlanStore.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -163,7 +166,13 @@ struct ExpandedView: View {
 
     @ViewBuilder private var panel: some View {
         if let a = store.approvals.first {
-            ApprovalView(approval: a, more: store.approvals.count - 1, actions: actions)
+            ApprovalView(approval: a, more: store.approvals.count - 1 + store.questions.count, actions: actions)
+        } else if let q = store.questions.first {
+            QuestionView(request: q, more: store.questions.count - 1,
+                         answer: { actions.answer(q, $0) }, toTerminal: { actions.questionToTerminal(q) })
+                .id(q.id)
+        } else if plan.showDetail, plan.isVisible {
+            PlanDetailCard(plan: plan)
         } else {
             switch app.tab {
             case .chat: ChatTabView(app: app)
@@ -199,6 +208,7 @@ struct ExpandedView: View {
                     Text("Ortalık sakin").font(.system(size: 13, weight: .semibold))
                     Text("Bir terminalde claude'u başlat; Serçe her adımı burada gösterir.")
                         .font(.system(size: 11)).foregroundStyle(.secondary)
+                    RecapLine(store: .shared)
                 }
             }
         } else {
@@ -226,6 +236,7 @@ struct ExpandedView: View {
             TabIcon(symbol: "bubble.left.fill", selected: app.tab == .chat) { app.tab = .chat }
             TabIcon(symbol: "plus", selected: app.tab == .drop) { app.tab = .drop }
             Spacer(minLength: model.notchWidth)
+            PlanPill(plan: plan)
             TabIcon(symbol: "gearshape", selected: false, action: actions.showMenu)
             TabIcon(symbol: store.soundsOn ? "speaker.wave.2" : "speaker.slash", selected: false) {
                 store.soundsOn.toggle()
@@ -269,7 +280,7 @@ struct SessionCard: View {
                 HStack(spacing: 6) {
                     Circle().fill(statusColor(session)).frame(width: 6, height: 6)
                     Text(session.project).font(.system(size: 12, weight: .bold))
-                    Text("Claude Code").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text(session.agentName).font(.system(size: 11)).foregroundStyle(.secondary)
                     Spacer()
                     if !session.steps.isEmpty {
                         Text(counter).font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
@@ -347,7 +358,7 @@ struct SessionDetail: View {
             VStack(alignment: .leading, spacing: 0) {
                 BirdTile(session: session, size: 64)
                 Text(session.project).font(.system(size: 14, weight: .bold)).lineLimit(1).padding(.top, 10)
-                Text("Claude Code").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(session.agentName).font(.system(size: 11)).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 7) {
                     ForEach(visible) { step in
                         StepRow(step: step, selected: step.id == selected?.id) {
@@ -624,7 +635,7 @@ struct ApprovalView: View {
                     Badge(color: Palette.amber, symbol: "exclamationmark")
                 }
                 Text(approval.project).font(.system(size: 14, weight: .bold)).lineLimit(1).padding(.top, 10)
-                Text("Claude Code").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(AgentCatalog.name(approval.agent)).font(.system(size: 11)).foregroundStyle(.secondary)
                 Text(approval.title)
                     .font(.system(size: 12, weight: .medium)).foregroundStyle(Palette.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -667,7 +678,7 @@ struct BirdTile: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Bird(mood: mood, size: size)
+            Bird(mood: mood, size: size, tint: AgentCatalog.color(session.agent))
             if let (color, symbol) = badge { Badge(color: color, symbol: symbol) }
         }
     }
@@ -768,5 +779,17 @@ extension EnvironmentValues {
     var snapshotMode: Bool {
         get { self[SnapshotModeKey.self] }
         set { self[SnapshotModeKey.self] = newValue }
+    }
+}
+
+/// Boş ana sayfada bu haftanın tek satırlık özeti.
+struct RecapLine: View {
+    @ObservedObject var store: RecapStore
+    var body: some View {
+        let t = store.week().total
+        if t.sessions > 0 {
+            Text("Bu hafta \(t.sessions) oturum · \(t.steps) adım · \(t.allowed + t.always) izin")
+                .font(.system(size: 10.5)).foregroundStyle(.tertiary).padding(.top, 2)
+        }
     }
 }

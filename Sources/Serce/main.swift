@@ -25,7 +25,17 @@ import SwiftUI
                 guard let self, Date().timeIntervalSince(self.lastDecision) > 0.8 else { return }
                 self.toggleHooks()
             },
-            showMenu: { SettingsWindowController.shared.show() }
+            showMenu: { SettingsWindowController.shared.show() },
+            answer: { [weak self] q, selections in
+                guard let self, Date().timeIntervalSince(self.lastDecision) > 0.5 else { return }
+                self.lastDecision = Date()
+                self.store.answer(q, selections: selections)
+                self.notch.settle()
+            },
+            questionToTerminal: { [weak self] q in
+                self?.store.questionToTerminal(q)
+                self?.notch.settle()
+            }
         ))
         notch.show()
 
@@ -39,7 +49,7 @@ import SwiftUI
         app.actions.openSettings = { SettingsWindowController.shared.show() }
         app.actions.openTerminal = { [weak self] s in self?.store.openTerminal(for: s) }
         app.actions.jumpToAlert = { [weak self] in
-            if !app.store.approvals.isEmpty { self?.notch.setExpanded(true) }
+            if app.store.hasPending { self?.notch.setExpanded(true) }
         }
         CoreSettings.register(app)
         Features.register(app)
@@ -165,6 +175,11 @@ MainActor.assumeIsolated {
            let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
             try? png.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
         }
+        exit(0)
+    }
+    // Ajan kurucularını geçici klasörde dener: Serce --ajan-testi klasor
+    if let i = CommandLine.arguments.firstIndex(of: "--ajan-testi"), i + 1 < CommandLine.arguments.count {
+        AgentSelfTest.run(home: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
         exit(0)
     }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor

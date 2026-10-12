@@ -46,6 +46,8 @@ enum DemoScript {
 @MainActor enum Snapshot {
     static func run(into dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // Demo olayları gerçek haftalık özete yazılmasın.
+        RecapStore.fileURL = dir.appendingPathComponent("haftalik.json")
         let app = AppState.shared
         let store = app.store
         let model = NotchModel()
@@ -87,5 +89,23 @@ enum DemoScript {
         shot("5-detay-diff")
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Read" }?.id
         shot("6-detay-okuma")
+        model.pinnedStep = nil
+        model.selectedSession = nil
+        AgentSnapshots.run(store: store, model: model, actions: actions, shot: shot, shotView: { name, view in
+            let wrapped = view
+                .padding(14)
+                .frame(width: model.expandedWidth - 2 * (model.ear + 12), alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.panel))
+                .padding(.horizontal, model.ear + 12).padding(.vertical, 12)
+                .background(Color.black)
+                .environment(\.colorScheme, .dark)
+                .environment(\.snapshotMode, true)
+            let r = ImageRenderer(content: wrapped)
+            r.scale = 2
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent(name + ".png"))
+            }
+        })
     }
 }

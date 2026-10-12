@@ -79,7 +79,7 @@ struct PillGrid: View {
 
     var body: some View {
         let items: [(id: String?, title: String, color: Color, attention: Bool)] =
-            [(nil, "Claude Code", Color.white, !app.store.approvals.isEmpty)] +
+            [(nil, "Ajanlar", Color.white, app.store.hasPending)] +
             registry.active.map { ($0.id, $0.title, $0.color, $0.needsAttention) }
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
             ForEach(items, id: \.title) { item in

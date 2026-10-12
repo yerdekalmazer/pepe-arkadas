@@ -13,16 +13,20 @@ struct AgentSession: Identifiable {
     var bundleId = ""
     var term = ""
     var tty = ""
+    /// Ajan kimliği; görünen ad AgentCatalog.name ile.
+    var agent = AgentCatalog.claude
     var prompt = ""
     var steps: [Step] = []
     var finished = false
     var project: String { cwd.isEmpty ? "oturum" : (cwd as NSString).lastPathComponent }
+    var agentName: String { AgentCatalog.name(agent) }
 }
 
 struct Approval: Identifiable {
     let id = UUID()
     let sessionId: String
     let project: String
+    var agent = AgentCatalog.claude
     let tool: String
     let key: String
     let title: String
@@ -36,6 +40,10 @@ struct Approval: Identifiable {
 @MainActor final class SessionStore: ObservableObject {
     @Published private(set) var sessions: [AgentSession] = []
     @Published private(set) var approvals: [Approval] = []
+    /// AskUserQuestion kartları (notch'ta cevaplanır).
+    @Published private(set) var questions: [QuestionRequest] = []
+    /// Terminale bırakılan soruların anahtarları; aynı soru izin isteği olarak tekrar gelirse kart açılmaz.
+    private var questionsSentToTerminal: Set<String> = []
     @Published private(set) var flash: String?
     @Published private(set) var happy = false
 
@@ -58,11 +66,14 @@ struct Approval: Identifiable {
     }
 
     var mood: Mood {
-        if !approvals.isEmpty { return .alert }
+        if hasPending { return .alert }
         if happy { return .happy }
         if sessions.contains(where: { $0.status == .working }) { return .working }
         return sessions.isEmpty ? .sleep : .idle
     }
+
+    /// Kullanıcıdan cevap bekleyen bir şey (izin ya da soru) var mı?
+    var hasPending: Bool { !approvals.isEmpty || !questions.isEmpty }
 
     var workingCount: Int { sessions.filter { $0.status == .working }.count }
 
@@ -70,16 +81,23 @@ struct Approval: Identifiable {
 
     func handle(_ e: HookEvent, responder: Responder? = nil) -> UUID? {
         let p = e.payload
+        if e.name == "StatusLine" {
+            PlanStore.shared.updateClaude(from: p)
+            return nil
+        }
         let sid = p["session_id"] as? String ?? "?"
         let tool = p["tool_name"] as? String ?? ""
         let input = p["tool_input"] as? [String: Any] ?? [:]
 
+        let isNew = !sessions.contains { $0.id == sid }
         var s = sessions.first { $0.id == sid } ?? AgentSession(id: sid, cwd: "")
+        s.agent = e.agent
         if let cwd = p["cwd"] as? String, !cwd.isEmpty { s.cwd = cwd }
         if !e.bundleId.isEmpty { s.bundleId = e.bundleId }
         if !e.term.isEmpty { s.term = e.term }
         if e.tty.hasPrefix("/dev/tty") { s.tty = e.tty }
         s.updated = Date()
+        if isNew, e.name != "SessionEnd" { RecapStore.shared.recordSession(project: s.project, agent: e.agent) }
 
         var approvalId: UUID?
         switch e.name {
@@ -88,6 +106,7 @@ struct Approval: Identifiable {
             s.action = "Oturum açıldı"
         case "UserPromptSubmit":
             dropApprovals { $0.sessionId == sid }
+            dropQuestions { $0.sessionId == sid }
             s.status = .working
             s.action = "Düşünüyor…"
             s.prompt = (p["prompt"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -102,6 +121,7 @@ struct Approval: Identifiable {
                 s.steps.append(StepBuilder.pre(tool, input))
                 if s.steps.count > 40 { s.steps.removeFirst(s.steps.count - 40) }
             }
+            RecapStore.shared.recordStep(project: s.project)
         case "PostToolUse":
             // Aynı çağrı için bekleyen kart varsa, kullanıcı terminalden cevaplamıştır.
             let key = ToolText.key(tool, input)
@@ -109,20 +129,31 @@ struct Approval: Identifiable {
             if let i = s.steps.lastIndex(where: { $0.key == key && $0.status != .done })
                 ?? s.steps.lastIndex(where: { $0.tool == tool && $0.status != .done }) {
                 StepBuilder.post(&s.steps[i], p["tool_response"])
+            } else if !tool.isEmpty {
+                // Yalnızca "sonra" olayı gönderen ajanlar (Cursor, OpenCode) için adımı burada kur.
+                var step = StepBuilder.pre(tool, input)
+                StepBuilder.post(&step, p["tool_response"])
+                s.steps.append(step)
+                if s.steps.count > 40 { s.steps.removeFirst(s.steps.count - 40) }
+                s.action = ToolText.action(tool, input)
+                RecapStore.shared.recordStep(project: s.project)
             }
             if !approvals.contains(where: { $0.sessionId == sid }) { s.status = .working }
         case "PermissionRequest":
             guard let responder else { break }
             if tool == "AskUserQuestion" {
-                // Sorular terminalde cevaplanır; Serçe yalnızca haber verir.
-                responder.respond("")
-                s.status = .waiting
-                s.action = "Sana soru soruyor — terminale bak"
-                showFlash("\(s.project) bir soru soruyor")
-                play("Pop")
+                // Eski Claude Code sürümleri soruyu izin isteği olarak gönderir; cevap aynı kartla verilir.
+                let key = ToolText.key(tool, input)
+                if questionsSentToTerminal.contains(key) || questions.contains(where: { $0.key == key }) {
+                    responder.respond("")
+                } else if let id = openQuestion(&s, input: input, key: key, format: .permissionRequest, responder: responder) {
+                    approvalId = id
+                } else {
+                    responder.respond("")
+                }
                 break
             }
-            let a = Approval(sessionId: sid, project: s.project, tool: tool,
+            let a = Approval(sessionId: sid, project: s.project, agent: e.agent, tool: tool,
                              key: ToolText.key(tool, input),
                              title: ToolText.permissionTitle(tool),
                              detail: ToolText.detail(tool, input),
@@ -142,6 +173,15 @@ struct Approval: Identifiable {
                 try? await Task.sleep(for: .seconds(110))
                 self?.dropApprovals { $0.id == a.id }
             }
+        case "Ask":
+            // AskUserQuestion için ayrılmış PreToolUse hook'u (matcher: AskUserQuestion).
+            guard let responder else { break }
+            let key = ToolText.key(tool, input)
+            if let id = openQuestion(&s, input: input, key: key, format: .preToolUse, responder: responder) {
+                approvalId = id
+            } else {
+                responder.respond("")
+            }
         case "Notification":
             let msg = p["message"] as? String ?? ""
             if approvals.contains(where: { $0.sessionId == sid }) { break }
@@ -156,6 +196,7 @@ struct Approval: Identifiable {
             }
         case "Stop":
             dropApprovals { $0.sessionId == sid }
+            dropQuestions { $0.sessionId == sid }
             s.status = .done
             s.action = "Bitti"
             s.finished = true
@@ -165,6 +206,7 @@ struct Approval: Identifiable {
             celebrate(s.project)
         case "SessionEnd":
             dropApprovals { $0.sessionId == sid }
+            dropQuestions { $0.sessionId == sid }
             sessions.removeAll { $0.id == sid }
             return nil
         default:
@@ -175,18 +217,8 @@ struct Approval: Identifiable {
     }
 
     func decide(_ a: Approval, _ d: Decision) {
-        var decision: [String: Any]
-        switch d {
-        case .allow: decision = ["behavior": "allow"]
-        case .always: decision = ["behavior": "allow", "updatedPermissions": a.suggestions]
-        case .deny: decision = ["behavior": "deny", "message": "Serçe'den reddedildi"]
-        case .terminal: decision = [:]
-        }
-        var body = ""
-        if !decision.isEmpty {
-            let out: [String: Any] = ["hookSpecificOutput": ["hookEventName": "PermissionRequest", "decision": decision]]
-            body = String(data: (try? JSONSerialization.data(withJSONObject: out)) ?? Data(), encoding: .utf8) ?? ""
-        }
+        let body = AgentCatalog.permissionOutput(agent: a.agent, decision: d, suggestions: a.suggestions)
+        RecapStore.shared.recordDecision(d)
         a.responder.respond(body)
         approvals.removeAll { $0.id == a.id }
         if let i = sessions.firstIndex(where: { $0.id == a.sessionId }) {
@@ -199,7 +231,58 @@ struct Approval: Identifiable {
     }
 
     /// Hook süreci kapandı ya da süre doldu: kartı kaldır, Claude Code terminalde sorar.
-    func dropApproval(_ id: UUID) { dropApprovals { $0.id == id } }
+    func dropApproval(_ id: UUID) {
+        dropApprovals { $0.id == id }
+        dropQuestions { $0.id == id }
+    }
+
+    // MARK: - Sorular
+
+    private func openQuestion(_ s: inout AgentSession, input: [String: Any], key: String,
+                              format: QuestionRequest.Format, responder: Responder) -> UUID? {
+        guard let items = QuestionItem.parse(input) else { return nil }
+        if let old = questions.first(where: { $0.key == key }) { old.responder.respond("") }
+        questions.removeAll { $0.key == key }
+        let q = QuestionRequest(sessionId: s.id, project: s.project, agent: s.agent, key: key,
+                                items: items, rawQuestions: input["questions"] as? [Any] ?? [],
+                                format: format, responder: responder)
+        questions.append(q)
+        s.status = .waiting
+        s.action = "Sana soru soruyor"
+        play("Pop")
+        onAttention?()
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(format == .preToolUse ? 120 : 110))
+            self?.dropQuestions { $0.id == q.id }
+        }
+        return q.id
+    }
+
+    /// Seçimleri ajana gönderir. selections[i] = i. sorunun seçilen etiketleri.
+    func answer(_ q: QuestionRequest, selections: [[String]]) {
+        q.responder.respond(q.output(selections: selections))
+        RecapStore.shared.recordAnswer()
+        questions.removeAll { $0.id == q.id }
+        if let i = sessions.firstIndex(where: { $0.id == q.sessionId }) {
+            sessions[i].status = .working
+            sessions[i].action = "Cevap verildi"
+        }
+    }
+
+    /// Soruyu terminale bırakır: ajan kendi arayüzünde sorar.
+    func questionToTerminal(_ q: QuestionRequest) {
+        questionsSentToTerminal.insert(q.key)
+        q.responder.respond("")
+        questions.removeAll { $0.id == q.id }
+        if let i = sessions.firstIndex(where: { $0.id == q.sessionId }) {
+            sessions[i].action = "Soru terminalde"
+        }
+    }
+
+    private func dropQuestions(where match: (QuestionRequest) -> Bool) {
+        for q in questions where match(q) { q.responder.respond("") }
+        questions.removeAll(where: match)
+    }
 
     private func dropApprovals(where match: (Approval) -> Bool) {
         for a in approvals where match(a) { a.responder.respond("") }
