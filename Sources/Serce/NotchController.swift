@@ -82,6 +82,13 @@ final class NotchPanel: NSPanel {
         MouseTracker.birdAnchor = CGPoint(x: f.midX - model.notchWidth / 2 - model.wing / 2, y: f.maxY - model.notchHeight / 2)
     }
 
+    /// Kapalı adanın altındaki sesli asistan baloncuğu: tıklanabilir ama adayı açmaz.
+    private var captionRect: CGRect {
+        guard model.captionHeight > 0, !model.expanded else { return .zero }
+        let f = panel.frame, top = f.maxY - model.collapsedSize.height - 6
+        return CGRect(x: f.midX - 220, y: top - model.captionHeight, width: 440, height: model.captionHeight)
+    }
+
     private var activeRect: CGRect {
         let size = model.expanded ? CGSize(width: model.expandedWidth, height: model.expandedHeight) : model.collapsedSize
         let f = panel.frame
@@ -93,7 +100,7 @@ final class NotchPanel: NSPanel {
         MouseTracker.location = p
         // Ekranın en üst pikseli de sayılsın diye üstten biraz pay bırakılır.
         let inside = activeRect.insetBy(dx: -2, dy: -2).contains(p)
-        panel.ignoresMouseEvents = !inside
+        panel.ignoresMouseEvents = !inside && !captionRect.contains(p)
         if ProcessInfo.processInfo.environment["SERCE_DEBUG"] == "1" {
             NSLog("serce-debug mouse=\(p) rect=\(activeRect) inside=\(inside) expanded=\(model.expanded) h=\(model.expandedHeight)")
         }
@@ -111,7 +118,7 @@ final class NotchPanel: NSPanel {
             hoverWork?.cancel()
             hoverWork = nil
             // Bekleyen izin varken ada açık kalır.
-            if model.expanded, store.approvals.isEmpty { setExpanded(false) }
+            if model.expanded, !store.hasPending { setExpanded(false) }
         }
     }
 
@@ -135,7 +142,7 @@ final class NotchPanel: NSPanel {
 
     /// Karar sonrası: fare dışarıdaysa ve başka bekleyen yoksa adayı kapat.
     func settle() {
-        if store.approvals.isEmpty, !activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) {
+        if !store.hasPending, !activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) {
             setExpanded(false)
         }
     }

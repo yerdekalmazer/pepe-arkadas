@@ -46,6 +46,8 @@ enum DemoScript {
 @MainActor enum Snapshot {
     static func run(into dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // Demo olayları gerçek haftalık özete yazılmasın.
+        RecapStore.fileURL = dir.appendingPathComponent("haftalik.json")
         let app = AppState.shared
         let store = app.store
         let model = NotchModel()
@@ -87,6 +89,24 @@ enum DemoScript {
         shot("5-detay-diff")
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Read" }?.id
         shot("6-detay-okuma")
+        model.pinnedStep = nil
+        model.selectedSession = nil
+        AgentSnapshots.run(store: store, model: model, actions: actions, shot: shot, shotView: { name, view in
+            let wrapped = view
+                .padding(14)
+                .frame(width: model.expandedWidth - 2 * (model.ear + 12), alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.panel))
+                .padding(.horizontal, model.ear + 12).padding(.vertical, 12)
+                .background(Color.black)
+                .environment(\.colorScheme, .dark)
+                .environment(\.snapshotMode, true)
+            let r = ImageRenderer(content: wrapped)
+            r.scale = 2
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent(name + ".png"))
+            }
+        })
 
         // Karakter: kıyafetler, tepkiler, ayar bölümleri.
         func save<V: View>(_ name: String, _ view: V) {
@@ -174,7 +194,36 @@ enum DemoScript {
         app.attachments = []
         chat.newChat()
         app.tab = .home
+        voiceShots(into: dir)
         musicShots(into: dir)
+    }
+
+    /// Sesli asistan baloncuğu: kapalı ada + altında dinliyor/düşünüyor/konuşuyor.
+    static func voiceShots(into dir: URL) {
+        let v = VoiceEngine.shared
+        let states: [(String, VoiceEngine.Phase, String, String)] = [
+            ("12-ses-dinliyor", .listening, "Stripe'ta bugün ne kadar kazandım", ""),
+            ("13-ses-dusunuyor", .thinking, "Stripe'ta bugün ne kadar kazandım", ""),
+            ("14-ses-konusuyor", .speaking, "", "Bugün 3 ödeme aldın, toplam 1.284 euro 50 sent. Sonuncusu Sarah'dan 49 euro."),
+        ]
+        for (name, phase, heard, answer) in states {
+            v.showForSnapshot(phase, heard: heard, answer: answer)
+            let view = VStack(spacing: 6) {
+                NotchShape(ear: 7, radius: 12).fill(.black).frame(width: 279, height: 32)
+                VoiceCaption(engine: v)
+            }
+            .padding(20)
+            .frame(width: 520)
+            .background(Color(white: 0.55))
+            .environment(\.snapshotMode, true)
+            let r = ImageRenderer(content: view)
+            r.scale = 2
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent(name + ".png"))
+            }
+        }
+        v.showForSnapshot(.off, heard: "", answer: "")
     }
 
     /// Müzik kartları: sahte durumla, AppleScript göndermeden.

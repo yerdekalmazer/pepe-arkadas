@@ -27,7 +27,7 @@ struct HotKey: Equatable {
 }
 
 enum ShortcutAction: String, CaseIterable, Identifiable {
-    case toggleIsland, openChat, jumpAlert, terminal, nextPill, mute, desktop, wardrobe
+    case toggleIsland, openChat, jumpAlert, terminal, nextPill, mute, desktop, wardrobe, listen
 
     var id: String { rawValue }
 
@@ -41,6 +41,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .mute: "Sesi aç / kapat"
         case .desktop: "Kuşu masaüstüne gönder / eve çağır"
         case .wardrobe: "Gardırobu aç"
+        case .listen: "Serçe'ye konuş (« OK Serçe » demeden)"
         }
     }
 
@@ -55,6 +56,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
         case .mute: return HotKey(keyCode: UInt32(kVK_ANSI_M), modifiers: m)
         case .desktop: return HotKey(keyCode: UInt32(kVK_ANSI_D), modifiers: m)
         case .wardrobe: return HotKey(keyCode: UInt32(kVK_ANSI_W), modifiers: m)
+        case .listen: return HotKey(keyCode: UInt32(kVK_ANSI_S), modifiers: m)
         }
     }
 }
@@ -124,6 +126,8 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
             if d.isOnDesktop { d.goHome() } else { d.sendToDesktop() }
         case .wardrobe:
             WardrobePopup.show()
+        case .listen:
+            VoiceEngine.shared.listenNow()
         }
     }
 

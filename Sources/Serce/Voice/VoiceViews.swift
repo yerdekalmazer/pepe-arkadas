@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Notch'un altında sesli konuşmanın durumu: dinliyor / düşünüyor / konuşuyor + metin.
@@ -118,6 +119,37 @@ enum VoiceFeature {
         SettingsRegistry.shared.add(SettingsSection(id: "ses", title: "Ses", icon: "waveform", order: 40) {
             AnyView(VoiceSettings(engine: .shared))
         })
+        VoiceHooks.composeMail = { to, subject, body in
+            MailComposer.compose(to: to, subject: subject, body: body, attachments: [])
+        }
+        VoiceHooks.music = { action, query, level in await music(action, query, level) }
         VoiceEngine.shared.start()
+    }
+
+    /// Önce çalan, sonra açık olan, en son kurulu olan müzik uygulamasını seçer (Spotify öncelikli).
+    @MainActor private static func music(_ action: String, _ query: String?, _ level: Int?) async -> String {
+        let all = MusicController.all
+        func isRunning(_ c: MusicController) -> Bool {
+            let bid = c.id == "spotify" ? "com.spotify.client" : "com.apple.Music"
+            return !NSRunningApplication.runningApplications(withBundleIdentifier: bid).isEmpty
+        }
+        let target = all.first { $0.now?.playing == true } ?? all.first(where: isRunning)
+            ?? all.first { $0.isConfigured }
+        guard let c = target else { return "Spotify ya da Apple Music bulunamadı." }
+        if !AppState.shared.pills.isActive(c.id) { c.start() }
+        switch action {
+        case "play":
+            guard let q = query, !q.isEmpty else { c.playPause(); return "\(c.title) devam ediyor." }
+            return await c.play(query: q) ? "\(c.title)'da \(q) çalınıyor." : "\(c.title)'da \(q) bulunamadı."
+        case "pause", "resume":
+            c.playPause()
+            return action == "pause" ? "\(c.title) duraklatıldı." : "\(c.title) devam ediyor."
+        case "next": c.next(); return "Sonraki parça."
+        case "previous": c.previous(); return "Önceki parça."
+        case "volume":
+            c.setVolume(Double(level ?? 50))
+            return "Ses %\(level ?? 50)."
+        default: return "Bilinmeyen müzik eylemi."
+        }
     }
 }

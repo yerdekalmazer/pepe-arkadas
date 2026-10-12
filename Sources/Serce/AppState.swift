@@ -34,6 +34,14 @@ struct AppActions {
     /// Karakterin genel ruh hali: bekleyen izin > pill uyarısı > oturumlar.
     var mood: Mood {
         let m = store.mood
+        if m == .alert { return m }
+        // Sesli konuşma: dinlerken uyanık, düşünürken çalışır, konuşurken sevinir.
+        switch VoiceEngine.shared.phase {
+        case .listening: return .idle
+        case .thinking: return .working
+        case .speaking: return .happy
+        case .off, .waiting: break
+        }
         return (m == .idle || m == .sleep) && musicPlaying ? .dance : m
     }
 }

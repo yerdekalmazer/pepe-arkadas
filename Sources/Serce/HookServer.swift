@@ -7,6 +7,8 @@ struct HookEvent {
     let bundleId: String
     let term: String
     var tty = ""
+    /// Ajan kimliği ("claude", "codex", "gemini"…); AgentNormalizer belirler.
+    var agent = AgentCatalog.claude
 }
 
 /// Yanıtın tek sefer gönderilmesini garanti eder (karar, zaman aşımı ve bağlantı kopması yarışabilir).
@@ -76,17 +78,17 @@ final class HookServer {
             reply(c, status: "403 Forbidden", body: "")
             return
         }
-        let payload = (try? JSONSerialization.jsonObject(with: req.body)) as? [String: Any] ?? [:]
-        let name = req.query["event"].flatMap { $0.isEmpty ? nil : $0 }
-            ?? payload["hook_event_name"] as? String ?? ""
+        let raw = (try? JSONSerialization.jsonObject(with: req.body)) as? [String: Any] ?? [:]
+        let (name, payload, agent) = AgentNormalizer.normalize(name: req.query["event"] ?? "", payload: raw,
+                                                               agentArg: req.query["agent"] ?? "", entry: req.query["entry"] ?? "")
         let event = HookEvent(name: name, payload: payload,
                               bundleId: req.query["bid"] ?? "", term: req.query["term"] ?? "",
-                              tty: req.query["tty"] ?? "")
+                              tty: req.query["tty"] ?? "", agent: agent)
 
         if ProcessInfo.processInfo.environment["SERCE_DEBUG"] == "1" {
             NSLog("serce-debug event=\(name) bid=\(event.bundleId) term=\(event.term) tty=\(event.tty)")
         }
-        guard name == "PermissionRequest" else {
+        guard name == "PermissionRequest" || name == "Ask" else {
             reply(c, status: "200 OK", body: "")
             onEvent(event, nil, { _ in })
             return

@@ -10,6 +10,7 @@ import SwiftUI
         app.pills.register(MusicController(.music))
         Integrations.register(app)
         // ajanlar
+        AgentFeatures.register(app)
         // karakter
         CharacterFeature.register(app)
         // sohbet

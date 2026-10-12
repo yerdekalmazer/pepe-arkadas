@@ -148,7 +148,7 @@ import SwiftUI
             commandStart = end
             phase = .listening
             heard = ""
-            NSSound(named: "Tink")?.play()
+            SoundEngine.shared.play(.chirp)
             armSilence(timeout: 6)
         }
         guard phase == .listening else { return }
@@ -200,6 +200,13 @@ import SwiftUI
             phase = .waiting
             listen()
         }
+    }
+
+    /// Yalnızca anlık görüntü modu için: baloncuğu belirli bir halde göster.
+    func showForSnapshot(_ p: Phase, heard: String, answer: String) {
+        phase = p
+        self.heard = heard
+        self.answer = answer
     }
 
     /// Ayarlardaki "Dene" düğmesi.
