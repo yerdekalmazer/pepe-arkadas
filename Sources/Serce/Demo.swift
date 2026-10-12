@@ -204,8 +204,13 @@ enum DemoScript {
                 ["type": "text", "text": "Önce fatura hesabının nerede yapıldığına bakıyorum."],
                 ["type": "tool_use", "name": "Read", "input": ["file_path": "/x/src/fatura.ts"]],
                 ["type": "tool_use", "name": "Edit", "input": ["file_path": "/x/src/fatura.ts", "old_string": "0.18", "new_string": "0.20"]],
-                ["type": "tool_use", "name": "Bash", "input": ["command": "npm test"]]]]],
-            ["type": "user", "message": ["role": "user", "content": [["type": "tool_result", "tool_use_id": "1", "content": "ok"]]]],
+                ["type": "tool_use", "id": "b1", "name": "Bash", "input": ["command": "npm run lint"]]]]],
+            ["type": "user", "message": ["role": "user", "content": [["type": "tool_result", "tool_use_id": "b1", "is_error": true,
+                "content": "src/fatura.ts:3:7  error  'KDV' is never reassigned. Use 'const'\n✖ 1 problem"]]]],
+            ["type": "assistant", "message": ["role": "assistant", "content": [
+                ["type": "tool_use", "id": "b2", "name": "Bash", "input": ["command": "npm test"]]]]],
+            ["type": "user", "message": ["role": "user", "content": [["type": "tool_result", "tool_use_id": "b2",
+                "content": "> kesit@1.0.0 test\n> vitest run\n\n ✓ tests/fatura.test.ts (6)\n   ✓ KDV %20 uygulanır (3 ms)\n\n Test Files  1 passed (1)\n      Tests  48 passed (48)"]]]],
             ["type": "assistant", "message": ["role": "assistant", "content": [
                 ["type": "text", "text": "KDV oranı **%20** oldu, 48 testin hepsi geçti. PDF şablonundaki oran metnini de güncelleyeyim mi?"]]]],
             ["type": "user", "timestamp": "2026-10-12T19:05:40.000Z", "message": ["role": "user", "content": "<system-reminder>gizli not</system-reminder>evet güncelle"]],
@@ -222,6 +227,8 @@ enum DemoScript {
             model.selectedSession = sid
             model.pinnedStep = SessionDetail.historyId
             shot("17-gecmis")
+            model.pinnedStep = SessionDetail.commandsId
+            shot("18-komutlar")
             model.selectedSession = nil
             model.pinnedStep = nil
         }

@@ -13,15 +13,69 @@ struct HistoryItem: Identifiable, Equatable {
 
 enum TranscriptReader {
     /// Dosyanın son `bytes` kadarını okuyup ayrıştırır. `truncated`: daha eski kayıt var mı.
-    static func read(path: String, bytes: Int) -> (items: [HistoryItem], truncated: Bool) {
-        guard let h = FileHandle(forReadingAtPath: path) else { return ([], false) }
+    /// Dosyanın son `bytes` kadarı (ilk yarım satır atılmış) ve öncesinde kayıt kalıp kalmadığı.
+    private static func tail(_ path: String, _ bytes: Int) -> (Data, Bool)? {
+        guard let h = FileHandle(forReadingAtPath: path) else { return nil }
         defer { try? h.close() }
         let size = (try? h.seekToEnd()) ?? 0
         let start = size > UInt64(bytes) ? size - UInt64(bytes) : 0
         try? h.seek(toOffset: start)
-        guard var data = try? h.readToEnd() else { return ([], false) }
-        // Ortadan başlandıysa ilk (yarım) satırı at.
+        guard var data = try? h.readToEnd() else { return nil }
         if start > 0, let nl = data.firstIndex(of: 0x0A) { data = data[(nl + 1)...] }
+        return (data, start > 0)
+    }
+
+    struct Command: Identifiable {
+        let id: String
+        let command: String
+        var output = ""
+        var isError = false
+        var time: Date?
+        var running = true
+    }
+
+    /// Oturumdaki Bash komutları ve çıktıları (tool_use ↔ tool_result kimlikle eşlenir).
+    static func commands(path: String, bytes: Int) -> (items: [Command], truncated: Bool) {
+        guard let (data, truncated) = tail(path, bytes) else { return ([], false) }
+        var list: [Command] = []
+        var index: [String: Int] = [:]
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        for line in data.split(separator: 0x0A) {
+            guard line.count > 2, let d = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
+                  (d["isSidechain"] as? Bool) != true,
+                  let blocks = (d["message"] as? [String: Any])?["content"] as? [[String: Any]] else { continue }
+            let time = (d["timestamp"] as? String).flatMap { iso.date(from: $0) }
+            for b in blocks {
+                switch b["type"] as? String {
+                case "tool_use" where b["name"] as? String == "Bash":
+                    let id = b["id"] as? String ?? UUID().uuidString
+                    let cmd = (b["input"] as? [String: Any])?["command"] as? String ?? ""
+                    index[id] = list.count
+                    list.append(Command(id: id, command: cmd, time: time))
+                case "tool_result":
+                    guard let id = b["tool_use_id"] as? String, let i = index[id] else { continue }
+                    var out = ""
+                    if let s = b["content"] as? String { out = s }
+                    else if let parts = b["content"] as? [[String: Any]] {
+                        out = parts.compactMap { $0["type"] as? String == "text" ? $0["text"] as? String : nil }.joined(separator: "\n")
+                    }
+                    // Çok uzun çıktıların sonu gösterilir.
+                    if out.count > 6000 { out = "…\n" + String(out.suffix(6000)) }
+                    list[i].output = out
+                    list[i].isError = b["is_error"] as? Bool ?? false
+                    list[i].running = false
+                default:
+                    break
+                }
+            }
+        }
+        return (Array(list.suffix(150)), truncated)
+    }
+
+    static func read(path: String, bytes: Int, includeTools: Bool = false) -> (items: [HistoryItem], truncated: Bool) {
+        guard let (data, truncated) = tail(path, bytes) else { return ([], false) }
+        let start: UInt64 = truncated ? 1 : 0
 
         var items: [HistoryItem] = []
         var pendingTools: [String] = []
@@ -76,8 +130,11 @@ enum TranscriptReader {
                             items.append(HistoryItem(id: items.count, kind: .assistant, text: t, time: time))
                         }
                     case "tool_use":
-                        let name = b["name"] as? String ?? ""
-                        pendingTools.append(ToolText.action(name, b["input"] as? [String: Any] ?? [:]))
+                        // Araç adımları "Komutlar" sayfasında; geçmişte yalnızca konuşma kalır.
+                        if includeTools {
+                            let name = b["name"] as? String ?? ""
+                            pendingTools.append(ToolText.action(name, b["input"] as? [String: Any] ?? [:]))
+                        }
                     default:
                         break
                     }

@@ -349,6 +349,9 @@ MainActor.assumeIsolated {
         let t0 = Date()
         let (items, truncated) = TranscriptReader.read(path: CommandLine.arguments[i + 1], bytes: 2 << 20)
         print("\(items.count) öğe, daha eskisi var: \(truncated), süre: \(Int(Date().timeIntervalSince(t0) * 1000)) ms")
+        let (cmds, _) = TranscriptReader.commands(path: CommandLine.arguments[i + 1], bytes: 4 << 20)
+        print("komut: \(cmds.count), hatalı: \(cmds.filter(\.isError).count), sonuçsuz: \(cmds.filter(\.running).count)")
+        for c in cmds.suffix(3) { print("  $", c.command.prefix(70).replacingOccurrences(of: "\n", with: " "), "→", c.output.count, "karakter") }
         for it in items.suffix(12) {
             let tag = it.kind == .user ? "SEN   " : (it.kind == .assistant ? "CLAUDE" : "adım  ")
             print(tag, it.text.replacingOccurrences(of: "\n", with: " ").prefix(90))

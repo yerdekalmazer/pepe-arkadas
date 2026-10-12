@@ -420,6 +420,7 @@ struct SessionDetail: View {
     /// Adım listesinde "Yanıt" ve "Geçmiş" satırlarının sabit kimlikleri.
     static let replyId = UUID()
     static let historyId = UUID()
+    static let commandsId = UUID()
 
     var body: some View {
         let visible = Array(session.steps.suffix(6))
@@ -427,7 +428,8 @@ struct SessionDetail: View {
         let hasHistory = !session.transcriptPath.isEmpty
         // Oturum çalışmıyorken ve adım seçilmemişken: konuşma geçmişi (yoksa son yanıt).
         let idle = model.pinnedStep == nil && session.status != .working
-        let showHistory = hasHistory && (model.pinnedStep == Self.historyId || idle)
+        let showCommands = hasHistory && model.pinnedStep == Self.commandsId
+        let showHistory = hasHistory && !showCommands && (model.pinnedStep == Self.historyId || idle)
         let showReply = !showHistory && hasReply && (model.pinnedStep == Self.replyId || idle)
         let selected = visible.first { $0.id == model.pinnedStep } ?? visible.last
         HStack(alignment: .top, spacing: 14) {
@@ -444,9 +446,16 @@ struct SessionDetail: View {
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { model.pinnedStep = Self.historyId }
+                        HStack(spacing: 7) {
+                            Image(systemName: "terminal.fill").foregroundStyle(.secondary).frame(width: 14)
+                            Text("Komutlar").font(.system(size: 12, weight: showCommands ? .semibold : .regular))
+                                .foregroundStyle(showCommands ? .white : .white.opacity(0.7))
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { model.pinnedStep = Self.commandsId }
                     }
                     ForEach(visible) { step in
-                        StepRow(step: step, selected: !showReply && !showHistory && step.id == selected?.id) {
+                        StepRow(step: step, selected: !showReply && !showHistory && !showCommands && step.id == selected?.id) {
                             model.pinnedStep = step.id
                         }
                     }
@@ -497,7 +506,9 @@ struct SessionDetail: View {
             .frame(width: 140, alignment: .leading)
 
             VStack(spacing: 8) {
-                if showHistory {
+                if showCommands {
+                    CommandsView(path: session.transcriptPath, cwd: session.cwd, refresh: session.updated)
+                } else if showHistory {
                     HistoryView(path: session.transcriptPath, refresh: session.updated)
                 } else if showReply {
                     ReplyView(text: session.lastReply)
@@ -1323,5 +1334,101 @@ struct HistoryView: View {
         items = result.items
         truncated = result.truncated
         loading = false
+    }
+}
+
+/// Oturumdaki bütün Bash komutları ve çıktıları tek sayfada, terminal gibi.
+struct CommandsView: View {
+    let path: String
+    let cwd: String
+    let refresh: Date
+    @State private var items: [TranscriptReader.Command] = []
+    @State private var truncated = false
+    @State private var window = 4 << 20
+    @Environment(\.snapshotMode) private var snapshot
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 7) {
+                Image(systemName: "terminal").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text("Komutlar").font(.system(size: 11, weight: .medium))
+                Text("\(shown.count)").font(.system(size: 10)).foregroundStyle(.tertiary)
+                Spacer()
+                Text(StepBuilder.short(cwd)).font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
+                    .lineLimit(1).truncationMode(.head)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(.white.opacity(0.03))
+            Divider().overlay(.white.opacity(0.05))
+            if snapshot {
+                content.frame(maxHeight: .infinity, alignment: .bottom).clipped()
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView { content }
+                        .onChange(of: items.count) { proxy.scrollTo("son", anchor: .bottom) }
+                        .onAppear { proxy.scrollTo("son", anchor: .bottom) }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.editor))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .task(id: "\(path)|\(refresh.timeIntervalSince1970)|\(window)") {
+            let (p, w) = (path, window)
+            let r = await Task.detached(priority: .userInitiated) { TranscriptReader.commands(path: p, bytes: w) }.value
+            items = r.items
+            truncated = r.truncated
+        }
+    }
+
+    /// Satır satır renklendirme: başarı yeşil, hata kırmızı, gerisi gri.
+    static func colored(_ out: String) -> AttributedString {
+        var result = AttributedString()
+        let lines = out.components(separatedBy: "\n")
+        for (i, l) in lines.enumerated() {
+            result += Terminal.colored(l)
+            if i < lines.count - 1 { result += AttributedString("\n") }
+        }
+        return result
+    }
+
+    private var shown: [TranscriptReader.Command] {
+        snapshot ? TranscriptReader.commands(path: path, bytes: window).items : items
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if truncated && !snapshot {
+                Button("Daha eskisini yükle") { window *= 4 }
+                    .buttonStyle(.plain).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            if shown.isEmpty {
+                Text("Bu oturumda henüz komut çalışmadı.").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            ForEach(shown) { c in
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        (Text("$ ").foregroundColor(c.isError ? Palette.red : Palette.green) + Text(c.command).foregroundColor(.white))
+                            .lineLimit(6)
+                        Spacer(minLength: 4)
+                        if c.running {
+                            Spinner().frame(width: 9, height: 9)
+                        } else if let t = c.time {
+                            Text(t, format: .dateTime.hour().minute()).font(.system(size: 9)).foregroundStyle(.tertiary)
+                        }
+                    }
+                    if !c.output.isEmpty {
+                        Text(c.isError ? AttributedString(c.output) : Self.colored(c.output))
+                            .foregroundStyle(c.isError ? Palette.red.opacity(0.9) : .white.opacity(0.7))
+                            .lineLimit(40)
+                    }
+                }
+                .font(.system(size: 11, design: .monospaced))
+                .textSelection(.enabled)
+            }
+            Color.clear.frame(height: 1).id("son")
+        }
+        .padding(12)
     }
 }
