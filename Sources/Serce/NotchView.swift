@@ -187,13 +187,14 @@ struct ExpandedView: View {
     @ObservedObject var model: NotchModel
     let actions: NotchActions
     @ObservedObject var plan = PlanStore.shared
+    @Environment(\.appWindow) private var inWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             topBar.frame(height: model.notchHeight)
             panel
                 .padding(14)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: inWindow ? .infinity : nil, alignment: .topLeading)
                 .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.panel))
                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(.white.opacity(0.06)))
         }
@@ -265,14 +266,14 @@ struct ExpandedView: View {
             }
         } else {
             VStack(spacing: 8) {
-                ForEach(store.sessions.prefix(model.showAllSessions ? 8 : 3)) { s in
+                ForEach(store.sessions.prefix(inWindow ? 12 : model.showAllSessions ? 8 : 3)) { s in
                     SessionCard(session: s) {
                         model.pinnedStep = nil
                         model.selectedSession = s.id
                     }
                 }
                 HStack {
-                    if store.sessions.count > 3 {
+                    if store.sessions.count > 3, !inWindow {
                         Button(model.showAllSessions ? "Daha az göster" : "+\(store.sessions.count - 3) oturum daha") {
                             model.showAllSessions.toggle()
                         }
@@ -297,14 +298,24 @@ struct ExpandedView: View {
             }
             TabIcon(symbol: "bubble.left.fill", selected: app.tab == .chat) { app.tab = .chat }
             TabIcon(symbol: "plus", selected: app.tab == .drop) { app.tab = .drop }
-            Spacer(minLength: model.notchWidth)
+            Spacer(minLength: inWindow ? 0 : model.notchWidth)
             PlanPill(plan: plan)
+            if !inWindow {
+                // Adadaki ekranı normal bir uygulama penceresinde aç.
+                TabIcon(symbol: "arrow.up.left.and.arrow.down.right", selected: false) {
+                    AppWindowController.shared.show(from: model)
+                    AppState.shared.actions.collapse()
+                }
+                .help("Pencerede aç")
+            }
             TabIcon(symbol: "gearshape", selected: false, action: actions.showMenu)
             TabIcon(symbol: store.soundsOn ? "speaker.wave.2" : "speaker.slash", selected: false) {
                 store.soundsOn.toggle()
             }
         }
         .padding(.horizontal, 6)
+        // Pencerede sol üstteki kapat/küçült düğmelerinin altına girmesin.
+        .padding(.leading, inWindow ? 64 : 0)
     }
 }
 
@@ -424,6 +435,7 @@ struct SessionDetail: View {
     @State private var confirmClose = false
     @State private var dropTargeted = false
     @Environment(\.snapshotMode) private var snapshot
+    @Environment(\.appWindow) private var inWindow
 
     /// Adım listesinde "Yanıt" ve "Geçmiş" satırlarının sabit kimlikleri.
     static let replyId = UUID()
@@ -534,7 +546,9 @@ struct SessionDetail: View {
                 composer
             }
         }
-        .frame(height: 320)
+        // Pencerede yükseklik pencereyle büyür.
+        .frame(height: inWindow ? nil : 320)
+        .frame(minHeight: 320, maxHeight: inWindow ? .infinity : 320)
         // Görseli detayın herhangi bir yerine bırakabilirsin; o oturumun mesajına eklenir.
         .onDrop(of: snapshot ? [] : [.fileURL, .image], isTargeted: $dropTargeted) { providers in
             guard session.agent == AgentCatalog.claude else { return false }

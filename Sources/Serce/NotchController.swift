@@ -9,6 +9,7 @@ final class NotchPanel: NSPanel {
 /// fare yalnızca siyah adanın üstündeyken tıklamaları yakalar, gerisi alttaki pencerelere geçer.
 @MainActor final class NotchController {
     let model = NotchModel()
+    let actions: NotchActions
     private let store: SessionStore
     private let panel: NotchPanel
     private var monitors: [Any] = []
@@ -19,6 +20,7 @@ final class NotchPanel: NSPanel {
 
     init(store: SessionStore, actions: NotchActions) {
         self.store = store
+        self.actions = actions
         panel = NotchPanel(contentRect: CGRect(origin: .zero, size: panelSize),
                            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isOpaque = false
@@ -63,7 +65,7 @@ final class NotchPanel: NSPanel {
         // ⌘V: oturum detayı açıksa ve panoda görsel varsa, görsel o oturumun mesajına eklenir.
         _ = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
             guard e.modifierFlags.contains(.command), e.charactersIgnoringModifiers == "v",
-                  let self, self.model.expanded, AppState.shared.tab == .home,
+                  let self, self.model.expanded, !AppWindowController.shared.isKey, AppState.shared.tab == .home,
                   let sid = self.model.selectedSession,
                   ComposerStore.shared.pasteImages(into: sid) else { return e }
             return nil

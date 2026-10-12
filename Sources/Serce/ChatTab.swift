@@ -7,12 +7,13 @@ struct ChatTabView: View {
     @ObservedObject var chat = ChatSession.shared
     @ObservedObject var dictation = Dictation.shared
     @Environment(\.snapshotMode) private var snapshot
+    @Environment(\.appWindow) private var inWindow
     @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
-            conversation.frame(height: 190)
+            conversation.frame(height: inWindow ? nil : 190).frame(maxHeight: inWindow ? .infinity : 190)
             if !app.attachments.isEmpty { AttachmentChips(app: app) }
             inputRow
         }

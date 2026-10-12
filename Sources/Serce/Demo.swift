@@ -90,7 +90,21 @@ enum DemoScript {
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Read" }?.id
         shot("6-detay-okuma")
         model.pinnedStep = nil
+        // Normal uygulama penceresi (büyütme butonu): ada içeriği 940×680 pencerede.
+        func windowShot(_ name: String) {
+            let view = AppWindowRoot(app: app, store: store, model: model, actions: actions)
+                .frame(width: 940, height: 680)
+                .environment(\.snapshotMode, true)
+            let r = ImageRenderer(content: view)
+            r.scale = 1
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent(name + ".png"))
+            }
+        }
+        windowShot("7-pencere-detay")
         model.selectedSession = nil
+        windowShot("8-pencere-ana")
         AgentSnapshots.run(store: store, model: model, actions: actions, shot: shot, shotView: { name, view in
             let wrapped = view
                 .padding(14)

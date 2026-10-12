@@ -38,6 +38,7 @@ import SwiftUI
             }
         ))
         notch.show()
+        AppWindowController.shared.configure(actions: notch.actions)
 
         let app = AppState.shared
         app.actions.expand = { [weak self] in self?.notch.setExpanded(true) }
@@ -94,6 +95,7 @@ import SwiftUI
         let login = item("Girişte başlat", #selector(toggleLogin))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
+        menu.addItem(item("Pencerede aç", #selector(openWindow)))
         menu.addItem(item("Ayarlar…", #selector(openSettings), key: ","))
         menu.addItem(item("Demo göster", #selector(runDemo)))
         menu.addItem(.separator())
@@ -118,6 +120,14 @@ import SwiftUI
     @objc private func toggleSound() { store.soundsOn.toggle() }
 
     @objc private func openSettings() { SettingsWindowController.shared.show() }
+    @objc func openSettingsFromMenu() { SettingsWindowController.shared.show() }
+    @objc private func openWindow() { AppWindowController.shared.show() }
+
+    /// Dock simgesine tıklanınca pencereyi geri getir.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { AppWindowController.shared.show() }
+        return true
+    }
 
     @objc private func toggleLogin() {
         do {
