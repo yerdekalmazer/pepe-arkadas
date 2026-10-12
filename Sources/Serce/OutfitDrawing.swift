@@ -9,6 +9,9 @@ enum OutfitArt {
 
     private static func rgb(_ r: Double, _ g: Double, _ b: Double) -> Color { Color(red: r, green: g, blue: b) }
 
+    /// Boyna takılanlar (atkı, papyon); gerisi başa.
+    static func isNeck(_ o: Outfit) -> Bool { o == .scarf || o == .bowtie }
+
     static func draw(_ o: Outfit, in ctx: inout GraphicsContext) {
         switch o {
         case .none: break

@@ -11,7 +11,7 @@ enum MouseTracker {
 /// Gözlerin neyi referans alarak imleci izleyeceği.
 enum EyeAnchor { case notch, desktop, fixed }
 
-/// Pepe: çentikte yaşayan tombul bir Akbaş yavrusu (çivili tasmalı, kıvrık kuyruklu). Tamamen çizimle üretilir, görsel dosyası yok.
+/// Pepe: çentikte oturan bir Akbaş (çivili tasmalı, kıvrık kuyruklu), yandan. Tamamen çizimle üretilir, görsel dosyası yok.
 struct Bird: View {
     var mood: Mood
     var size: CGFloat
@@ -133,146 +133,147 @@ struct Bird: View {
 
         let annoyed: Bool = { if case .annoyed? = emote?.0 { return true }; return false }()
         let greeting: Bool = { if case .greet? = emote?.0 { return true }; return false }()
-        let outline = StrokeStyle(lineWidth: 0.016, lineCap: .round, lineJoin: .round)
+        // Oturan Akbaş, yandan (sağa bakıyor). Birim kare: baş sağ üstte, kalça sol altta, ön bacaklar dik.
+        let outline = StrokeStyle(lineWidth: 0.014, lineCap: .round, lineJoin: .round)
+        let worn = outfit ?? CharacterMirror.outfit
+        func stroked(_ p: Path, _ c: inout GraphicsContext, fill: Color) {
+            c.fill(p, with: .color(fill))
+            c.stroke(p, with: .color(line), style: outline)
+        }
 
-        // Kuyruk: Akbaş gibi sırtın üstüne kıvrık; sevinçte ve selamda hızlı sallanır.
+        // Kuyruk: kalçanın arkasından sırta doğru kıvrık; sevinçte hızlı sallanır.
         let wagSpeed: Double = greeting || mood == .happy ? 18 : mood == .working || mood == .dance ? 9 : mood == .sleep ? 0 : 3
         var tailCtx = ctx
-        tailCtx.translateBy(x: 0.22, y: 0.52)
-        tailCtx.rotate(by: .radians((annoyed ? 0.15 : sin(t * wagSpeed) * 0.22) - (mood == .sleep ? 0.0 : 0.05)))
+        tailCtx.translateBy(x: 0.17, y: 0.76)
+        tailCtx.rotate(by: .radians(annoyed ? 0.2 : sin(t * wagSpeed) * 0.25))
         var curl = Path()
-        curl.move(to: CGPoint(x: 0.06, y: 0.04))
-        curl.addCurve(to: CGPoint(x: -0.10, y: -0.20), control1: CGPoint(x: -0.10, y: 0.02), control2: CGPoint(x: -0.17, y: -0.12))
-        curl.addCurve(to: CGPoint(x: 0.0, y: -0.15), control1: CGPoint(x: -0.05, y: -0.27), control2: CGPoint(x: 0.03, y: -0.22))
-        tailCtx.stroke(curl, with: .color(line), style: StrokeStyle(lineWidth: 0.075, lineCap: .round, lineJoin: .round))
-        tailCtx.stroke(curl, with: .color(fur), style: StrokeStyle(lineWidth: 0.047, lineCap: .round, lineJoin: .round))
+        curl.move(to: CGPoint(x: 0.03, y: 0.02))
+        curl.addCurve(to: CGPoint(x: -0.06, y: -0.26), control1: CGPoint(x: -0.10, y: -0.02), control2: CGPoint(x: -0.13, y: -0.20))
+        curl.addCurve(to: CGPoint(x: 0.05, y: -0.22), control1: CGPoint(x: -0.01, y: -0.32), control2: CGPoint(x: 0.06, y: -0.29))
+        tailCtx.stroke(curl, with: .color(line), style: StrokeStyle(lineWidth: 0.072, lineCap: .round, lineJoin: .round))
+        tailCtx.stroke(curl, with: .color(fur), style: StrokeStyle(lineWidth: 0.046, lineCap: .round, lineJoin: .round))
 
-        // Arkadaki kulak: başın tepesinden azıcık görünen üçgen.
-        var farEar = ctx
-        farEar.translateBy(x: 0.66, y: 0.255)
-        farEar.rotate(by: .radians(-0.35 + (mood == .alert ? -0.25 : 0)))
-        var fe = Path()
-        fe.move(to: CGPoint(x: -0.06, y: 0.03))
-        fe.addQuadCurve(to: CGPoint(x: 0.05, y: 0.02), control: CGPoint(x: 0.0, y: -0.05))
-        fe.addQuadCurve(to: CGPoint(x: 0.03, y: 0.12), control: CGPoint(x: 0.07, y: 0.09))
-        fe.closeSubpath()
-        farEar.fill(fe, with: .color(Self.shade(ear, 0.06)))
-        farEar.stroke(fe, with: .color(line), style: outline)
+        // Uzaktaki ön bacak (bir ton gölgeli)
+        let farLeg = Path(roundedRect: CGRect(x: 0.53, y: 0.60, width: 0.10, height: 0.34), cornerRadius: 0.05)
+        stroked(farLeg, &ctx, fill: furShade)
+        stroked(oval(0.59, 0.94, 0.12, 0.05), &ctx, fill: furShade)
 
-        if annoyed { OutfitArt.annoyedSpikes(&ctx, feather: ear, k: k) }
-
-        // Gövde ve geniş baş tek tombul parça; altta hafif gölge, boyunda çivili tasma.
-        let body = oval(0.5, 0.58, 0.74, 0.70)
+        // Gövde: boyundan kalçaya inen sırt, yere oturmuş arka, öne dolgun göğüs.
+        var body = Path()
+        body.move(to: CGPoint(x: 0.50, y: 0.36))
+        body.addCurve(to: CGPoint(x: 0.17, y: 0.78), control1: CGPoint(x: 0.36, y: 0.42), control2: CGPoint(x: 0.18, y: 0.55))
+        body.addCurve(to: CGPoint(x: 0.34, y: 0.955), control1: CGPoint(x: 0.16, y: 0.90), control2: CGPoint(x: 0.22, y: 0.955))
+        body.addLine(to: CGPoint(x: 0.62, y: 0.955))
+        body.addCurve(to: CGPoint(x: 0.75, y: 0.50), control1: CGPoint(x: 0.74, y: 0.80), control2: CGPoint(x: 0.79, y: 0.62))
+        body.addLine(to: CGPoint(x: 0.66, y: 0.38))
+        body.closeSubpath()
         ctx.fill(body, with: .color(fur))
         var inner = ctx
         inner.clip(to: body)
-        inner.fill(oval(0.36, 0.90, 0.80, 0.34), with: .color(furShade))
-        inner.fill(oval(0.44, 0.33, 0.30, 0.15), with: .color(.white.opacity(tint == nil ? 0.7 : 0.18)))
-        let wearsCollar = (outfit ?? CharacterMirror.outfit) != .scarf
-        // Tasma eğrisi: (0.30,0.66) → (0.90,0.70), kontrol (0.58,0.84).
-        func collarPoint(_ u: Double) -> (CGPoint, CGVector) {
-            let a = CGPoint(x: 0.30, y: 0.66), c = CGPoint(x: 0.58, y: 0.84), b = CGPoint(x: 0.90, y: 0.70)
-            let x = (1 - u) * (1 - u) * a.x + 2 * (1 - u) * u * c.x + u * u * b.x
-            let y = (1 - u) * (1 - u) * a.y + 2 * (1 - u) * u * c.y + u * u * b.y
-            let dx = 2 * (1 - u) * (c.x - a.x) + 2 * u * (b.x - c.x), dy = 2 * (1 - u) * (c.y - a.y) + 2 * u * (b.y - c.y)
-            let l = max(0.0001, (dx * dx + dy * dy).squareRoot())
-            return (CGPoint(x: x, y: y), CGVector(dx: -dy / l, dy: dx / l))
-        }
-        if wearsCollar {
-            var collar = Path()
-            collar.move(to: CGPoint(x: 0.30, y: 0.66))
-            collar.addQuadCurve(to: CGPoint(x: 0.90, y: 0.70), control: CGPoint(x: 0.58, y: 0.84))
-            inner.stroke(collar, with: .color(Self.collar), style: StrokeStyle(lineWidth: 0.06, lineCap: .round))
-            // Gümüş çiviler: tasmadan dışa (aşağı) bakan küçük üçgenler.
-            for u in stride(from: 0.12, through: 0.9, by: 0.13) {
-                let (p, n) = collarPoint(u)
-                let tx = -n.dy, ty = n.dx
-                var spike = Path()
-                spike.move(to: CGPoint(x: p.x + n.dx * 0.02 + tx * 0.018, y: p.y + n.dy * 0.02 + ty * 0.018))
-                spike.addLine(to: CGPoint(x: p.x + n.dx * 0.065, y: p.y + n.dy * 0.065))
-                spike.addLine(to: CGPoint(x: p.x + n.dx * 0.02 - tx * 0.018, y: p.y + n.dy * 0.02 - ty * 0.018))
-                spike.closeSubpath()
-                inner.fill(spike, with: .color(Self.stud))
-                inner.fill(oval(p.x, p.y, 0.022, 0.022), with: .color(Self.stud))
-            }
-        }
+        inner.fill(oval(0.30, 0.98, 0.50, 0.20), with: .color(furShade))
         ctx.stroke(body, with: .color(line), style: outline)
 
-        // Ön patiler: iri, sağlam.
-        for x in [0.49, 0.70] {
-            let paw = oval(x, 0.915, 0.19, 0.10)
-            ctx.fill(paw, with: .color(fur))
-            ctx.stroke(paw, with: .color(line), style: outline)
-            for dx in [-0.03, 0.0, 0.03] {
-                ctx.stroke(Path { p in p.move(to: CGPoint(x: x + dx, y: 0.89)); p.addLine(to: CGPoint(x: x + dx, y: 0.91)) },
-                           with: .color(line), style: StrokeStyle(lineWidth: 0.011, lineCap: .round))
+        // Arka bacak: oturmuş kalça ve öne uzanan arka pati.
+        var thigh = Path()
+        thigh.move(to: CGPoint(x: 0.24, y: 0.64))
+        thigh.addCurve(to: CGPoint(x: 0.47, y: 0.90), control1: CGPoint(x: 0.40, y: 0.60), control2: CGPoint(x: 0.50, y: 0.76))
+        ctx.stroke(thigh, with: .color(line), style: outline)
+        stroked(oval(0.45, 0.945, 0.15, 0.055), &ctx, fill: fur)
+
+        // Yakın ön bacak
+        let leg = Path(roundedRect: CGRect(x: 0.615, y: 0.56, width: 0.115, height: 0.38), cornerRadius: 0.055)
+        stroked(leg, &ctx, fill: fur)
+        stroked(oval(0.69, 0.94, 0.15, 0.06), &ctx, fill: fur)
+        for dx in [-0.022, 0.012] {
+            ctx.stroke(Path { p in p.move(to: CGPoint(x: 0.685 + dx + 0.02, y: 0.925)); p.addLine(to: CGPoint(x: 0.685 + dx + 0.02, y: 0.945)) },
+                       with: .color(line), style: StrokeStyle(lineWidth: 0.009, lineCap: .round))
+        }
+
+        // Çivili tasma: boynun etrafında.
+        if worn != .scarf {
+            var collar = Path()
+            collar.move(to: CGPoint(x: 0.50, y: 0.43))
+            collar.addQuadCurve(to: CGPoint(x: 0.745, y: 0.47), control: CGPoint(x: 0.62, y: 0.55))
+            var neck = ctx
+            neck.clip(to: body)
+            neck.stroke(collar, with: .color(Self.collar), style: StrokeStyle(lineWidth: 0.045, lineCap: .round))
+            for u in stride(from: 0.15, through: 0.9, by: 0.15) {
+                let a = CGPoint(x: 0.50, y: 0.43), c = CGPoint(x: 0.62, y: 0.55), b = CGPoint(x: 0.745, y: 0.47)
+                let px = (1 - u) * (1 - u) * a.x + 2 * (1 - u) * u * c.x + u * u * b.x
+                let py = (1 - u) * (1 - u) * a.y + 2 * (1 - u) * u * c.y + u * u * b.y
+                var spike = Path()
+                spike.move(to: CGPoint(x: px - 0.013, y: py + 0.012))
+                spike.addLine(to: CGPoint(x: px, y: py + 0.045))
+                spike.addLine(to: CGPoint(x: px + 0.013, y: py + 0.012))
+                spike.closeSubpath()
+                neck.fill(spike, with: .color(Self.stud))
+                neck.fill(oval(px, py, 0.016, 0.016), with: .color(Self.stud))
             }
         }
 
-        // Ağız: uzun, köşeli, güçlü bir burun; çizgisi yalnız gövdenin dışında.
-        let muzzle = Path(roundedRect: CGRect(x: 0.70, y: 0.465, width: 0.29, height: 0.20), cornerRadius: 0.085)
+        if annoyed {
+            var hc = headSpace(ctx)
+            OutfitArt.annoyedSpikes(&hc, feather: ear, k: k)
+        }
+
+        // Baş: geniş kafatası + uzun, köşeli ağız.
+        let skull = oval(0.60, 0.29, 0.34, 0.30)
+        stroked(skull, &ctx, fill: fur)
+        let muzzle = Path(roundedRect: CGRect(x: 0.70, y: 0.255, width: 0.235, height: 0.155), cornerRadius: 0.07)
         ctx.fill(muzzle, with: .color(fur))
         var mOut = ctx
-        mOut.clip(to: body, options: .inverse)
+        mOut.clip(to: skull, options: .inverse)
         mOut.stroke(muzzle, with: .color(line), style: outline)
-        // Burun köprüsünde hafif krem gölge (stop).
-        ctx.fill(oval(0.80, 0.475, 0.12, 0.035), with: .color(furShade.opacity(0.7)))
-        let happyMouth = mood == .happy || greeting
-        if happyMouth {
+        ctx.fill(oval(0.77, 0.265, 0.09, 0.025), with: .color(furShade.opacity(0.7)))
+        if mood == .happy || greeting {
             var mouth = Path()
-            mouth.move(to: CGPoint(x: 0.82, y: 0.605))
-            mouth.addQuadCurve(to: CGPoint(x: 0.965, y: 0.60), control: CGPoint(x: 0.90, y: 0.72))
+            mouth.move(to: CGPoint(x: 0.79, y: 0.375))
+            mouth.addQuadCurve(to: CGPoint(x: 0.915, y: 0.37), control: CGPoint(x: 0.85, y: 0.46))
             mouth.closeSubpath()
             ctx.fill(mouth, with: .color(Color(red: 0.25, green: 0.10, blue: 0.11)))
-            ctx.fill(oval(0.895, 0.665, 0.065, 0.075), with: .color(Color(red: 1.0, green: 0.50, blue: 0.58)))
+            ctx.fill(oval(0.855, 0.425, 0.05, 0.065), with: .color(Color(red: 1.0, green: 0.50, blue: 0.58)))
         } else {
-            // Siyah dudak çizgisi: burundan aşağı, sonra geriye doğru uzun.
             ctx.stroke(Path { p in
-                p.move(to: CGPoint(x: 0.955, y: 0.535))
-                p.addLine(to: CGPoint(x: 0.95, y: 0.595))
-                p.addQuadCurve(to: CGPoint(x: 0.80, y: 0.605), control: CGPoint(x: 0.89, y: 0.635))
-            }, with: .color(Self.nose), style: StrokeStyle(lineWidth: 0.015, lineCap: .round))
+                p.move(to: CGPoint(x: 0.905, y: 0.32))
+                p.addLine(to: CGPoint(x: 0.90, y: 0.365))
+                p.addQuadCurve(to: CGPoint(x: 0.77, y: 0.375), control: CGPoint(x: 0.85, y: 0.40))
+            }, with: .color(Self.nose), style: StrokeStyle(lineWidth: 0.013, lineCap: .round))
         }
-        // Burun: iri, siyah, parlak.
-        ctx.fill(Path(roundedRect: CGRect(x: 0.915, y: 0.468, width: 0.08, height: 0.07), cornerRadius: 0.03), with: .color(Self.nose))
-        ctx.fill(oval(0.94, 0.484, 0.03, 0.016), with: .color(.white.opacity(0.65)))
+        ctx.fill(Path(roundedRect: CGRect(x: 0.875, y: 0.258, width: 0.065, height: 0.058), cornerRadius: 0.025), with: .color(Self.nose))
+        ctx.fill(oval(0.895, 0.271, 0.025, 0.013), with: .color(.white.opacity(0.65)))
+        ctx.fill(oval(0.70, 0.36, 0.06, 0.035), with: .color(Color(red: 1.0, green: 0.62, blue: 0.62).opacity(0.3)))
 
-        // Hafif yanak allığı
-        ctx.fill(oval(0.71, 0.60, 0.08, 0.045), with: .color(Color(red: 1.0, green: 0.62, blue: 0.62).opacity(0.3)))
-
-        // Öndeki kulak: başın yüksek kısmından sarkan üçgen kulak; sevinçte sallanır, selamda kalkar.
+        // Sarkık üçgen kulak: başın tepesinden yanağa iner; sevinçte sallanır, selamda kalkar.
         var e = ctx
-        e.translateBy(x: 0.48, y: 0.255)
-        e.rotate(by: .radians(0.12 + (wingAngle + 0.25) * 0.55))
+        e.translateBy(x: 0.555, y: 0.17)
+        e.rotate(by: .radians(0.18 + (wingAngle + 0.25) * 0.5))
         var earPath = Path()
-        earPath.move(to: CGPoint(x: -0.095, y: 0.015))
-        earPath.addQuadCurve(to: CGPoint(x: 0.085, y: 0.0), control: CGPoint(x: -0.005, y: -0.06))
-        earPath.addQuadCurve(to: CGPoint(x: 0.0, y: 0.29), control: CGPoint(x: 0.09, y: 0.20))
-        earPath.addQuadCurve(to: CGPoint(x: -0.095, y: 0.015), control: CGPoint(x: -0.085, y: 0.22))
+        earPath.move(to: CGPoint(x: -0.06, y: 0.01))
+        earPath.addQuadCurve(to: CGPoint(x: 0.055, y: 0.0), control: CGPoint(x: -0.005, y: -0.04))
+        earPath.addQuadCurve(to: CGPoint(x: 0.0, y: 0.19), control: CGPoint(x: 0.06, y: 0.13))
+        earPath.addQuadCurve(to: CGPoint(x: -0.06, y: 0.01), control: CGPoint(x: -0.055, y: 0.145))
         e.fill(earPath, with: .color(ear))
         e.stroke(earPath, with: .color(Self.shade(ear, 0.22)), style: outline)
-        var earIn = e
-        earIn.clip(to: earPath)
-        earIn.fill(oval(0.035, 0.07, 0.07, 0.14), with: .color(Self.shade(ear, 0.06)))
 
-        // Kaş: ciddi ama sevimli bir çoban köpeği bakışı.
+        // Kaş
         ctx.stroke(Path { p in
-            p.move(to: CGPoint(x: 0.595, y: 0.375 - (mood == .alert ? 0.02 : 0)))
-            p.addQuadCurve(to: CGPoint(x: 0.685, y: 0.37 - (mood == .alert ? 0.02 : 0)), control: CGPoint(x: 0.64, y: 0.345))
-        }, with: .color(Self.shade(ear, 0.18)), style: StrokeStyle(lineWidth: 0.02, lineCap: .round))
+            p.move(to: CGPoint(x: 0.635, y: 0.215 - (mood == .alert ? 0.015 : 0)))
+            p.addQuadCurve(to: CGPoint(x: 0.70, y: 0.212 - (mood == .alert ? 0.015 : 0)), control: CGPoint(x: 0.665, y: 0.195))
+        }, with: .color(Self.shade(ear, 0.18)), style: StrokeStyle(lineWidth: 0.014, lineCap: .round))
 
         // Göz: badem biçimli, koyu kahve, siyah çerçeveli; fareyi izler, ara sıra kırpar; uykuda ve sevinçte çizgi olur.
-        let eye = CGPoint(x: 0.64, y: 0.44)
+        let eye = CGPoint(x: 0.67, y: 0.265)
         let blink = fmod(t, 3.9) < 0.12
         if case .dizzy? = emote?.0 {
-            OutfitArt.dizzy(&ctx, eye: eye, t: t)
+            var hc = headSpace(ctx)
+            OutfitArt.dizzy(&hc, eye: Self.oldEye, t: t)
         } else if greeting || (emote == nil && (mood == .sleep || mood == .happy || blink)) {
             let up = mood == .happy || greeting
             ctx.stroke(Path { p in
-                p.move(to: CGPoint(x: eye.x - 0.055, y: eye.y))
-                p.addQuadCurve(to: CGPoint(x: eye.x + 0.055, y: eye.y),
-                               control: CGPoint(x: eye.x, y: eye.y + (up ? -0.07 : 0.05)))
-            }, with: .color(Self.nose), style: StrokeStyle(lineWidth: 0.032, lineCap: .round))
+                p.move(to: CGPoint(x: eye.x - 0.035, y: eye.y))
+                p.addQuadCurve(to: CGPoint(x: eye.x + 0.035, y: eye.y),
+                               control: CGPoint(x: eye.x, y: eye.y + (up ? -0.045 : 0.03)))
+            }, with: .color(Self.nose), style: StrokeStyle(lineWidth: 0.02, lineCap: .round))
         } else {
             var dx = 0.0, dyy = 0.0
             if eyes != .fixed {
@@ -281,16 +282,41 @@ struct Bird: View {
                 dx = max(-1, min(1, (m.x - a.x) / 300))
                 dyy = max(-1, min(1, (a.y - m.y) / 200))
             }
-            ctx.fill(oval(eye.x, eye.y, 0.118, 0.115), with: .color(Self.nose))
-            let px = eye.x + dx * 0.015, py = eye.y + dyy * 0.015
-            ctx.fill(oval(px, py, 0.088, 0.088), with: .color(Color(red: 0.30, green: 0.19, blue: 0.12)))
-            ctx.fill(oval(px, py, 0.05, 0.05), with: .color(Self.nose))
-            ctx.fill(oval(px + 0.02, py - 0.022, 0.036, 0.036), with: .color(.white))
-            ctx.fill(oval(px - 0.02, py + 0.024, 0.014, 0.014), with: .color(.white.opacity(0.8)))
+            ctx.fill(oval(eye.x, eye.y, 0.075, 0.072), with: .color(Self.nose))
+            let px = eye.x + dx * 0.01, py = eye.y + dyy * 0.01
+            ctx.fill(oval(px, py, 0.056, 0.056), with: .color(Color(red: 0.30, green: 0.19, blue: 0.12)))
+            ctx.fill(oval(px, py, 0.032, 0.032), with: .color(Self.nose))
+            ctx.fill(oval(px + 0.013, py - 0.014, 0.023, 0.023), with: .color(.white))
+            ctx.fill(oval(px - 0.013, py + 0.015, 0.009, 0.009), with: .color(.white.opacity(0.8)))
         }
 
-        if annoyed { OutfitArt.annoyedFace(&ctx, k: k) }
-        OutfitArt.draw(outfit ?? CharacterMirror.outfit, in: &ctx)
+        // Kıyafetler ve tepkiler eski tombul karakterin koordinatlarında çizilir; baş ve boyna taşınır.
+        if annoyed {
+            var hc = headSpace(ctx)
+            OutfitArt.annoyedFace(&hc, k: k)
+        }
+        if OutfitArt.isNeck(worn) {
+            var nc = ctx
+            nc.translateBy(x: 0.625, y: 0.49)
+            nc.scaleBy(x: 0.5, y: 0.5)
+            nc.translateBy(x: -0.60, y: -0.75)
+            OutfitArt.draw(worn, in: &nc)
+        } else {
+            var hc = headSpace(ctx)
+            OutfitArt.draw(worn, in: &hc)
+        }
+    }
+
+    /// Eski karakterin göz noktası; kıyafet çizimleri buna göre yazıldı.
+    private static let oldEye = CGPoint(x: 0.64, y: 0.44)
+
+    /// Kıyafet/tepki koordinatlarını (eski tombul baş) yeni başa taşır.
+    private func headSpace(_ ctx: GraphicsContext) -> GraphicsContext {
+        var c = ctx
+        c.translateBy(x: 0.665, y: 0.265)
+        c.scaleBy(x: 0.62, y: 0.62)
+        c.translateBy(x: -Self.oldEye.x, y: -Self.oldEye.y)
+        return c
     }
 }
 
