@@ -4,7 +4,7 @@ import Foundation
 /// kullanıcının mesajları, Claude'un cevapları ve aradaki araç adımları. Düşünme blokları, sistem notları,
 /// yan ajanlar ve araç sonuçları atlanır. Dosyalar büyük olabildiği için yalnızca sondan okunur.
 struct HistoryItem: Identifiable, Equatable {
-    enum Kind: Equatable { case user, assistant, tools }
+    enum Kind: Equatable { case user, assistant, tools, command }
     let id: Int
     let kind: Kind
     var text: String
@@ -127,6 +127,12 @@ enum TranscriptReader {
                         }
                     }.joined(separator: "\n")
                 }
+                // /komutun çıktısı (ör. "Compacted"): kullanıcı mesajı değil, komutun cevabı.
+                if let out = commandOutput(text) {
+                    flushTools()
+                    items.append(HistoryItem(id: items.count, kind: .command, text: out, time: time))
+                    continue
+                }
                 text = clean(text)
                 guard !text.isEmpty else { continue }
                 flushTools()
@@ -158,6 +164,17 @@ enum TranscriptReader {
         }
         flushTools()
         return (Array(items.suffix(300)), start > 0)
+    }
+
+    /// Yalnızca komut çıktısı taşıyan satırın içeriği (renk kodları ayıklanmış).
+    static func commandOutput(_ s: String) -> String? {
+        guard s.hasPrefix("<local-command-stdout>") || s.hasPrefix("<local-command-stderr>"),
+              let a = s.range(of: ">"), let b = s.range(of: "</local-command-", options: .backwards),
+              a.upperBound <= b.lowerBound else { return nil }
+        let body = String(s[a.upperBound..<b.lowerBound])
+            .replacingOccurrences(of: "\u{1B}\\[[0-9;]*m", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return body.isEmpty ? nil : body
     }
 
     /// Komut sarmalayıcıları ve sistem notları ayıklanır; /komutlar okunur hale gelir.

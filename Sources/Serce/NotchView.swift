@@ -595,6 +595,26 @@ struct SessionDetail: View {
                 }
                 .foregroundStyle(.secondary).padding(.leading, 6)
             }
+            let slash = isClaude ? SlashCommands.suggestions(for: draft.text, cwd: session.cwd) : []
+            if !slash.isEmpty {
+                VStack(alignment: .leading, spacing: 1) {
+                    ForEach(slash, id: \.name) { c in
+                        Button { composerStore.setText("/\(c.name) ", for: session.id) } label: {
+                            HStack(spacing: 8) {
+                                Text("/" + c.name).font(.system(size: 11.5, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.white)
+                                Text(c.hint).font(.system(size: 10.5)).foregroundStyle(.secondary).lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(4)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.07)))
+            }
             HStack(spacing: 8) {
                 Button(action: pickImages) {
                     Image(systemName: "paperclip").font(.system(size: 13)).foregroundStyle(.white.opacity(isClaude ? 0.7 : 0.25))
@@ -611,6 +631,13 @@ struct SessionDetail: View {
                         .font(.system(size: 12))
                         .disabled(!isClaude)
                         .onSubmit(send)
+                        // Tab: ilk öneriyi tamamla.
+                        .onKeyPress(.tab) {
+                            guard let first = SlashCommands.suggestions(for: composerStore.draft(session.id).text,
+                                                                        cwd: session.cwd).first else { return .ignored }
+                            composerStore.setText("/\(first.name) ", for: session.id)
+                            return .handled
+                        }
                 }
                 if busy {
                     Button { runner.stop(session.id) } label: {
@@ -1412,6 +1439,13 @@ struct HistoryView: View {
             Text(markdown(it.text)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.88))
                 .lineLimit(40).textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
+        case .command:
+            HStack(alignment: .top, spacing: 5) {
+                Image(systemName: "chevron.forward.2").font(.system(size: 9)).padding(.top, 2)
+                Text(it.text).font(.system(size: 10.5, design: .monospaced)).lineLimit(14).textSelection(.enabled)
+            }
+            .foregroundStyle(.white.opacity(0.55))
+            .frame(maxWidth: .infinity, alignment: .leading)
         case .tools:
             HStack(spacing: 5) {
                 Image(systemName: "pencil.line").font(.system(size: 9))
