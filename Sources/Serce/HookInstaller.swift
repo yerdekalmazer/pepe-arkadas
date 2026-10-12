@@ -64,8 +64,8 @@ enum HookInstaller {
         let fm = FileManager.default
         try fm.createDirectory(at: settingsURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         let backup = settingsURL.appendingPathExtension("serce-yedek")
-        if fm.fileExists(atPath: settingsURL.path) {
-            try? fm.removeItem(at: backup)
+        // Yedek yalnızca ilk kez alınır: Serçe'den önceki hal hiçbir zaman ezilmez.
+        if fm.fileExists(atPath: settingsURL.path), !fm.fileExists(atPath: backup.path) {
             try fm.copyItem(at: settingsURL, to: backup)
         }
         let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])

@@ -121,8 +121,8 @@ enum AgentInstallers {
         let u = url(spec)
         try fm.createDirectory(at: u.deletingLastPathComponent(), withIntermediateDirectories: true)
         let backup = URL(fileURLWithPath: u.path + ".serce-yedek")
-        if fm.fileExists(atPath: u.path) {
-            try? fm.removeItem(at: backup)
+        // Yedek yalnızca ilk kez alınır: Serçe'den önceki hal hiçbir zaman ezilmez.
+        if fm.fileExists(atPath: u.path), !fm.fileExists(atPath: backup.path) {
             try fm.copyItem(at: u, to: backup)
         }
         let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
