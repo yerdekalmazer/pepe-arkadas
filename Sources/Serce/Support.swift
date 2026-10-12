@@ -51,13 +51,16 @@ enum Support {
         fi
 
         # Hook'ların kendi terminali yok; ajan sürecine kadar üst süreçlerde ara.
-        TTY=""; P=$$; N=0
+        # Aynı yolda ajanın kendi süreç kimliği de alınır (Serçe'den oturumu kapatmak için).
+        TTY=""; CPID=""; P=$$; N=0
         while [ -z "$TTY" ] && [ "$P" -gt 1 ] 2>/dev/null && [ $N -lt 8 ]; do
           T="$(ps -o tty= -p "$P" 2>/dev/null | tr -d ' ')"
+          C="$(ps -o comm= -p "$P" 2>/dev/null)"
+          case "$C" in *claude*|*codex*|*gemini*) [ -z "$CPID" ] && CPID="$P" ;; esac
           case "$T" in ""|"?"|"??") ;; *) TTY="/dev/$T" ;; esac
           P="$(ps -o ppid= -p "$P" 2>/dev/null | tr -d ' ')"; N=$((N+1))
         done
-        URL="$BASE?event=$EVENT&agent=$AGENT&entry=${CLAUDE_CODE_ENTRYPOINT:-}&bid=${__CFBundleIdentifier:-}&term=${TERM_PROGRAM:-}&tty=$TTY"
+        URL="$BASE?event=$EVENT&agent=$AGENT&entry=${CLAUDE_CODE_ENTRYPOINT:-}&bid=${__CFBundleIdentifier:-}&term=${TERM_PROGRAM:-}&tty=$TTY&pid=$CPID&serce=${SERCE_RUN:-}"
 
         case "$EVENT" in
           PermissionRequest|permissionRequest|Ask)

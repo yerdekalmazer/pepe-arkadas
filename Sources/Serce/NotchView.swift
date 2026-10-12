@@ -335,6 +335,11 @@ struct SessionCard: View {
                 HStack(spacing: 6) {
                     Circle().fill(statusColor(session)).frame(width: 6, height: 6)
                     Text(session.project).font(.system(size: 12, weight: .bold))
+                    if session.ended {
+                        Text("kapalı").font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary)
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(Capsule().fill(.white.opacity(0.08)))
+                    }
                     if let w = session.worktree { WorktreeChip(name: w) }
                     Text(session.agentName).font(.system(size: 11)).foregroundStyle(.secondary)
                     Spacer()
@@ -409,6 +414,7 @@ struct SessionDetail: View {
     @ObservedObject private var runner = AgentRunner.shared
     @State private var draft = ""
     @State private var sendError: String?
+    @State private var confirmClose = false
     @Environment(\.snapshotMode) private var snapshot
 
     /// Adım listesinde "Yanıt" satırının sabit kimliği.
@@ -452,18 +458,28 @@ struct SessionDetail: View {
                 }
                 .buttonStyle(Pill(kind: .quiet))
                 .padding(.bottom, 4)
+                let headless = session.launchedBySerce || session.ended || (session.tty.isEmpty && session.bundleId.isEmpty)
                 Button {
-                    // Serçe'nin başlattığı oturumun terminali yok: gerçek bir terminalde devral.
-                    if session.launchedBySerce || (session.tty.isEmpty && session.bundleId.isEmpty) {
+                    // Terminali olmayan (Serçe'nin başlattığı ya da kapanmış) oturum: gerçek bir terminalde devral.
+                    if headless {
                         sendError = AgentRunner.shared.openInTerminal(session)
                     } else {
                         open()
                     }
                 } label: {
-                    Label(session.launchedBySerce ? "Terminalde aç" : "Terminale git", systemImage: "arrow.up.forward.app")
+                    Label(headless ? "Terminalde aç" : "Terminale git", systemImage: "arrow.up.forward.app")
                         .font(.system(size: 11, weight: .medium))
                 }
                 .buttonStyle(Pill(kind: .quiet))
+                .padding(.bottom, 4)
+                if session.ended {
+                    Button { AppState.shared.store.forget(session.id); model.selectedSession = nil } label: {
+                        Label("Listeden kaldır", systemImage: "xmark.circle").font(.system(size: 11, weight: .medium))
+                    }
+                    .buttonStyle(Pill(kind: .quiet))
+                } else if !headless {
+                    closeButton
+                }
             }
             .frame(width: 140, alignment: .leading)
 
@@ -518,8 +534,28 @@ struct SessionDetail: View {
         }
     }
 
+    /// İki adımlı: ilk tık "Emin misin?", ikinci tık ajan sürecini kapatır (terminal sekmesi açık kalır).
+    @ViewBuilder private var closeButton: some View {
+        Button {
+            if confirmClose {
+                sendError = AppState.shared.store.closeSession(session)
+                confirmClose = false
+            } else {
+                confirmClose = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4) { confirmClose = false }
+            }
+        } label: {
+            Label(confirmClose ? "Emin misin?" : "Oturumu kapat", systemImage: "power")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(confirmClose ? Palette.red : .white.opacity(0.9))
+        }
+        .buttonStyle(Pill(kind: .quiet))
+        .help("Terminaldeki ajan oturumunu sonlandırır; terminal sekmesi açık kalır")
+    }
+
     private func placeholder(busy: Bool) -> String {
         if busy { return "Serçe bu oturumu yürütüyor…" }
+        if session.ended, session.agent == AgentCatalog.claude { return "Terminal kapalı — yazarsan Serçe arka planda sürdürür" }
         if session.agent != AgentCatalog.claude { return "Şimdilik yalnızca Claude Code oturumlarına yazılabiliyor" }
         if session.status == .working { return "Oturum çalışıyor; bitince yazabilirsin" }
         return "\(session.project) oturumuna yaz — terminal kapalı olsa da devam eder"

@@ -7,6 +7,10 @@ struct HookEvent {
     let bundleId: String
     let term: String
     var tty = ""
+    /// Ajanın süreç kimliği (hook betiği üst süreçlerden bulur).
+    var pid: Int32 = 0
+    /// Olay Serçe'nin kendi başlattığı terminalsiz bir çalıştırmadan mı geliyor?
+    var fromSerce = false
     /// Ajan kimliği ("claude", "codex", "gemini"…); AgentNormalizer belirler.
     var agent = AgentCatalog.claude
 }
@@ -81,9 +85,11 @@ final class HookServer {
         let raw = (try? JSONSerialization.jsonObject(with: req.body)) as? [String: Any] ?? [:]
         let (name, payload, agent) = AgentNormalizer.normalize(name: req.query["event"] ?? "", payload: raw,
                                                                agentArg: req.query["agent"] ?? "", entry: req.query["entry"] ?? "")
-        let event = HookEvent(name: name, payload: payload,
+        var event = HookEvent(name: name, payload: payload,
                               bundleId: req.query["bid"] ?? "", term: req.query["term"] ?? "",
                               tty: req.query["tty"] ?? "", agent: agent)
+        event.pid = Int32(req.query["pid"] ?? "") ?? 0
+        event.fromSerce = req.query["serce"] == "1"
 
         if ProcessInfo.processInfo.environment["SERCE_DEBUG"] == "1" {
             NSLog("serce-debug event=\(name) bid=\(event.bundleId) term=\(event.term) tty=\(event.tty)")

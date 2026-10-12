@@ -5,6 +5,10 @@ enum SessionStatus { case idle, working, waiting, done }
 enum Decision { case allow, always, deny, terminal }
 
 struct AgentSession: Identifiable {
+    /// Terminaldeki ajan sürecinin kimliği (Serçe'den kapatmak için); Serçe'nin kendi çalıştırmaları bunu değiştirmez.
+    var pid: Int32 = 0
+    /// Terminal oturumu kapandı; kart durur, Serçe'den yazınca arka planda sürer.
+    var ended = false
     /// Ajanın son mesajı (Stop hook'u); Serçe'den yazınca cevap burada görünür.
     var lastReply = ""
     let id: String
@@ -105,7 +109,11 @@ struct Approval: Identifiable {
         if let cwd = p["cwd"] as? String, !cwd.isEmpty { s.cwd = cwd }
         if !e.bundleId.isEmpty { s.bundleId = e.bundleId }
         if !e.term.isEmpty { s.term = e.term }
-        if e.tty.hasPrefix("/dev/tty") { s.tty = e.tty }
+        if !e.fromSerce {
+            if e.tty.hasPrefix("/dev/tty") { s.tty = e.tty }
+            if e.pid > 0 { s.pid = e.pid }
+            if e.name != "SessionEnd" { s.ended = false }
+        }
         s.updated = Date()
         if isNew, e.name != "SessionEnd" { RecapStore.shared.recordSession(project: s.project, agent: e.agent) }
 
@@ -218,8 +226,16 @@ struct Approval: Identifiable {
         case "SessionEnd":
             dropApprovals { $0.sessionId == sid }
             dropQuestions { $0.sessionId == sid }
-            sessions.removeAll { $0.id == sid }
-            return nil
+            // Kart silinmez: Serçe'nin kendi çalıştırması bittiyse terminal hâlâ açık olabilir;
+            // terminal kapandıysa oturum Serçe'den sürdürülebilir.
+            if s.status == .working || s.status == .waiting { s.status = .idle }
+            if e.fromSerce {
+                s.action = "Serçe üzerinden yanıtladı"
+            } else {
+                s.ended = true
+                s.pid = 0
+                s.action = "Terminal kapandı — buradan yazarak sürdürebilirsin"
+            }
         default:
             return nil
         }
@@ -379,8 +395,61 @@ struct Approval: Identifiable {
         SoundEngine.shared.play(cue)
     }
 
+    /// Oturumu listeden kaldır (yalnızca kart; terminale dokunmaz).
+    func forget(_ id: String) {
+        dropApprovals { $0.sessionId == id }
+        dropQuestions { $0.sessionId == id }
+        sessions.removeAll { $0.id == id }
+    }
+
+    /// Terminaldeki ajan sürecini sonlandırır (Ctrl+C'nin iki kez basılması gibi: önce SIGINT, sonra SIGTERM).
+    /// Terminal sekmesi açık kalır; Claude Code kapanınca SessionEnd gelir ve kart "kapandı" olur.
+    func closeSession(_ s: AgentSession) -> String? {
+        let pid = s.pid > 0 && Self.isAgentProcess(s.pid) ? s.pid : Self.agentPid(onTTY: s.tty)
+        guard let pid, pid > 0 else { return "Bu oturumun süreci bulunamadı; zaten kapanmış olabilir." }
+        kill(pid, SIGINT)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { _ = kill(pid, SIGINT) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            if Self.isAgentProcess(pid) { kill(pid, SIGTERM) }
+            guard let self, let i = self.sessions.firstIndex(where: { $0.id == s.id }), !self.sessions[i].ended else { return }
+            self.sessions[i].ended = true
+            self.sessions[i].pid = 0
+            self.sessions[i].status = .idle
+            self.sessions[i].action = "Serçe'den kapatıldı"
+        }
+        return nil
+    }
+
+    private static func isAgentProcess(_ pid: Int32) -> Bool {
+        let comm = run("/bin/ps", ["-o", "comm=", "-p", String(pid)])
+        return ["claude", "codex", "gemini"].contains { comm.contains($0) }
+    }
+
+    private static func agentPid(onTTY tty: String) -> Int32? {
+        guard tty.hasPrefix("/dev/") else { return nil }
+        let out = run("/bin/ps", ["-t", String(tty.dropFirst(5)), "-o", "pid=,comm="])
+        for line in out.split(separator: "\n") {
+            let parts = line.trimmingCharacters(in: .whitespaces).split(separator: " ", maxSplits: 1)
+            if parts.count == 2, ["claude", "codex", "gemini"].contains(where: { parts[1].contains($0) }) { return Int32(parts[0]) }
+        }
+        return nil
+    }
+
+    private static func run(_ path: String, _ args: [String]) -> String {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: path)
+        p.arguments = args
+        let out = Pipe()
+        p.standardOutput = out
+        p.standardError = FileHandle.nullDevice
+        guard (try? p.run()) != nil else { return "" }
+        p.waitUntilExit()
+        return String(data: out.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    }
+
     private func prune() {
-        let limit = Date().addingTimeInterval(-20 * 60)
+        // Kartlar 3 saat dokunulmazsa kalkar (kapanmış oturumlar da Serçe'den sürdürülebildiği için kısa tutulmaz).
+        let limit = Date().addingTimeInterval(-3 * 3600)
         let waiting = Set(approvals.map(\.sessionId))
         sessions.removeAll { $0.updated < limit && $0.status != .waiting && !waiting.contains($0.id) }
     }

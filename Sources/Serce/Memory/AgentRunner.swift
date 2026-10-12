@@ -66,7 +66,9 @@ import AppKit
         if let ghostty = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.mitchellh.ghostty") {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            p.arguments = ["-na", ghostty.path, "--args", "--working-directory=\(s.cwd)", "-e", claude, "--resume", s.id]
+            // Kabuk üzerinden: Claude çıkınca pencere kapanmasın, terminal açık kalsın.
+            p.arguments = ["-na", ghostty.path, "--args", "--working-directory=\(s.cwd)", "-e", "/bin/zsh", "-lc",
+                           "\(Self.quote(claude)) --resume \(s.id); exec /bin/zsh -l"]
             try? p.run()
             return nil
         }

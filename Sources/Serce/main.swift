@@ -311,6 +311,39 @@ MainActor.assumeIsolated {
         }
         RunLoop.main.run()
     }
+    // Oturum kapatma ve SessionEnd davranışı (sahte "claude" süreciyle): Serce --kapat-testi klasor
+    if let i = CommandLine.arguments.firstIndex(of: "--kapat-testi"), i + 1 < CommandLine.arguments.count {
+        Task { @MainActor in
+            let store = AppState.shared.store
+            func ev(_ name: String, sid: String, serce: Bool, pid: Int32 = 0) -> HookEvent {
+                var e = HookEvent(name: name, payload: ["session_id": sid, "cwd": "/tmp"], bundleId: "", term: "")
+                e.fromSerce = serce
+                e.pid = pid
+                return e
+            }
+            _ = store.handle(ev("UserPromptSubmit", sid: "a", serce: true))
+            _ = store.handle(ev("SessionEnd", sid: "a", serce: true))
+            print("Serçe çalıştırması bitti → kart duruyor:", store.sessions.contains { $0.id == "a" && !$0.ended } ? "✓" : "✗")
+            _ = store.handle(ev("UserPromptSubmit", sid: "b", serce: false))
+            _ = store.handle(ev("SessionEnd", sid: "b", serce: false))
+            print("Terminal kapandı → kart 'kapalı':", store.sessions.first { $0.id == "b" }?.ended == true ? "✓" : "✗")
+
+            let fake = URL(fileURLWithPath: CommandLine.arguments[i + 1]).appendingPathComponent("claude")
+            try? FileManager.default.removeItem(at: fake)
+            try? FileManager.default.copyItem(at: URL(fileURLWithPath: "/bin/sleep"), to: fake)
+            let p = Process()
+            p.executableURL = fake
+            p.arguments = ["300"]
+            try? p.run()
+            _ = store.handle(ev("UserPromptSubmit", sid: "c", serce: false, pid: p.processIdentifier))
+            let s = store.sessions.first { $0.id == "c" }!
+            print("kapat:", store.closeSession(s) ?? "gönderildi")
+            try? await Task.sleep(for: .seconds(4))
+            print("süreç kapandı:", p.isRunning ? "✗" : "✓", "| kart kapalı:", store.sessions.first { $0.id == "c" }?.ended == true ? "✓" : "✗")
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
