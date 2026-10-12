@@ -106,6 +106,9 @@ import AppKit
         return AppState.shared.store.sessions.contains { $0.project == name && ($0.status == .working || running[$0.id] != nil) }
     }
 
+    /// Projesiz oturumların çalıştığı klasör: bir projeye bağlı olmayan genel Claude oturumları için.
+    nonisolated static let projectlessDir = Support.dir.appendingPathComponent("Projesiz").path
+
     /// Bir projede yeni oturum başlat; aynı projede istediğin kadar (en fazla `maxParallel`) paralel çalışabilir.
     /// `worktree` açıksa oturum ayrı bir git çalışma kopyasında çalışır, diğerleriyle aynı dosyaları ezmez.
     /// Proje hafızası SessionStart hook'uyla kendiliğinden eklenir.

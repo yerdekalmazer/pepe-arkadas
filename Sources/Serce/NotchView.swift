@@ -263,6 +263,11 @@ struct ExpandedView: View {
                         .font(.system(size: 11)).foregroundStyle(.secondary)
                     RecapLine(store: .shared)
                 }
+                Spacer(minLength: 0)
+                Button { model.newSessionCwd = "" } label: {
+                    Label("Yeni oturum", systemImage: "plus").font(.system(size: 11, weight: .medium))
+                }
+                .buttonStyle(Pill(kind: .quiet))
             }
         } else {
             VStack(spacing: 8) {
@@ -1165,11 +1170,13 @@ struct NewSessionView: View {
             HStack(spacing: 8) {
                 Text("Proje").font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 52, alignment: .leading)
                 Menu {
+                    Button("Projesiz — genel bir Claude oturumu") { select("") }
+                    Divider()
                     ForEach(projects, id: \.root) { p in Button(p.name) { select(p.root) } }
                     Divider()
                     Button("Klasör seç…") { chooseFolder() }
                 } label: {
-                    Text(cwd.isEmpty ? "Seç…" : (cwd as NSString).lastPathComponent).font(.system(size: 12, weight: .medium))
+                    Text(cwd.isEmpty ? "Projesiz" : (cwd as NSString).lastPathComponent).font(.system(size: 12, weight: .medium))
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
@@ -1194,6 +1201,10 @@ struct NewSessionView: View {
             .font(.system(size: 12))
             .padding(10)
             .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.06)))
+            if cwd.isEmpty {
+                Text("Bir projeye bağlı değil; proje hafızası yazılmaz. Dosya gerekiyorsa tam yolunu yaz.")
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
+            } else {
             Toggle(isOn: $worktree) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Ayrı çalışma kopyasında (git worktree)").font(.system(size: 12))
@@ -1201,6 +1212,7 @@ struct NewSessionView: View {
                 }
             }
             .toggleStyle(.switch).controlSize(.mini)
+            }
             RunControls(options: $runOptions)
             if let error { Text(error).font(.system(size: 10)).foregroundStyle(Palette.red) }
             HStack {
@@ -1208,7 +1220,7 @@ struct NewSessionView: View {
                 Spacer()
                 Button("Vazgeç") { model.newSessionCwd = nil }.buttonStyle(Pill(kind: .ghost))
                 Button("Başlat", action: start).buttonStyle(Pill(kind: .primary))
-                    .disabled(cwd.isEmpty || task.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(task.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .onAppear { if !presetCwd.isEmpty { select(presetCwd) } }
@@ -1232,7 +1244,10 @@ struct NewSessionView: View {
     private func start() {
         let text = task.trimmingCharacters(in: .whitespacesAndNewlines)
         AgentRunner.shared.pendingOptions = runOptions
-        if let err = AgentRunner.shared.start(text, in: cwd, worktree: worktree) {
+        // Proje seçilmediyse Serçe'nin kendi "Projesiz" klasöründe çalışır.
+        let dir = cwd.isEmpty ? AgentRunner.projectlessDir : cwd
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        if let err = AgentRunner.shared.start(text, in: dir, worktree: worktree && !cwd.isEmpty) {
             AgentRunner.shared.pendingOptions = nil
             error = err
             return

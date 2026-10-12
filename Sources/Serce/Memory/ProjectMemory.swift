@@ -185,7 +185,7 @@ import Foundation
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let containers: Set<String> = ["Desktop", "Documents", "Downloads", "Projeler", "Bireysel", "Divizyon",
                                        "Polenist", "Tema", "Tipbox-pilot", "Tipbox", "Research", "Arşiv", "Arsiv"]
-        return root == home || !root.hasPrefix(home + "/") || containers.contains((root as NSString).lastPathComponent)
+        return root == home || root == AgentRunner.projectlessDir || !root.hasPrefix(home + "/") || containers.contains((root as NSString).lastPathComponent)
     }
 
     /// cwd'den yukarı çıkıp git kökünü bulur; yoksa cwd'nin kendisi.
