@@ -87,5 +87,47 @@ enum DemoScript {
         shot("5-detay-diff")
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Read" }?.id
         shot("6-detay-okuma")
+        musicShots(into: dir)
+    }
+
+    /// Müzik kartları: sahte durumla, AppleScript göndermeden.
+    static func musicShots(into dir: URL) {
+        func render(_ name: String, _ c: MusicController) {
+            let view = HStack(alignment: .top, spacing: 10) {
+                c.card().frame(maxWidth: .infinity, alignment: .topLeading)
+                VStack(spacing: 6) {
+                    PillChip(title: "Claude Code", color: .white, selected: false, attention: false) {}
+                    PillChip(title: c.title, color: c.color, selected: true, attention: false) {}
+                }
+                .frame(width: 230)
+            }
+            .padding(14)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Palette.panel))
+            .padding(12)
+            .frame(width: 660)
+            .background(Color.black)
+            .environment(\.colorScheme, .dark)
+            .environment(\.snapshotMode, true)
+            let r = ImageRenderer(content: view)
+            r.scale = 2
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent(name + ".png"))
+            }
+        }
+        let spotify = MusicController(.spotify)
+        let raw = ["playing", "One More Time", "Daft Punk", "Discovery", "320357", "101,5", "true", "false", "64", ""]
+            .joined(separator: MusicApp.separator)
+        spotify.preview(MusicApp.parse(raw, app: .spotify))
+        render("7-spotify", spotify)
+
+        let music = MusicController(.music)
+        let raw2 = ["paused", "Gönül Dağı", "Neşet Ertaş", "Gönül Dağı", "245.3", "200.1", "false", "one", "80", ""]
+            .joined(separator: MusicApp.separator)
+        music.preview(MusicApp.parse(raw2, app: .music))
+        render("8-apple-music", music)
+
+        music.preview(nil, running: false)
+        render("9-muzik-kapali", music)
     }
 }
