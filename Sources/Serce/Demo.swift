@@ -87,6 +87,31 @@ enum DemoScript {
         shot("5-detay-diff")
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Read" }?.id
         shot("6-detay-okuma")
+
+        // Sohbet ve dosya bırakma
+        model.selectedSession = nil
+        let chat = ChatSession.shared
+        app.tab = .chat
+        shot("7-sohbet-bos")
+        chat.messages = [
+            ChatMessage(role: .user, text: "Günümü özetle"),
+            ChatMessage(role: .assistant, text: "**kesit** oturumu bitti: KDV oranı %20'ye çekildi, `npm test` ile 48 testin hepsi geçti. Başka açık oturum yok."),
+            ChatMessage(role: .user, text: "Bu dosyada ne var?", attachmentNames: ["fatura.ts"]),
+            ChatMessage(role: .assistant, text: ""),
+        ]
+        shot("8-sohbet")
+        chat.messages.removeLast()
+        app.attachments = [Attachment(name: "rapor.pdf", kind: .text("")), Attachment(name: "ekran.png", kind: .text(""))]
+        chat.draft = "Bunları karşılaştır"
+        shot("9-sohbet-ekli")
+        app.tab = .drop
+        app.attachments = []
+        shot("10-birak")
+        app.attachments = [Attachment(name: "sunum.pdf", kind: .text("")), Attachment(name: "app.swift", kind: .text(""))]
+        shot("11-birak-ekli")
+        app.attachments = []
+        chat.newChat()
+        app.tab = .home
         musicShots(into: dir)
     }
 

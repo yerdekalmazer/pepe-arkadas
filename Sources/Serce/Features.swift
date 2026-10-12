@@ -11,6 +11,7 @@ import SwiftUI
         // ajanlar
         // karakter
         // sohbet
+        ChatFeature.register(app)
         // ses
         VoiceFeature.register(app)
     }
