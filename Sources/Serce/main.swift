@@ -167,6 +167,10 @@ MainActor.assumeIsolated {
         }
         exit(0)
     }
+    // Sohbet akış ayrıştırıcılarının örnek akışlarla sınanması: Serce --selftest
+    if CommandLine.arguments.contains("--selftest") {
+        exit(ChatSelfTest.run() ? 0 : 1)
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

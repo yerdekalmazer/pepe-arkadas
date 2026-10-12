@@ -14,6 +14,8 @@ final class NotchPanel: NSPanel {
     private var monitors: [Any] = []
     private var hoverWork: DispatchWorkItem?
     private let panelSize = CGSize(width: 760, height: 620)
+    /// Fare basıldığında sürükleme panosunun sayacı; artarsa yeni bir dosya sürüklemesi başlamıştır.
+    private var dragBoardCount = NSPasteboard(name: .drag).changeCount
 
     init(store: SessionStore, actions: NotchActions) {
         self.store = store
@@ -37,8 +39,18 @@ final class NotchPanel: NSPanel {
                                                object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.place() }
         }
-        let track: (NSEvent) -> Void = { [weak self] _ in
-            Task { @MainActor in self?.mouseMoved() }
+        let track: (NSEvent) -> Void = { [weak self] e in
+            let dragging = e.type == .leftMouseDragged
+            Task { @MainActor in
+                if dragging { self?.fileDragMoved() }
+                self?.mouseMoved()
+            }
+        }
+        // Dosya sürükleme algısı için: her basışta sürükleme panosunun sayacını hatırla.
+        if let d = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown, handler: { [weak self] _ in
+            Task { @MainActor in self?.dragBoardCount = NSPasteboard(name: .drag).changeCount }
+        }) {
+            monitors.append(d)
         }
         if let g = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged], handler: track) {
             monitors.append(g)
@@ -101,6 +113,17 @@ final class NotchPanel: NSPanel {
             // Bekleyen izin varken ada açık kalır.
             if model.expanded, store.approvals.isEmpty { setExpanded(false) }
         }
+    }
+
+    /// Notch'un üstüne dosya sürüklenirse ada beklemeden açılır ve + sekmesine geçer.
+    private func fileDragMoved() {
+        let board = NSPasteboard(name: .drag)
+        guard board.changeCount != dragBoardCount,
+              board.types?.contains(.fileURL) == true,
+              activeRect.insetBy(dx: -2, dy: -2).contains(NSEvent.mouseLocation) else { return }
+        panel.ignoresMouseEvents = false
+        if AppState.shared.tab != .drop { AppState.shared.tab = .drop }
+        if !model.expanded { setExpanded(true) }
     }
 
     func setExpanded(_ open: Bool) {
