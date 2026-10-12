@@ -5,7 +5,22 @@ import Security
 enum Keychain {
     private static let service = "com.tahayerdekalmazer.serce"
 
+    /// Okumalar önbelleğe alınır: arayüz sık sorar, macOS her Keychain okumasında izin isteyebilir.
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var cache: [String: String?] = [:]
+
     static func get(_ key: String) -> String? {
+        lock.lock()
+        if let hit = cache[key] { lock.unlock(); return hit }
+        lock.unlock()
+        let value = read(key)
+        lock.lock()
+        cache[key] = .some(value)
+        lock.unlock()
+        return value
+    }
+
+    private static func read(_ key: String) -> String? {
         let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
                                 kSecAttrAccount as String: key, kSecReturnData as String: true,
                                 kSecMatchLimit as String: kSecMatchLimitOne]
@@ -16,6 +31,9 @@ enum Keychain {
     }
 
     static func set(_ key: String, _ value: String?) {
+        lock.lock()
+        cache[key] = .some(value.flatMap { $0.isEmpty ? nil : $0 })
+        lock.unlock()
         let base: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
                                    kSecAttrAccount as String: key]
         SecItemDelete(base as CFDictionary)

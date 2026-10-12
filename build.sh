@@ -39,7 +39,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict></plist>
 PLIST
 
-codesign --force --deep -s - "$APP"
+# Kalıcı imza: Apple Development kimliği varsa onunla imzala. Böylece macOS her derlemeyi aynı uygulama sayar;
+# Anahtar Zinciri ve gizlilik izinleri güncellemelerde sıfırlanmaz. Yoksa geçici (ad-hoc) imza.
+IDENTITY="${SERCE_IMZA:-$(security find-identity -v -p codesigning 2>/dev/null | grep "Apple Development" | head -1 | awk '{print $2}')}"
+if [ -n "$IDENTITY" ]; then
+  codesign --force --deep -s "$IDENTITY" "$APP"
+else
+  codesign --force --deep -s - "$APP"
+fi
 echo "Hazır: $APP"
 if [ "$1" = "--install" ]; then
   pkill -x Serce 2>/dev/null || true
