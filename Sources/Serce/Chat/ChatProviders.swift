@@ -184,6 +184,21 @@ enum StreamParser {
         }
     }
 
+    /// Anthropic akışındaki kullanım bilgisi: giriş message_start'ta, çıkış message_delta'da gelir.
+    static func anthropicUsage(_ line: String) -> (input: Int, output: Int, cacheRead: Int, cacheWrite: Int)? {
+        guard line.contains("usage"), let j = sseData(line) else { return nil }
+        switch j["type"] as? String {
+        case "message_start":
+            guard let u = (j["message"] as? [String: Any])?["usage"] as? [String: Any] else { return nil }
+            return (u["input_tokens"] as? Int ?? 0, 0, u["cache_read_input_tokens"] as? Int ?? 0, u["cache_creation_input_tokens"] as? Int ?? 0)
+        case "message_delta":
+            guard let u = j["usage"] as? [String: Any] else { return nil }
+            return (0, u["output_tokens"] as? Int ?? 0, 0, 0)
+        default:
+            return nil
+        }
+    }
+
     /// OpenAI ve LM Studio (OpenAI uyumlu) chat/completions akışı.
     static func openai(_ line: String) -> StreamEvent? {
         if line.trimmingCharacters(in: .whitespaces) == "data: [DONE]" { return .done }
@@ -235,6 +250,8 @@ enum ChatRequestBuilder {
             // Güvenlik sınıflandırıcısı reddederse istek aynı çağrıda uygun modelle yeniden çalışır.
             req.setValue("server-side-fallback-2026-07-01", forHTTPHeaderField: "anthropic-beta")
             body = ["model": model, "max_tokens": 16000, "stream": true, "system": system, "fallbacks": "default",
+                    // Sistem istemi ve eski mesajlar önbellekten okunur.
+                    "cache_control": ["type": "ephemeral"],
                     "messages": messages.map { m in ["role": m.role.rawValue, "content": anthropicContent(m)] }]
         case .openai, .lmstudio:
             req = URLRequest(url: URL(string: base + "/v1/chat/completions")!)

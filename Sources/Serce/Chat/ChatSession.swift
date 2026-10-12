@@ -51,7 +51,7 @@ import SwiftUI
         if text.isEmpty { user.text = "Bu eki incele." }
         messages.append(user)
         messages.append(ChatMessage(role: .assistant, text: ""))
-        let history = messages.dropLast().filter { !$0.isError }
+        let history = Self.trimmed(messages.dropLast().filter { !$0.isError })
         let provider = provider, model = model, system = Self.systemPrompt()
         streaming = true
         // Claude seçiliyse ve bağlı MCP aracı varsa araç döngüsü; yoksa düz akış.
@@ -94,6 +94,10 @@ import SwiftUI
             try await Self.check(resp, bytes)
             for try await line in bytes.lines {
                 try Task.checkCancellation()
+                if provider == .anthropic, let u = StreamParser.anthropicUsage(line) {
+                    UsageMeter.shared.record(model: model, input: u.input, output: u.output, cacheRead: u.cacheRead,
+                                             cacheWrite: u.cacheWrite, purpose: .chat)
+                }
                 switch parse(line) {
                 case .text(let t): appendToLast(t)
                 case .error(let e): fail(e); return
@@ -109,6 +113,19 @@ import SwiftUI
         } catch {
             fail(error.localizedDescription)
         }
+    }
+
+    /// Token tasarrufu: yalnızca son 16 mesaj gider; ekler (görsel/PDF) yalnızca son kullanıcı mesajında
+    /// gönderilir, öncekilerde adlarıyla anılır.
+    static func trimmed(_ history: [ChatMessage]) -> [ChatMessage] {
+        var h = Array(history.suffix(16))
+        while let first = h.first, first.role != .user { h.removeFirst() }
+        let lastUser = h.lastIndex { $0.role == .user }
+        for i in h.indices where i != lastUser && !h[i].parts.isEmpty {
+            h[i].parts = []
+            h[i].text += "\n[önceki ek: \(h[i].attachmentNames.joined(separator: ", "))]"
+        }
+        return h
     }
 
     /// MCP araçlı Claude turu: akış yerine adım adım; araç çalışırken baloncukta durum satırı görünür.

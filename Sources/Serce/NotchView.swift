@@ -375,9 +375,18 @@ struct SessionDetail: View {
     let session: AgentSession
     @ObservedObject var model: NotchModel
     let open: () -> Void
+    @ObservedObject private var runner = AgentRunner.shared
+    @State private var draft = ""
+    @State private var sendError: String?
+
+    /// Adım listesinde "Yanıt" satırının sabit kimliği.
+    static let replyId = UUID()
 
     var body: some View {
-        let visible = Array(session.steps.suffix(7))
+        let visible = Array(session.steps.suffix(6))
+        let hasReply = !session.lastReply.isEmpty
+        // Oturum bittiyse ve kullanıcı bir adım seçmediyse ajanın cevabı gösterilir.
+        let showReply = hasReply && (model.pinnedStep == Self.replyId || (model.pinnedStep == nil && session.status != .working))
         let selected = visible.first { $0.id == model.pinnedStep } ?? visible.last
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 0) {
@@ -386,15 +395,19 @@ struct SessionDetail: View {
                 Text(session.agentName).font(.system(size: 11)).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 7) {
                     ForEach(visible) { step in
-                        StepRow(step: step, selected: step.id == selected?.id) {
-                            model.pinnedStep = step.id == visible.last?.id ? nil : step.id
+                        StepRow(step: step, selected: !showReply && step.id == selected?.id) {
+                            model.pinnedStep = step.id
                         }
                     }
-                    if session.finished {
+                    if hasReply {
                         HStack(spacing: 7) {
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.green).frame(width: 14)
-                            Text("Bitti").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.green)
+                            Image(systemName: session.finished ? "checkmark.circle.fill" : "text.bubble.fill")
+                                .foregroundStyle(session.finished ? Palette.green : .secondary).frame(width: 14)
+                            Text("Yanıt").font(.system(size: 12, weight: showReply ? .semibold : .regular))
+                                .foregroundStyle(showReply ? .white : .white.opacity(0.7))
                         }
+                        .contentShape(Rectangle())
+                        .onTapGesture { model.pinnedStep = Self.replyId }
                     } else if visible.isEmpty {
                         Text(session.action).font(.system(size: 11)).foregroundStyle(.secondary)
                     }
@@ -408,9 +421,86 @@ struct SessionDetail: View {
             }
             .frame(width: 140, alignment: .leading)
 
-            Viewer(step: selected, cwd: session.cwd, prompt: session.prompt)
+            VStack(spacing: 8) {
+                if showReply {
+                    ReplyView(text: session.lastReply)
+                } else {
+                    Viewer(step: selected, cwd: session.cwd, prompt: session.prompt)
+                }
+                composer
+            }
         }
-        .frame(height: 290)
+        .frame(height: 320)
+    }
+
+    /// Terminal açık olmasa da bu oturuma yaz: `claude -p --resume` arka planda çalışır.
+    @ViewBuilder private var composer: some View {
+        let busy = runner.isRunning(session.id)
+        let canSend = session.agent == AgentCatalog.claude && session.status != .working && !busy
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                TextField(placeholder(busy: busy), text: $draft)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12))
+                    .disabled(!canSend)
+                    .onSubmit(send)
+                if busy {
+                    Button { runner.stop(session.id) } label: {
+                        Image(systemName: "stop.circle.fill").font(.system(size: 16)).foregroundStyle(.white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain).help("Durdur")
+                } else {
+                    Button(action: send) {
+                        Image(systemName: "arrow.up.circle.fill").font(.system(size: 18))
+                            .foregroundStyle(canSend && !draft.isEmpty ? .white : .white.opacity(0.25))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSend || draft.isEmpty)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(Capsule().fill(.white.opacity(0.07)))
+            if let err = sendError ?? runner.lastError[session.id] {
+                Text(err).font(.system(size: 10)).foregroundStyle(Palette.red).lineLimit(2)
+            }
+        }
+    }
+
+    private func placeholder(busy: Bool) -> String {
+        if busy { return "Serçe bu oturumu yürütüyor…" }
+        if session.agent != AgentCatalog.claude { return "Şimdilik yalnızca Claude Code oturumlarına yazılabiliyor" }
+        if session.status == .working { return "Oturum çalışıyor; bitince yazabilirsin" }
+        return "\(session.project) oturumuna yaz — terminal kapalı olsa da devam eder"
+    }
+
+    private func send() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        sendError = AgentRunner.shared.send(text, to: session)
+        if sendError == nil {
+            draft = ""
+            model.pinnedStep = nil
+        }
+    }
+}
+
+/// Ajanın son cevabı: markdown, okunur yazı tipiyle.
+struct ReplyView: View {
+    let text: String
+    @Environment(\.snapshotMode) private var snapshot
+
+    var body: some View {
+        let content = Text((try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(text))
+            .font(.system(size: 12))
+            .foregroundStyle(.white.opacity(0.88))
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+        Group {
+            if snapshot { content.frame(maxHeight: .infinity, alignment: .top).clipped() } else { ScrollView { content } }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.editor))
     }
 }
 

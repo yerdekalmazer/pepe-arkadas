@@ -58,6 +58,7 @@ import Foundation
         options.tools = VoiceTools.definitions
         options.handler = { name, input in await VoiceTools.run(name, input) }
         options.askedBy = "Sesli asistan"
+        options.purpose = .voice
         do {
             var thread = messages
             let outcome = try await ClaudeToolLoop.run(messages: &thread, options)

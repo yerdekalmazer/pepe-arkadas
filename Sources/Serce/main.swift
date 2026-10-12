@@ -213,6 +213,64 @@ MainActor.assumeIsolated {
         }
         RunLoop.main.run()
     }
+    // Proje hafızasını geçici klasörde dener (LLM çağrısı yok): Serce --hafiza-testi klasor
+    if let i = CommandLine.arguments.firstIndex(of: "--hafiza-testi"), i + 1 < CommandLine.arguments.count {
+        let base = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+        ProjectMemory.dirOverride = base.appendingPathComponent("Hafiza")
+        UserDefaults.standard.set(false, forKey: "hafizaOzet")
+        let repo = base.appendingPathComponent("ornek-proje")
+        try? FileManager.default.createDirectory(at: repo.appendingPathComponent(".git"), withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: repo.appendingPathComponent("src"), withIntermediateDirectories: true)
+        let cwd = repo.appendingPathComponent("src").path
+        func ev(_ name: String, _ extra: [String: Any] = [:]) -> HookEvent {
+            var p: [String: Any] = ["session_id": "t1", "cwd": cwd]
+            p.merge(extra) { $1 }
+            return HookEvent(name: name, payload: p, bundleId: "", term: "")
+        }
+        let mem = ProjectMemory.shared
+        mem.observe(ev("UserPromptSubmit", ["prompt": "Supabase bağlantısını session pooler'a çevir ve testleri çalıştır"]))
+        mem.observe(ev("PostToolUse", ["tool_name": "Edit", "tool_input": ["file_path": repo.path + "/src/db.ts"]]))
+        mem.observe(ev("PostToolUse", ["tool_name": "Bash", "tool_input": ["command": "npm test"], "tool_response": ["stdout": "48 passed", "stderr": ""]]))
+        mem.observe(ev("Stop", ["last_assistant_message": "Bağlantı aws-1 session pooler'a alındı, 48 test geçti."]))
+        mem.observe(ev("SessionEnd"))
+        let md = ProjectDoc.url(for: repo.path)
+        print("── md (\(md.lastPathComponent)):")
+        print((try? String(contentsOf: md, encoding: .utf8)) ?? "YOK")
+        print("── SessionStart bağlamı:")
+        print(ProjectMemory.sessionContext(cwd: cwd) ?? "YOK")
+        print("── arama 'session pooler':", ProjectMemory.search("session pooler"))
+        print("── tohum: \(ProjectMemory.seedFromNotes()) proje md'si oluşturuldu")
+        print(ProjectMemory.allDocs().map { "\($0.name) ← \($0.root.replacingOccurrences(of: NSHomeDirectory(), with: "~"))" }.joined(separator: "\n"))
+        if let k = ProjectMemory.find("koridor") { print("── koridor özeti:\n" + k.section("Özet").prefix(400)) }
+        var msgs: [ChatMessage] = []
+        for n in 0..<20 {
+            var m = ChatMessage(role: n % 2 == 0 ? .user : .assistant, text: "m\(n)")
+            if n == 4 || n == 18 { m.parts = [.image(mime: "image/png", base64: "AAAA")]; m.attachmentNames = ["g\(n).png"] }
+            msgs.append(m)
+        }
+        let t = ChatSession.trimmed(msgs)
+        print("── kırpma: \(t.count) mesaj, ilk \(t.first?.text ?? ""), ekli: \(t.filter { !$0.parts.isEmpty }.map(\.text))")
+        exit(0)
+    }
+    // Serçe'den oturum başlatma ve sürdürme (terminalsiz): Serce --gonder-testi klasor
+    if let i = CommandLine.arguments.firstIndex(of: "--gonder-testi"), i + 1 < CommandLine.arguments.count {
+        let dir = CommandLine.arguments[i + 1]
+        Task { @MainActor in
+            let r = AgentRunner.shared
+            @MainActor func wait(_ key: String) async { while r.isRunning(key) { try? await Task.sleep(for: .milliseconds(300)) } }
+            print("başlat:", r.start("Aklında tut: gizli kelime 'serçe42'. Sadece 'tamam' yaz.", in: dir) ?? "ok")
+            await wait(dir)
+            let first = r.lastResult[dir]
+            print("1. yanıt:", first?.text ?? "-", "| hata:", r.lastError[dir] ?? "yok")
+            guard let sid = first?.sessionId, !sid.isEmpty else { exit(1) }
+            let s = AgentSession(id: sid, cwd: dir, status: .done)
+            print("devam:", r.send("Gizli kelime neydi? Sadece kelimeyi yaz.", to: s) ?? "ok")
+            await wait(sid)
+            print("2. yanıt:", r.lastResult[sid]?.text ?? "-", "| hata:", r.lastError[sid] ?? "yok")
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

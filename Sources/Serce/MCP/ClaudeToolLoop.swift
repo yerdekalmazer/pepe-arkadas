@@ -17,6 +17,10 @@ import Foundation
         var useMCP = true
         /// Onay kartında "kim istiyor" satırı.
         var askedBy = "Serçe"
+        /// Kullanım sayacında hangi kaleme yazılacağı.
+        var purpose: UsageMeter.Purpose = .chat
+        /// Proje hafızası ve oturum araçları (yerel; token harcamaz, yalnızca sonuçları bağlama girer).
+        var serceTools = true
         /// Araç çalışırken arayüze kısa durum satırı.
         var onProgress: (String) -> Void = { _ in }
     }
@@ -37,7 +41,10 @@ import Foundation
         guard let key = Keychain.get("anthropic") else { throw Failure.noKey }
         let mcp = MCPHub.shared
         var tools = o.tools
+        if o.serceTools { tools += SerceTools.definitions }
         if o.useMCP { tools += mcp.claudeTools() }
+        var o = o
+        if o.serceTools { o.system += SerceTools.systemNote() }
         if o.webSearch { tools.append(["type": "web_search_20260209", "name": "web_search", "max_uses": 3]) }
 
         for _ in 0..<12 {
@@ -65,6 +72,11 @@ import Foundation
                                 ["type": "image", "source": ["type": "base64", "media_type": $0.0, "data": $0.1]]
                             }
                         }
+                        if isError { result["is_error"] = true }
+                    } else if SerceTools.owns(name) {
+                        o.onProgress(SerceTools.progress(name))
+                        let (text, isError) = SerceTools.run(name, input)
+                        result["content"] = text
                         if isError { result["is_error"] = true }
                     } else if let handler = o.handler {
                         let (text, isError) = await handler(name, input)
@@ -100,6 +112,8 @@ import Foundation
             "system": o.system,
             "messages": messages,
             "output_config": ["effort": o.effort],
+            // Araçlar + sistem istemi her turda aynı: önbellekten okunur (girdi maliyetinin ~%5'i).
+            "cache_control": ["type": "ephemeral"],
         ]
         if !tools.isEmpty { body["tools"] = tools }
         var r = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
@@ -120,6 +134,7 @@ import Foundation
         guard code == 200 else {
             throw Failure.http(code, ((json["error"] as? [String: Any])?["message"] as? String) ?? "")
         }
+        UsageMeter.shared.record(model: o.model, usage: json["usage"] as? [String: Any], purpose: o.purpose)
         return json
     }
 }

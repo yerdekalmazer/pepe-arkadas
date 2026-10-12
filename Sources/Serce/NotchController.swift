@@ -35,6 +35,11 @@ final class NotchPanel: NSPanel {
 
         store.onAttention = { [weak self] in self?.setExpanded(true) }
 
+        // Yazı bitip başka bir yere tıklanınca (panel klavyeyi bırakınca) fare dışarıdaysa kapan.
+        NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.settle() }
+        }
+
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.place() }
@@ -117,8 +122,8 @@ final class NotchPanel: NSPanel {
         } else if !inside {
             hoverWork?.cancel()
             hoverWork = nil
-            // Bekleyen izin varken ada açık kalır.
-            if model.expanded, !store.hasPending { setExpanded(false) }
+            // Bekleyen izin varken ve bir alana yazı yazılırken (panel klavyede) ada açık kalır.
+            if model.expanded, !store.hasPending, !panel.isKeyWindow { setExpanded(false) }
         }
     }
 

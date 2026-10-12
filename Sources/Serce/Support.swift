@@ -65,6 +65,11 @@ enum Support {
             if [ -n "$OUT" ]; then printf '%s\\n' "$OUT"
             elif [ "$AGENT" = "copilot" ]; then printf '{"permissionDecision":"ask"}\\n'; fi
             ;;
+          SessionStart)
+            # Serçe proje hafızasını bağlam olarak döndürebilir (yalnızca Claude Code okur).
+            OUT="$(curl -s --connect-timeout 0.3 -m 1.5 -H "X-Serce-Token: $TOKEN" --data-binary @- "$URL" 2>/dev/null)"
+            if [ -n "$OUT" ] && [ -z "$AGENT" ]; then printf '%s\\n' "$OUT"; fi
+            ;;
           *)
             curl -s --connect-timeout 0.3 -m 1 -H "X-Serce-Token: $TOKEN" --data-binary @- "$URL" >/dev/null 2>&1
             if [ "$AGENT" = "cursor" ] && [ "$EVENT" = "beforeSubmitPrompt" ]; then printf '{"continue":true}\\n'; fi

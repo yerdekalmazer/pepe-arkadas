@@ -5,6 +5,8 @@ enum SessionStatus { case idle, working, waiting, done }
 enum Decision { case allow, always, deny, terminal }
 
 struct AgentSession: Identifiable {
+    /// Ajanın son mesajı (Stop hook'u); Serçe'den yazınca cevap burada görünür.
+    var lastReply = ""
     let id: String
     var cwd: String
     var status: SessionStatus = .idle
@@ -83,6 +85,7 @@ struct Approval: Identifiable {
 
     func handle(_ e: HookEvent, responder: Responder? = nil) -> UUID? {
         let p = e.payload
+        ProjectMemory.shared.observe(e)
         if e.name == "StatusLine" {
             PlanStore.shared.updateClaude(from: p)
             return nil
@@ -197,6 +200,7 @@ struct Approval: Identifiable {
                 s.action = msg
             }
         case "Stop":
+            if let m = p["last_assistant_message"] as? String, !m.isEmpty { s.lastReply = String(m.suffix(4000)) }
             dropApprovals { $0.sessionId == sid }
             dropQuestions { $0.sessionId == sid }
             s.status = .done

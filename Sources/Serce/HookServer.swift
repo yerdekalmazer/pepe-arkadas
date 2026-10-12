@@ -89,7 +89,14 @@ final class HookServer {
             NSLog("serce-debug event=\(name) bid=\(event.bundleId) term=\(event.term) tty=\(event.tty)")
         }
         guard name == "PermissionRequest" || name == "Ask" else {
-            reply(c, status: "200 OK", body: "")
+            var body = ""
+            // Claude Code oturumu açılırken proje hafızasının kısa özetini bağlam olarak ver.
+            if name == "SessionStart", event.agent == AgentCatalog.claude, let cwd = payload["cwd"] as? String,
+               let ctx = ProjectMemory.sessionContext(cwd: cwd),
+               let d = try? JSONSerialization.data(withJSONObject: ["hookSpecificOutput": ["hookEventName": "SessionStart", "additionalContext": ctx]]) {
+                body = String(data: d, encoding: .utf8) ?? ""
+            }
+            reply(c, status: "200 OK", body: body)
             onEvent(event, nil, { _ in })
             return
         }

@@ -220,7 +220,8 @@ import SwiftUI
         do {
             let r = try await conn.call(name, input)
             var text = r.text
-            if text.count > 60_000 { text = String(text.prefix(60_000)) + "\n…(çıktı 60.000 karakterde kesildi)" }
+            // Bağlamı şişirmesin: büyük çıktılar kesilir (model daha dar bir sorguyla tekrar isteyebilir).
+            if text.count > 20_000 { text = String(text.prefix(20_000)) + "\n…(çıktı 20.000 karakterde kesildi; daha dar bir sorgu dene)" }
             return (text.isEmpty ? "(boş sonuç)" : text, r.isError, r.images)
         } catch MCPError.needsAuth {
             status[serverId] = .needsAuth
