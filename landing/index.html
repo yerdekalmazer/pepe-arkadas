@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Serçe — Mac'inin çentiğinde yaşayan kişisel ajan</title>
+  <meta name="description" content="Serçe, Mac'inin çentiğinde yaşayan küçük bir ajan: Claude Code ve diğer kodlama ajanlarını izler, izinleri çentikten verirsin, projelerini hatırlar, terminal kapalıyken bile işi sürdürür.">
+  <meta name="theme-color" content="#0d0c0b">
+  <link rel="icon" href="assets/serce.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@500;600;700&family=Instrument+Serif:ital@1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Serçe: tek tanım, her yerde kullanılır -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="serce" viewBox="0 0 100 100">
+        <path d="M22 62 L3 34 Q8 27 13 30 L30 50 Z" fill="#6b4a2e"/>
+        <clipPath id="govde"><ellipse cx="50" cy="58" rx="37" ry="35"/></clipPath>
+        <ellipse cx="50" cy="58" rx="37" ry="35" fill="#9a6b43"/>
+        <g clip-path="url(#govde)">
+          <ellipse cx="60" cy="74" rx="26" ry="23" fill="#ecdcbf"/>
+          <ellipse cx="50" cy="26" rx="31" ry="15" fill="#6b4a2e"/>
+          <ellipse cx="66" cy="56" rx="12" ry="6.5" fill="#fbf7f0"/>
+        </g>
+        <ellipse cx="40" cy="62" rx="18" ry="11" fill="#78522f" transform="rotate(-14 40 62)"/>
+        <path d="M30 62 L50 62" stroke="#6b4a2e" stroke-width="2.5" stroke-linecap="round" transform="rotate(-14 40 62)"/>
+        <path d="M82 46 L97 51 L82 56 Z" fill="#ffb34d"/>
+        <ellipse cx="79" cy="64" rx="5.5" ry="3.5" fill="#2a1d14"/>
+        <g class="goz">
+          <circle cx="64" cy="44" r="7.5" fill="#fff"/>
+          <circle class="bebek" cx="65" cy="44" r="5" fill="#111"/>
+          <circle class="parilti" cx="67" cy="41.5" r="1.8" fill="#fff"/>
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <a class="skip" href="#ana">İçeriğe geç</a>
+
+  <header class="nav" data-nav>
+    <div class="nav__inner">
+      <a class="logo" href="#" aria-label="Serçe ana sayfa">
+        <svg class="logo__bird"><use href="#serce"/></svg>
+        <span>Serçe</span>
+      </a>
+      <nav class="nav__links" aria-label="Ana menü">
+        <a href="#nasil">Nasıl çalışır</a>
+        <a href="#ozellikler">Özellikler</a>
+        <a href="#hafiza">Hafıza</a>
+        <a href="#gizlilik">Gizlilik</a>
+        <a href="#sss">SSS</a>
+      </nav>
+      <div class="nav__cta">
+        <span class="kbd-hint" aria-hidden="true"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>S</kbd></span>
+        <a class="btn btn--solid" href="mailto:hi@tahayerdekalmazer.com?subject=Ser%C3%A7e%20erken%20eri%C5%9Fim">Erken erişim</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="ana">
+    <!-- HERO -->
+    <section class="hero">
+      <p class="eyebrow reveal"><span class="dot"></span> macOS 14+ · Claude Code, Codex, Gemini CLI ve daha fazlası</p>
+      <h1 class="hero__title reveal">Ajanların çalışsın,<br>sen <em>hayatına</em> bak.</h1>
+      <p class="hero__lede reveal">Serçe, Mac'inin çentiğinde yaşayan küçük bir ajan. Kodlama ajanlarının her adımını izler, izinleri çentikten verirsin, projelerini hatırlar ve terminal kapalıyken bile işi sürdürür.</p>
+      <div class="hero__cta reveal">
+        <a class="btn btn--solid btn--lg" href="mailto:hi@tahayerdekalmazer.com?subject=Ser%C3%A7e%20erken%20eri%C5%9Fim">Erken erişim iste</a>
+        <a class="btn btn--ghost btn--lg" href="#nasil">Nasıl çalışır <span aria-hidden="true">↓</span></a>
+      </div>
+
+      <!-- İmza sahne: MacBook çentiği ve canlı Serçe adası -->
+      <div class="stage reveal" aria-label="Serçe adası canlı demo">
+        <div class="screen">
+          <div class="menubar" aria-hidden="true">
+            <span class="menubar__apple"></span><b>Ghostty</b><span>Dosya</span><span>Düzen</span><span>Görünüm</span>
+            <span class="menubar__right"><span class="mb-clock" data-clock>09:41</span></span>
+          </div>
+          <div class="island" data-island data-state="collapsed">
+            <div class="island__collapsed">
+              <svg class="island__bird" data-eyes><use href="#serce"/></svg>
+              <span class="island__notch"></span>
+              <span class="island__indicator">
+                <span class="dots"><i></i><i></i><i></i></span>
+                <span class="bang">!</span>
+                <span class="check">✓</span>
+              </span>
+            </div>
+            <div class="island__panel">
+              <div class="panel__tabs" aria-hidden="true">
+                <span class="tab tab--on">⌂</span><span class="tab">◌</span><span class="tab">+</span>
+                <span class="panel__plan"><span class="ring"></span>%28 · 2s 4dk</span>
+              </div>
+              <div class="panel__body">
+                <div class="panel__side">
+                  <svg class="panel__bird"><use href="#serce"/></svg>
+                  <b>kesit</b><small>Claude Code</small>
+                  <ul class="steps" data-steps>
+                    <li data-step="read"><i></i>Read</li>
+                    <li data-step="edit"><i></i>Edit</li>
+                    <li data-step="bash"><i></i>Bash</li>
+                    <li data-step="done"><i></i>Yanıt</li>
+                  </ul>
+                </div>
+                <div class="panel__main">
+                  <!-- izin kartı -->
+                  <div class="view view--ask">
+                    <p class="ask__title"><span class="hand">✋</span> <b>kesit</b> komut çalıştırmak istiyor</p>
+                    <pre class="term"><span class="p">$</span> npm test</pre>
+                    <div class="ask__actions">
+                      <span class="pill pill--ghost">Reddet</span>
+                      <span class="pill pill--quiet" data-auto>⚡ Otomatiğe geç</span>
+                      <span class="pill pill--primary">İzin ver</span>
+                    </div>
+                  </div>
+                  <!-- diff -->
+                  <div class="view view--diff">
+                    <div class="file"><span class="badge">TS</span> fatura.ts <span class="mod"></span><span class="path">src/fatura.ts</span></div>
+                    <pre class="code"><span class="ln">2</span>
+<span class="ln">3</span><span class="del"> const KDV = 0.18</span>
+<span class="ln">3</span><span class="add"> const KDV = 0.20 <span class="c">// 2026</span></span>
+<span class="ln">4</span>
+<span class="ln">5</span> <span class="k">export function</span> <span class="f">toplam</span>(kalemler) {</pre>
+                  </div>
+                  <!-- terminal -->
+                  <div class="view view--term">
+                    <pre class="term"><span class="p">$</span> npm test
+<span class="g">✓ tests/fatura.test.ts (6)</span>
+<span class="g">  Tests  48 passed (48)</span><span class="caret"></span></pre>
+                  </div>
+                  <!-- geçmiş -->
+                  <div class="view view--done">
+                    <p class="bubble bubble--me">KDV'yi %20 yap, testleri çalıştır</p>
+                    <p class="bubble bubble--ai">KDV oranı <b>%20</b> oldu, 48 testin hepsi geçti. PDF şablonunu da güncelleyeyim mi?</p>
+                    <div class="composer"><span>kesit oturumuna yaz — terminal kapalı olsa da devam eder</span><i>↑</i></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="screen__desk" aria-hidden="true">
+            <div class="window">
+              <div class="window__bar"><i></i><i></i><i></i><span>~/Projeler/kesit — claude</span></div>
+              <pre class="window__body" data-typer></pre>
+            </div>
+          </div>
+        </div>
+        <p class="stage__caption" data-caption>Çentikte bekliyor…</p>
+      </div>
+    </section>
+
+    <!-- AJANLAR -->
+    <section class="agents" aria-label="Birlikte çalıştığı ajanlar">
+      <p>Birlikte çalıştığı ajanlar</p>
+      <ul>
+        <li>Claude Code</li><li>Codex</li><li>Gemini CLI</li><li>Copilot CLI</li><li>Cursor</li><li>OpenCode</li>
+      </ul>
+    </section>
+
+    <!-- NASIL ÇALIŞIR: yapışkan sahne -->
+    <section class="how" id="nasil">
+      <header class="section-head reveal">
+        <p class="kicker">Bir oturumun hayatı</p>
+        <h2>Terminale dönmeden<br>her şeyi gör.</h2>
+      </header>
+      <div class="how__grid">
+        <ol class="how__steps">
+          <li class="how__step" data-how="0">
+            <span class="num">01</span>
+            <h3>İzler</h3>
+            <p>Ajan bir dosya okuduğunda, düzenlediğinde ya da komut çalıştırdığında çentikte canlı görünür. Kuş çalışırken sekmeye başlar, iş bitince sevinir.</p>
+          </li>
+          <li class="how__step" data-how="1">
+            <span class="num">02</span>
+            <h3>Sorar</h3>
+            <p>İzin gerektiren her şey çentiğe düşer: <b>İzin ver</b>, <b>Hep izin ver</b>, <b>Reddet</b> — ya da tek dokunuşla oturumu <b>Otomatik</b> moda al, gerisini Claude kendisi tartsın.</p>
+          </li>
+          <li class="how__step" data-how="2">
+            <span class="num">03</span>
+            <h3>Gösterir</h3>
+            <p>Satır numaralı diff, sözdizimi renkleri, tam terminal çıktısı. Bütün Bash komutları tek bir sayfada, konuşma ayrı bir sayfada.</p>
+          </li>
+          <li class="how__step" data-how="3">
+            <span class="num">04</span>
+            <h3>Sürdürür</h3>
+            <p>Terminali kapatsan bile oturum çentikte kalır. Kutuya yaz; Serçe aynı oturumu arka planda devam ettirir, cevabı sana getirir.</p>
+          </li>
+        </ol>
+        <div class="how__sticky">
+          <div class="mini-island" data-how-view="0">
+            <div class="mi__row"><span class="ok"></span>Read <small>src/fatura.ts</small></div>
+            <div class="mi__row"><span class="ok"></span>Edit <small>fatura.ts +1 −1</small></div>
+            <div class="mi__row mi__row--live"><span class="spin"></span>Bash <small>npm test</small></div>
+          </div>
+          <div class="mini-island" data-how-view="1">
+            <p class="ask__title"><span class="hand">✋</span> <b>kesit</b> dosya değiştirmek istiyor</p>
+            <pre class="term">~/Projeler/kesit/src/fatura.ts
+<span class="r">− const KDV = 0.18</span>
+<span class="g">+ const KDV = 0.20</span></pre>
+            <div class="ask__actions"><span class="pill pill--ghost">Reddet</span><span class="pill pill--quiet">⚡ Otomatiğe geç</span><span class="pill pill--primary">İzin ver</span></div>
+          </div>
+          <div class="mini-island" data-how-view="2">
+            <div class="file"><span class="badge">≡</span> Komutlar <span class="path">~/Projeler/kesit</span></div>
+            <pre class="term"><span class="r">$ npm run lint</span>
+<span class="r">src/fatura.ts:3:7  error  Use 'const'</span>
+<span class="p">$</span> npm test
+<span class="g">  Tests  48 passed (48)</span></pre>
+          </div>
+          <div class="mini-island" data-how-view="3">
+            <p class="bubble bubble--ai">Şablon da güncellendi. Başka bir şey var mı?</p>
+            <p class="closed-tag">kapalı · terminal kapandı</p>
+            <div class="composer composer--live"><span data-compose></span><i>↑</i></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BENTO -->
+    <section class="features" id="ozellikler">
+      <header class="section-head reveal">
+        <p class="kicker">Özellikler</p>
+        <h2>Küçük bir kuş,<br>koca bir alet çantası.</h2>
+      </header>
+      <div class="bento">
+        <article class="card card--write reveal">
+          <h3>Terminalsiz yaz</h3>
+          <p>Kapanmış bir oturuma bile yaz; Serçe <code>claude --resume</code> ile arka planda sürdürür.</p>
+          <div class="viz">
+            <div class="chips"><span class="chip chip--on">⚡ Otomatik</span><span class="chip">Opus</span><span class="chip">Efor · Yüksek</span></div>
+            <div class="composer"><span>testleri düzelt ve PR aç</span><i>↑</i></div>
+          </div>
+        </article>
+        <article class="card card--voice reveal">
+          <h3>« OK Serçe »</h3>
+          <p>Sesle sor: “Stripe'ta bugün ne kazandım?”, “kesit'e testleri düzeltmesini söyle”. Ses kaydı Mac'ten çıkmaz.</p>
+          <div class="viz viz--wave"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="caption">Bugün 3 ödeme aldın, toplam 1.284 €.</span></div>
+        </article>
+        <article class="card card--mcp reveal">
+          <h3>MCP, kendiliğinden</h3>
+          <p>Claude Code, Cursor ve Codex'teki sunucular içe alınır; GitHub <code>gh</code> girişinle sıfır kurulumla bağlanır.</p>
+          <div class="viz chips chips--wrap"><span class="chip">GitHub · 46 araç</span><span class="chip">Notion</span><span class="chip">Linear</span><span class="chip">Sentry</span><span class="chip">Vercel</span><span class="chip">Stripe</span></div>
+        </article>
+        <article class="card card--brief reveal">
+          <h3>Sabah brifingi</h3>
+          <p>Dün nerede kaldın, bugün ne var — token harcamadan, her sabah 09:30'da.</p>
+          <div class="viz brief">
+            <b>☀︎ Günaydın — 13 Ekim Pazartesi</b>
+            <span>· kesit: PDF şablonu bekliyor</span>
+            <span>· 10:00 Tessera 1.4'ü incelemeye gönder</span>
+            <span>· GitHub: 3 açık PR, 1 inceleme</span>
+          </div>
+        </article>
+        <article class="card card--keys reveal">
+          <h3>Klavyeden</h3>
+          <p>Adayı aç, sohbete geç, uyarıya atla.</p>
+          <div class="viz keys"><kbd>⌃</kbd><kbd>⌥</kbd><kbd>Space</kbd><span class="keys__sep"></span><kbd>⌃</kbd><kbd>⌥</kbd><kbd>S</kbd></div>
+        </article>
+        <article class="card card--wardrobe reveal">
+          <h3>Gardırop</h3>
+          <p>On bir kıyafet; kışın atkı, yılbaşında şapka.</p>
+          <div class="viz wardrobe" aria-hidden="true">
+            <span class="wb"><svg><use href="#serce"/></svg><i class="hat hat--beret"></i></span>
+            <span class="wb"><svg><use href="#serce"/></svg><i class="hat hat--crown"></i></span>
+            <span class="wb"><svg><use href="#serce"/></svg><i class="hat hat--fez"></i></span>
+          </div>
+        </article>
+        <article class="card card--pills reveal">
+          <h3>Pill'ler</h3>
+          <p>Trello, GitHub, Vercel, Stripe, Spotify — işin ve müziğin aynı çentikte.</p>
+          <div class="viz pills">
+            <span class="pb" style="--c:#0077d9">Trello · Inbox 3</span>
+            <span class="pb" style="--c:#e5484d">GitHub · CI ✓</span>
+            <span class="pb" style="--c:#1ed760">Spotify · çalıyor</span>
+            <span class="pb" style="--c:#635bff">Stripe · 1.284 €</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- HAFIZA -->
+    <section class="memory" id="hafiza">
+      <div class="memory__text reveal">
+        <p class="kicker">Proje hafızası</p>
+        <h2>Her proje bir md.<br>Her oturum <em>kaldığı yerden</em>.</h2>
+        <p>Bir oturum bitince isteğin, değişen dosyalar, komutlar ve sonuç projenin md'sine işlenir. Yeni bir Claude Code oturumu açıldığında projenin kısa özeti oturuma kendiliğinden verilir — ajan nerede kaldığınızı bilerek başlar.</p>
+        <ul class="facts">
+          <li><b data-count="400">0</b><span>token — oturuma verilen özet</span></li>
+          <li><b>0</b><span>token — oturum günlüğü (LLM'siz)</span></li>
+          <li><b>$<span data-count="0.10" data-dec="2">0</span></b><span>günlük arka plan bütçesi</span></li>
+        </ul>
+        <p class="note">Md'ler Obsidian'da da görünür; istediğin gibi düzenle, Serçe okur.</p>
+      </div>
+      <figure class="md reveal" aria-label="Örnek proje hafızası">
+        <div class="md__bar"><i></i><i></i><i></i><span>Hafiza/kesit.md</span></div>
+<pre><span class="h">---</span>
+<span class="k">proje:</span> kesit
+<span class="k">klasor:</span> ~/Projeler/kesit
+<span class="h">---</span>
+
+<span class="t"># kesit</span>
+
+<span class="t">## Durum</span>
+KDV %20'ye çekildi; 48 test geçiyor.
+
+<span class="t">## Sıradaki</span>
+<span class="m">- [ ]</span> PDF şablonundaki oran metni
+<span class="m">- [ ]</span> CHANGELOG'a 2026 notu
+
+<span class="t">## Oturumlar</span>
+<span class="s">### 13 Eki 2026 10:02 · Claude Code · 6 dk</span>
+- İstek: KDV oranını %20 yap ve testleri çalıştır
+- Dosyalar: src/fatura.ts
+- Komutlar: `npm test` <span class="g">✓</span></pre>
+      </figure>
+    </section>
+
+    <!-- GİZLİLİK -->
+    <section class="privacy" id="gizlilik">
+      <header class="section-head reveal">
+        <p class="kicker">Gizlilik</p>
+        <h2>Her şey senin Mac'inde.</h2>
+      </header>
+      <div class="privacy__grid">
+        <div class="pv reveal"><span class="pv__icon">127.0.0.1</span><h3>Yerel köprü</h3><p>Ajanlarla konuşma yalnızca bu Mac'teki bir porttan, kişisel bir jetonla yapılır.</p></div>
+        <div class="pv reveal"><span class="pv__icon">0600</span><h3>Anahtarlar senin</h3><p>API anahtarları yalnızca senin okuyabildiğin bir dosyada durur; hiçbir sunucuya kopyalanmaz.</p></div>
+        <div class="pv reveal"><span class="pv__icon">🎙︎ ✕</span><h3>Ses çıkmaz</h3><p>Konuşma tanıma mümkünse cihazda yapılır; Anthropic'e ses değil, yalnızca cümlen gider.</p></div>
+        <div class="pv reveal"><span class="pv__icon">✋</span><h3>Yazmadan önce sorar</h3><p>Issue açmak, kart taşımak, kod çalıştırmak — salt okuma olmayan her araç önce onayını ister.</p></div>
+      </div>
+    </section>
+
+    <!-- RAKAMLAR -->
+    <section class="numbers" aria-label="Rakamlarla Serçe">
+      <div class="num reveal"><b data-count="6">0</b><span>ajan</span></div>
+      <div class="num reveal"><b data-count="46">0</b><span>GitHub aracı, sıfır kurulum</span></div>
+      <div class="num reveal"><b data-count="57">0</b><span>ms — bir hook olayının süresi</span></div>
+      <div class="num reveal"><b data-count="11">0</b><span>kıyafet</span></div>
+    </section>
+
+    <!-- SSS -->
+    <section class="faq" id="sss">
+      <header class="section-head reveal">
+        <p class="kicker">SSS</p>
+        <h2>Merak edilenler</h2>
+      </header>
+      <div class="faq__list">
+        <details class="reveal"><summary>Çentiği olmayan Mac'te çalışır mı?</summary><p>Evet. Çentik yoksa Serçe ekranın tepesinin ortasına kendi küçük adasını çizer.</p></details>
+        <details class="reveal"><summary>Hangi ajanlarla çalışır?</summary><p>Claude Code ile en derin şekilde; Codex, Gemini CLI, Copilot CLI, Cursor ve OpenCode için de kurulum tek tıklık. Codex ve Copilot'un izin istekleri de çentiğe düşer.</p></details>
+        <details class="reveal"><summary>Terminal kapalıyken nasıl devam ediyor?</summary><p>Serçe, oturumu Claude Code'un kendi <code>--resume</code> özelliğiyle arka planda sürdürür. Adımlar ve izinler yine çentikte görünür; istersen “Terminalde aç” ile oturumu geri alırsın.</p></details>
+        <details class="reveal"><summary>Ne kadar token harcar?</summary><p>İzleme, oturum günlüğü, brifing ve hatırlatmalar hiç token harcamaz. Özetler en ucuz modelle ve günlük bir bütçeyle yapılır; ayarlarda her kalemi gün gün görürsün.</p></details>
+        <details class="reveal"><summary>Ajanların ayarlarıma dokunuyor mu?</summary><p>Yalnızca kendi hook satırlarını ekler, önce yedek alır; tek tıkla kaldırılır. Diğer araçların ayarlarına dokunmaz.</p></details>
+      </div>
+    </section>
+
+    <!-- FİNAL CTA -->
+    <section class="final">
+      <svg class="final__bird" data-eyes><use href="#serce"/></svg>
+      <h2 class="reveal">Serçeyi çentiğine kondur.</h2>
+      <p class="reveal">macOS 14 ve üstü · Apple silicon ve Intel</p>
+      <a class="btn btn--solid btn--lg reveal" href="mailto:hi@tahayerdekalmazer.com?subject=Ser%C3%A7e%20erken%20eri%C5%9Fim">Erken erişim iste</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a class="logo" href="#"><svg class="logo__bird"><use href="#serce"/></svg><span>Serçe</span></a>
+        <p>Mac'inin çentiğinde yaşayan kişisel ajan.</p>
+      </div>
+      <div><h4>Ürün</h4><a href="#nasil">Nasıl çalışır</a><a href="#ozellikler">Özellikler</a><a href="#hafiza">Proje hafızası</a></div>
+      <div><h4>Güven</h4><a href="#gizlilik">Gizlilik</a><a href="#sss">SSS</a></div>
+      <div><h4>İletişim</h4><a href="mailto:hi@tahayerdekalmazer.com">hi@tahayerdekalmazer.com</a><a href="https://tahayerdekalmazer.com">tahayerdekalmazer.com</a></div>
+    </div>
+    <div class="footer__bottom">
+      <span><span class="live-dot"></span> Çentikte şu an: <b data-sessions>3</b> oturum</span>
+      <span>Taha Yerdekalmazer · açık kaynak <a href="https://github.com/Louis-CFM/coucou">Coucou</a>'dan ilham aldı</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
