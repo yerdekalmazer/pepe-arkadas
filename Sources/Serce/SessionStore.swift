@@ -5,6 +5,8 @@ enum SessionStatus { case idle, working, waiting, done }
 enum Decision { case allow, always, deny, terminal }
 
 struct AgentSession: Identifiable {
+    /// Claude Code oturum dökümü (JSONL); geçmiş görünümü buradan okunur.
+    var transcriptPath = ""
     /// Terminaldeki oturumun izin modu ve eforu (hook verisinden; bilinmiyorsa boş).
     var permissionMode = ""
     var effort = ""
@@ -111,6 +113,7 @@ struct Approval: Identifiable {
         s.agent = e.agent
         if let cwd = p["cwd"] as? String, !cwd.isEmpty { s.cwd = cwd }
         if !e.bundleId.isEmpty { s.bundleId = e.bundleId }
+        if let tp = p["transcript_path"] as? String, !tp.isEmpty { s.transcriptPath = tp }
         if !e.term.isEmpty { s.term = e.term }
         if !e.fromSerce {
             if e.tty.hasPrefix("/dev/tty") { s.tty = e.tty }

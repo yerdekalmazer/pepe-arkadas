@@ -417,14 +417,18 @@ struct SessionDetail: View {
     @State private var confirmClose = false
     @Environment(\.snapshotMode) private var snapshot
 
-    /// Adım listesinde "Yanıt" satırının sabit kimliği.
+    /// Adım listesinde "Yanıt" ve "Geçmiş" satırlarının sabit kimlikleri.
     static let replyId = UUID()
+    static let historyId = UUID()
 
     var body: some View {
         let visible = Array(session.steps.suffix(6))
         let hasReply = !session.lastReply.isEmpty
-        // Oturum bittiyse ve kullanıcı bir adım seçmediyse ajanın cevabı gösterilir.
-        let showReply = hasReply && (model.pinnedStep == Self.replyId || (model.pinnedStep == nil && session.status != .working))
+        let hasHistory = !session.transcriptPath.isEmpty
+        // Oturum çalışmıyorken ve adım seçilmemişken: konuşma geçmişi (yoksa son yanıt).
+        let idle = model.pinnedStep == nil && session.status != .working
+        let showHistory = hasHistory && (model.pinnedStep == Self.historyId || idle)
+        let showReply = !showHistory && hasReply && (model.pinnedStep == Self.replyId || idle)
         let selected = visible.first { $0.id == model.pinnedStep } ?? visible.last
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 0) {
@@ -432,8 +436,17 @@ struct SessionDetail: View {
                 Text(session.project).font(.system(size: 14, weight: .bold)).lineLimit(1).padding(.top, 10)
                 Text(session.agentName).font(.system(size: 11)).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 7) {
+                    if hasHistory {
+                        HStack(spacing: 7) {
+                            Image(systemName: "bubble.left.and.bubble.right.fill").foregroundStyle(.secondary).frame(width: 14)
+                            Text("Geçmiş").font(.system(size: 12, weight: showHistory ? .semibold : .regular))
+                                .foregroundStyle(showHistory ? .white : .white.opacity(0.7))
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { model.pinnedStep = Self.historyId }
+                    }
                     ForEach(visible) { step in
-                        StepRow(step: step, selected: !showReply && step.id == selected?.id) {
+                        StepRow(step: step, selected: !showReply && !showHistory && step.id == selected?.id) {
                             model.pinnedStep = step.id
                         }
                     }
@@ -484,7 +497,9 @@ struct SessionDetail: View {
             .frame(width: 140, alignment: .leading)
 
             VStack(spacing: 8) {
-                if showReply {
+                if showHistory {
+                    HistoryView(path: session.transcriptPath, refresh: session.updated)
+                } else if showReply {
                     ReplyView(text: session.lastReply)
                 } else {
                     Viewer(step: selected, cwd: session.cwd, prompt: session.prompt)
@@ -1219,5 +1234,94 @@ struct RunControls: View {
 
     static func effortTitle(_ e: String) -> String {
         ["low": "Düşük", "medium": "Orta", "high": "Yüksek", "xhigh": "Çok yüksek", "max": "En yüksek"][e] ?? e
+    }
+}
+
+/// Oturumun konuşma geçmişi: senin yazdıkların, Claude'un cevapları, aradaki adımlar.
+/// Döküm sondan okunur (önce 2 MB); "Daha eskisi" pencereyi büyütür.
+struct HistoryView: View {
+    let path: String
+    /// Oturum güncellenince (yeni olay) yeniden okunur.
+    let refresh: Date
+    @State private var items: [HistoryItem] = []
+    @State private var truncated = false
+    @State private var window = 2 << 20
+    @State private var loading = false
+    @Environment(\.snapshotMode) private var snapshot
+
+    var body: some View {
+        Group {
+            if snapshot {
+                content.frame(maxHeight: .infinity, alignment: .bottom).clipped()
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView { content }
+                        .onChange(of: items.count) { proxy.scrollTo("son", anchor: .bottom) }
+                        .onAppear { proxy.scrollTo("son", anchor: .bottom) }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.editor))
+        .task(id: "\(path)|\(refresh.timeIntervalSince1970)|\(window)") { await load() }
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if truncated {
+                Button(loading ? "Yükleniyor…" : "Daha eskisini yükle") { window *= 4 }
+                    .buttonStyle(.plain).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            let shown = snapshot ? TranscriptReader.read(path: path, bytes: window).items : items
+            if shown.isEmpty {
+                Text(loading ? "Yükleniyor…" : "Bu oturumda henüz konuşma yok.")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).padding(12)
+            }
+            ForEach(shown) { row($0) }
+            Color.clear.frame(height: 1).id("son")
+        }
+        .padding(10)
+    }
+
+    @ViewBuilder private func row(_ it: HistoryItem) -> some View {
+        switch it.kind {
+        case .user:
+            HStack {
+                Spacer(minLength: 40)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(it.text).font(.system(size: 12)).foregroundStyle(.white)
+                        .lineLimit(12).textSelection(.enabled)
+                        .padding(.horizontal, 10).padding(.vertical, 7)
+                        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white.opacity(0.12)))
+                    if let t = it.time {
+                        Text(t, format: .dateTime.hour().minute()).font(.system(size: 9)).foregroundStyle(.tertiary)
+                    }
+                }
+            }
+        case .assistant:
+            Text(markdown(it.text)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.88))
+                .lineLimit(40).textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .tools:
+            HStack(spacing: 5) {
+                Image(systemName: "gearshape.2").font(.system(size: 9))
+                Text(it.text).font(.system(size: 10, design: .monospaced)).lineLimit(1).truncationMode(.middle)
+            }
+            .foregroundStyle(.white.opacity(0.4))
+        }
+    }
+
+    private func markdown(_ t: String) -> AttributedString {
+        (try? AttributedString(markdown: t, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(t)
+    }
+
+    private func load() async {
+        loading = true
+        let (p, w) = (path, window)
+        let result = await Task.detached(priority: .userInitiated) { TranscriptReader.read(path: p, bytes: w) }.value
+        items = result.items
+        truncated = result.truncated
+        loading = false
     }
 }

@@ -195,6 +195,36 @@ enum DemoScript {
         chat.newChat()
         app.tab = .home
         voiceShots(into: dir)
+        // Konuşma geçmişi: örnek bir Claude Code dökümünden
+        let tx = dir.appendingPathComponent("ornek-dokum.jsonl")
+        let lines: [[String: Any]] = [
+            ["type": "user", "timestamp": "2026-10-12T19:02:11.000Z", "message": ["role": "user", "content": "KDV oranını %20 yap ve testleri çalıştır"]],
+            ["type": "assistant", "message": ["role": "assistant", "content": [
+                ["type": "thinking", "thinking": "gizli"],
+                ["type": "text", "text": "Önce fatura hesabının nerede yapıldığına bakıyorum."],
+                ["type": "tool_use", "name": "Read", "input": ["file_path": "/x/src/fatura.ts"]],
+                ["type": "tool_use", "name": "Edit", "input": ["file_path": "/x/src/fatura.ts", "old_string": "0.18", "new_string": "0.20"]],
+                ["type": "tool_use", "name": "Bash", "input": ["command": "npm test"]]]]],
+            ["type": "user", "message": ["role": "user", "content": [["type": "tool_result", "tool_use_id": "1", "content": "ok"]]]],
+            ["type": "assistant", "message": ["role": "assistant", "content": [
+                ["type": "text", "text": "KDV oranı **%20** oldu, 48 testin hepsi geçti. PDF şablonundaki oran metnini de güncelleyeyim mi?"]]]],
+            ["type": "user", "timestamp": "2026-10-12T19:05:40.000Z", "message": ["role": "user", "content": "<system-reminder>gizli not</system-reminder>evet güncelle"]],
+            ["type": "assistant", "message": ["role": "assistant", "content": [
+                ["type": "tool_use", "name": "Edit", "input": ["file_path": "/x/sablon/fatura.html", "old_string": "%18", "new_string": "%20"]],
+                ["type": "text", "text": "Şablon da güncellendi."]]]],
+        ]
+        try? lines.map { String(data: try! JSONSerialization.data(withJSONObject: $0), encoding: .utf8)! }.joined(separator: "\n")
+            .write(to: tx, atomically: true, encoding: .utf8)
+        if let sid = store.sessions.first(where: { $0.project == "kesit" })?.id {
+            _ = store.handle(HookEvent(name: "Notification", payload: ["session_id": sid, "cwd": FileManager.default.homeDirectoryForCurrentUser.path + "/Projeler/kesit",
+                                                                      "transcript_path": tx.path, "message": "x"], bundleId: "", term: ""))
+            app.tab = .home
+            model.selectedSession = sid
+            model.pinnedStep = SessionDetail.historyId
+            shot("17-gecmis")
+            model.selectedSession = nil
+            model.pinnedStep = nil
+        }
         // Kişisel katman: hatırlatma şeridi + sabah brifingi (gerçek proje hafızasından, salt okuma)
         app.tab = .home
         model.selectedSession = nil

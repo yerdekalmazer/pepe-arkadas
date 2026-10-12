@@ -344,6 +344,17 @@ MainActor.assumeIsolated {
         }
         RunLoop.main.run()
     }
+    // Oturum dökümü okuyucusu: Serce --gecmis-testi dosya.jsonl
+    if let i = CommandLine.arguments.firstIndex(of: "--gecmis-testi"), i + 1 < CommandLine.arguments.count {
+        let t0 = Date()
+        let (items, truncated) = TranscriptReader.read(path: CommandLine.arguments[i + 1], bytes: 2 << 20)
+        print("\(items.count) öğe, daha eskisi var: \(truncated), süre: \(Int(Date().timeIntervalSince(t0) * 1000)) ms")
+        for it in items.suffix(12) {
+            let tag = it.kind == .user ? "SEN   " : (it.kind == .assistant ? "CLAUDE" : "adım  ")
+            print(tag, it.text.replacingOccurrences(of: "\n", with: " ").prefix(90))
+        }
+        exit(0)
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
