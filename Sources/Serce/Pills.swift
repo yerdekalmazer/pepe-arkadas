@@ -21,10 +21,13 @@ import SwiftUI
     /// Pill etkinleştirildiğinde/kapatıldığında çağrılır (zamanlayıcıları başlat/durdur).
     func start()
     func stop()
+    /// Sesli asistanın okuyacağı 1-4 cümlelik düz özet ("Bugün 3 ödeme, toplam…").
+    var voiceSummary: String { get }
 }
 
 extension PillProvider {
     var needsAttention: Bool { false }
+    var voiceSummary: String { "" }
     func settings() -> AnyView? { nil }
 }
 

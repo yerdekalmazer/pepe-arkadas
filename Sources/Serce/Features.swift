@@ -9,5 +9,6 @@ import SwiftUI
         // karakter
         // sohbet
         // ses
+        VoiceFeature.register(app)
     }
 }

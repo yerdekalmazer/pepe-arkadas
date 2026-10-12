@@ -167,6 +167,24 @@ MainActor.assumeIsolated {
         }
         exit(0)
     }
+    // Uyandırma sözü eşleyicisinin hızlı denetimi: Serce --selftest-wake
+    if CommandLine.arguments.contains("--selftest-wake") {
+        let cases: [(String, String?)] = [
+            ("OK Serçe Stripe'ta bugün ne kazandım", "Stripe'ta bugün ne kazandım"),
+            ("okey serçe, biraz müzik çal", "biraz müzik çal"),
+            ("Hey Serce hava nasıl", "hava nasıl"),
+            ("serçe çok güzel bir kuş", nil),
+            ("bugün ok dedim serçe gördüm", nil),
+        ]
+        var ok = true
+        for (input, want) in cases {
+            let got = WakePhrase.match(in: input).map { String(input[$0...]) }
+            let pass = got == want
+            ok = ok && pass
+            print(pass ? "✓" : "✗", input, "→", got ?? "nil")
+        }
+        exit(ok ? 0 : 1)
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
