@@ -127,7 +127,7 @@ import SwiftUI
         switch c.auth {
         case .none: return { nil }
         case .bearer(let key): return { Keychain.get(key).map { "Bearer \($0)" } }
-        case .github: return { (Keychain.get(GitHubPill.keyName) ?? GhCLI.token()).map { "Bearer \($0)" } }
+        case .github: return { (Keychain.get("github.token") ?? GhCLI.token()).map { "Bearer \($0)" } }
         case .oauth: return { await MCPOAuth.accessToken(id).map { "Bearer \($0)" } }
         }
     }
