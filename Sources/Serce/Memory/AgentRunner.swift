@@ -69,10 +69,25 @@ import AppKit
 
     /// Var olan oturuma yaz. Oturum o an terminalde çalışıyorsa iki kopya çakışmasın diye reddedilir.
     @discardableResult
-    func send(_ text: String, to s: AgentSession) -> String? {
+    func send(_ text: String, images: [Data] = [], to s: AgentSession) -> String? {
         guard s.agent == AgentCatalog.claude else { return "Şimdilik yalnızca Claude Code oturumlarına yazılabiliyor." }
         guard s.status != .working, running[s.id] == nil else { return "\(s.project) şu an çalışıyor; bitince tekrar dene." }
-        return launch(key: s.id, cwd: s.cwd, args: ["-p", text, "--resume", s.id] + options(for: s.id).args)
+        let opts = options(for: s.id).args
+        guard !images.isEmpty else {
+            return launch(key: s.id, cwd: s.cwd, args: ["-p", text, "--resume", s.id] + opts)
+        }
+        // Görselli mesaj: terminale yapıştırılmış gibi gerçek görsel bloğu olarak, JSON akışıyla gönderilir.
+        var content: [[String: Any]] = []
+        if !text.isEmpty { content.append(["type": "text", "text": text]) }
+        for d in images {
+            guard case .image(let mime, let b64)? = AttachmentReader.imagePart(d) else { continue }
+            content.append(["type": "image", "source": ["type": "base64", "media_type": mime, "data": b64]])
+        }
+        let msg: [String: Any] = ["type": "user", "message": ["role": "user", "content": content]]
+        guard var line = try? JSONSerialization.data(withJSONObject: msg) else { return "Görsel hazırlanamadı." }
+        line.append(0x0A)
+        return launch(key: s.id, cwd: s.cwd, args: ["-p", "--input-format", "stream-json", "--verbose", "--resume", s.id] + opts,
+                      stdin: line)
     }
 
     /// Serçe'nin başlattığı oturumların modeli (nil = Claude Code'daki varsayılan). Token tasarrufu için ayarlanabilir.
@@ -137,29 +152,39 @@ import AppKit
         running[key]?.interrupt()
     }
 
-    private func launch(key: String, cwd: String, args: [String]) -> String? {
+    private func launch(key: String, cwd: String, args: [String], stdin: Data? = nil) -> String? {
         guard let claude = Self.claudePath else { return "claude komutu bulunamadı." }
         guard FileManager.default.fileExists(atPath: cwd) else { return "Klasör yok: \(cwd)" }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: claude)
         // İzin gerektiren araçlar PermissionRequest hook'uyla notch'a düşer; hook kurulu değilse reddedilir.
-        p.arguments = args + ["--output-format", "json"]
+        p.arguments = args + ["--output-format", stdin == nil ? "json" : "stream-json"]
         p.currentDirectoryURL = URL(fileURLWithPath: cwd)
         var env = ProcessInfo.processInfo.environment
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         env["PATH"] = ["\(home)/.local/bin", "/opt/homebrew/bin", "/usr/local/bin", env["PATH"] ?? "/usr/bin:/bin"].joined(separator: ":")
         env["SERCE_RUN"] = "1"
         p.environment = env
+        // Çıktı sürekli okunur: akış modunda tampon dolup süreç kilitlenmesin.
         let out = Pipe()
+        let collected = OutputBuffer()
+        out.fileHandleForReading.readabilityHandler = { h in collected.append(h.availableData) }
         p.standardOutput = out
-        p.standardError = Pipe()
-        p.standardInput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        let input = Pipe()
+        p.standardInput = stdin == nil ? FileHandle.nullDevice : input
         p.terminationHandler = { proc in
-            let data = out.fileHandleForReading.readDataToEndOfFile()
+            out.fileHandleForReading.readabilityHandler = nil
+            collected.append(out.fileHandleForReading.readDataToEndOfFile())
             let status = proc.terminationStatus
+            let data = collected.data
             Task { @MainActor in AgentRunner.shared.finished(key, status: status, output: data) }
         }
         do { try p.run() } catch { return "Başlatılamadı: \(error.localizedDescription)" }
+        if let stdin {
+            try? input.fileHandleForWriting.write(contentsOf: stdin)
+            try? input.fileHandleForWriting.close()
+        }
         running[key] = p
         lastError[key] = nil
         return nil
@@ -167,7 +192,13 @@ import AppKit
 
     private func finished(_ key: String, status: Int32, output: Data) {
         running[key] = nil
-        let json = (try? JSONSerialization.jsonObject(with: output)) as? [String: Any]
+        // Düz JSON (tek nesne) ya da akış (satır satır; sonuç "result" satırında).
+        var json = (try? JSONSerialization.jsonObject(with: output)) as? [String: Any]
+        if json == nil {
+            json = output.split(separator: 0x0A).reversed().lazy
+                .compactMap { (try? JSONSerialization.jsonObject(with: $0)) as? [String: Any] }
+                .first { $0["type"] as? String == "result" }
+        }
         if status != 0 || (json?["is_error"] as? Bool) == true {
             lastError[key] = (json?["result"] as? String).map { String($0.prefix(300)) } ?? "claude \(status) koduyla çıktı."
         }
@@ -177,4 +208,12 @@ import AppKit
             UsageMeter.shared.recordCost(cost, purpose: .agent)
         }
     }
+}
+
+/// Süreç çıktısını iş parçacığı güvenli biriktirir.
+final class OutputBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var buf = Data()
+    func append(_ d: Data) { guard !d.isEmpty else { return }; lock.lock(); buf.append(d); lock.unlock() }
+    var data: Data { lock.lock(); defer { lock.unlock() }; return buf }
 }

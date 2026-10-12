@@ -256,17 +256,28 @@ MainActor.assumeIsolated {
     if let i = CommandLine.arguments.firstIndex(of: "--gonder-testi"), i + 1 < CommandLine.arguments.count {
         let dir = CommandLine.arguments[i + 1]
         Task { @MainActor in
+            AgentRunner.modelOverride = "haiku"
             let r = AgentRunner.shared
             @MainActor func wait(_ key: String) async { while r.isRunning(key) { try? await Task.sleep(for: .milliseconds(300)) } }
             print("başlat:", r.start("Aklında tut: gizli kelime 'serçe42'. Sadece 'tamam' yaz.", in: dir) ?? "ok")
-            await wait(dir)
-            let first = r.lastResult[dir]
+            // Yeni oturumlar oturum kimliğiyle izlenir.
+            let key = r.running.keys.first ?? dir
+            await wait(key)
+            let first = r.lastResult[key]
             print("1. yanıt:", first?.text ?? "-", "| hata:", r.lastError[dir] ?? "yok")
             guard let sid = first?.sessionId, !sid.isEmpty else { exit(1) }
             let s = AgentSession(id: sid, cwd: dir, status: .done)
             print("devam:", r.send("Gizli kelime neydi? Sadece kelimeyi yaz.", to: s) ?? "ok")
             await wait(sid)
             print("2. yanıt:", r.lastResult[sid]?.text ?? "-", "| hata:", r.lastError[sid] ?? "yok")
+            // Görselli mesaj (16x16 kırmızı PNG)
+            let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 16, pixelsHigh: 16, bitsPerSample: 8, samplesPerPixel: 3,
+                                       hasAlpha: false, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+            for x in 0..<16 { for y in 0..<16 { rep.setColor(NSColor(deviceRed: 0.85, green: 0.1, blue: 0.1, alpha: 1), atX: x, y: y) } }
+            let png = rep.representation(using: .png, properties: [:])!
+            print("görsel:", r.send("Bu görselin rengi ne? Tek kelime.", images: [png], to: s) ?? "ok")
+            await wait(sid)
+            print("3. yanıt:", r.lastResult[sid]?.text ?? "-", "| hata:", r.lastError[sid] ?? "yok")
             exit(0)
         }
         RunLoop.main.run()
@@ -300,6 +311,7 @@ MainActor.assumeIsolated {
         let repo = CommandLine.arguments[i + 1]
         AgentRunner.modelOverride = "haiku"
         Task { @MainActor in
+            AgentRunner.modelOverride = "haiku"
             let r = AgentRunner.shared
             print("1:", r.start("Sadece 'bir' yaz.", in: repo) ?? "başladı")
             print("2:", r.start("Sadece pwd komutunun çıktısını yaz.", in: repo, worktree: true) ?? "başladı (worktree)")
@@ -349,6 +361,9 @@ MainActor.assumeIsolated {
         let t0 = Date()
         let (items, truncated) = TranscriptReader.read(path: CommandLine.arguments[i + 1], bytes: 2 << 20)
         print("\(items.count) öğe, daha eskisi var: \(truncated), süre: \(Int(Date().timeIntervalSince(t0) * 1000)) ms")
+        let (acts, _) = TranscriptReader.activity(path: CommandLine.arguments[i + 1], bytes: 4 << 20)
+        let byTool = Dictionary(grouping: acts, by: \.tool).mapValues(\.count).sorted { $0.value > $1.value }
+        print("adımlar: \(acts.count) —", byTool.prefix(6).map { "\($0.key) \($0.value)" }.joined(separator: ", "))
         let (cmds, _) = TranscriptReader.commands(path: CommandLine.arguments[i + 1], bytes: 4 << 20)
         print("komut: \(cmds.count), hatalı: \(cmds.filter(\.isError).count), sonuçsuz: \(cmds.filter(\.running).count)")
         for c in cmds.suffix(3) { print("  $", c.command.prefix(70).replacingOccurrences(of: "\n", with: " "), "→", c.output.count, "karakter") }

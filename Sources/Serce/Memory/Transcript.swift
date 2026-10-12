@@ -130,10 +130,9 @@ enum TranscriptReader {
                             items.append(HistoryItem(id: items.count, kind: .assistant, text: t, time: time))
                         }
                     case "tool_use":
-                        // Geçmişte yalnızca dosya yazma/düzenleme adımları kalır; Bash "Komutlar" sayfasında,
-                        // okuma/arama gibi adımlar hiç gösterilmez.
+                        // Sohbette araç adımı yok; hepsi "Adımlar" akışında.
                         let name = b["name"] as? String ?? ""
-                        if includeTools || ["Write", "Edit", "MultiEdit", "NotebookEdit"].contains(name) {
+                        if includeTools {
                             pendingTools.append(ToolText.action(name, b["input"] as? [String: Any] ?? [:]))
                         }
                     default:
@@ -166,5 +165,102 @@ enum TranscriptReader {
         // Claude Code'un kendi notları kullanıcı mesajı değildir.
         if s.hasPrefix("[Request interrupted") || s.hasPrefix("Caveat:") { return "" }
         return s
+    }
+}
+
+/// "Adımlar" akışı: oturumdaki bütün araç çağrıları (Read, Edit, Write, Bash, Grep…) sonuçlarıyla, sırayla.
+struct ActivityItem: Identifiable {
+    enum Body {
+        case none
+        case output(String)                    // Bash çıktısı, Grep/Glob sonucu
+        case diff([(String, Bool)])            // (satır, eklenen mi)
+        case text(String)                      // Write içeriği, diğer araçların sonucu
+    }
+    let id: String
+    let tool: String
+    var title: String
+    var command: String?
+    var body: Body = .none
+    var isError = false
+    var running = true
+    var time: Date?
+}
+
+extension TranscriptReader {
+    static func activity(path: String, bytes: Int) -> (items: [ActivityItem], truncated: Bool) {
+        guard let h = FileHandle(forReadingAtPath: path) else { return ([], false) }
+        defer { try? h.close() }
+        let size = (try? h.seekToEnd()) ?? 0
+        let start = size > UInt64(bytes) ? size - UInt64(bytes) : 0
+        try? h.seek(toOffset: start)
+        guard var data = try? h.readToEnd() else { return ([], false) }
+        if start > 0, let nl = data.firstIndex(of: 0x0A) { data = data[(nl + 1)...] }
+
+        var list: [ActivityItem] = []
+        var index: [String: Int] = [:]
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        func lines(_ s: String, max: Int) -> [String] { Array(s.components(separatedBy: "\n").prefix(max)) }
+
+        for line in data.split(separator: 0x0A) {
+            guard line.count > 2, let d = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
+                  (d["isSidechain"] as? Bool) != true,
+                  let blocks = (d["message"] as? [String: Any])?["content"] as? [[String: Any]] else { continue }
+            let time = (d["timestamp"] as? String).flatMap { iso.date(from: $0) }
+            for b in blocks {
+                switch b["type"] as? String {
+                case "tool_use":
+                    let id = b["id"] as? String ?? UUID().uuidString
+                    let name = b["name"] as? String ?? ""
+                    let input = b["input"] as? [String: Any] ?? [:]
+                    var item = ActivityItem(id: id, tool: name, title: ToolText.action(name, input), time: time)
+                    switch name {
+                    case "Bash":
+                        item.title = "Bash"
+                        item.command = input["command"] as? String
+                    case "Edit":
+                        let old = lines(input["old_string"] as? String ?? "", max: 6).map { ($0, false) }
+                        let new = lines(input["new_string"] as? String ?? "", max: 6).map { ($0, true) }
+                        item.body = .diff(old + new)
+                    case "MultiEdit":
+                        let edits = input["edits"] as? [[String: Any]] ?? []
+                        item.body = .diff(edits.prefix(3).flatMap { e in
+                            lines(e["old_string"] as? String ?? "", max: 3).map { ($0, false) }
+                                + lines(e["new_string"] as? String ?? "", max: 3).map { ($0, true) }
+                        })
+                    case "Write":
+                        item.body = .text(lines(input["content"] as? String ?? "", max: 8).joined(separator: "\n"))
+                    default:
+                        break
+                    }
+                    index[id] = list.count
+                    list.append(item)
+                case "tool_result":
+                    guard let id = b["tool_use_id"] as? String, let i = index[id] else { continue }
+                    var out = ""
+                    if let s = b["content"] as? String { out = s }
+                    else if let parts = b["content"] as? [[String: Any]] {
+                        out = parts.compactMap { $0["type"] as? String == "text" ? $0["text"] as? String : nil }.joined(separator: "\n")
+                    }
+                    list[i].running = false
+                    list[i].isError = b["is_error"] as? Bool ?? false
+                    switch list[i].tool {
+                    case "Bash", "Grep", "Glob", "WebFetch", "WebSearch":
+                        if out.count > 4000 { out = "…\n" + String(out.suffix(4000)) }
+                        if !out.isEmpty { list[i].body = .output(out) }
+                    case "Read":
+                        // Dosya içeriği gösterilmez; yalnızca kaç satır okunduğu.
+                        let n = out.components(separatedBy: "\n").count
+                        list[i].title += "  ·  \(n) satır"
+                    default:
+                        if list[i].isError { list[i].body = .output(String(out.prefix(1500))) }
+                    }
+                default:
+                    break
+                }
+            }
+        }
+        return (Array(list.suffix(200)), start > 0)
     }
 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor final class NotchModel: ObservableObject {
     @Published var expanded = false
@@ -415,6 +416,8 @@ struct SessionDetail: View {
     @State private var draft = ""
     @State private var sendError: String?
     @State private var confirmClose = false
+    @State private var images: [Data] = []
+    @State private var dropTargeted = false
     @Environment(\.snapshotMode) private var snapshot
 
     /// Adım listesinde "Yanıt" ve "Geçmiş" satırlarının sabit kimlikleri.
@@ -442,25 +445,26 @@ struct SessionDetail: View {
                     if hasHistory {
                         HStack(spacing: 7) {
                             Image(systemName: "bubble.left.and.bubble.right.fill").foregroundStyle(.secondary).frame(width: 14)
-                            Text("Geçmiş").font(.system(size: 12, weight: showHistory ? .semibold : .regular))
+                            Text("Sohbet").font(.system(size: 12, weight: showHistory ? .semibold : .regular))
                                 .foregroundStyle(showHistory ? .white : .white.opacity(0.7))
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { model.pinnedStep = Self.historyId }
                         HStack(spacing: 7) {
-                            Image(systemName: "terminal.fill").foregroundStyle(.secondary).frame(width: 14)
-                            Text("Komutlar").font(.system(size: 12, weight: showCommands ? .semibold : .regular))
+                            Image(systemName: "list.bullet.rectangle.fill").foregroundStyle(.secondary).frame(width: 14)
+                            Text("Adımlar").font(.system(size: 12, weight: showCommands ? .semibold : .regular))
                                 .foregroundStyle(showCommands ? .white : .white.opacity(0.7))
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { model.pinnedStep = Self.commandsId }
                     }
-                    ForEach(visible) { step in
+                    // Dökümü olan oturumda adımlar "Adımlar" akışında; yoksa (diğer ajanlar) canlı adım listesi.
+                    ForEach(hasHistory ? [] : visible) { step in
                         StepRow(step: step, selected: !showReply && !showHistory && !showCommands && step.id == selected?.id) {
                             model.pinnedStep = step.id
                         }
                     }
-                    if hasReply {
+                    if hasReply && !hasHistory {
                         HStack(spacing: 7) {
                             Image(systemName: session.finished ? "checkmark.circle.fill" : "text.bubble.fill")
                                 .foregroundStyle(session.finished ? Palette.green : .secondary).frame(width: 14)
@@ -508,7 +512,7 @@ struct SessionDetail: View {
 
             VStack(spacing: 8) {
                 if showCommands {
-                    CommandsView(path: session.transcriptPath, cwd: session.cwd, refresh: session.updated)
+                    ActivityView(path: session.transcriptPath, cwd: session.cwd, refresh: session.updated)
                 } else if showHistory {
                     HistoryView(path: session.transcriptPath, refresh: session.updated,
                                 live: session.status == .working ? session.action : nil)
@@ -533,7 +537,28 @@ struct SessionDetail: View {
         let busy = runner.isRunning(session.id)
         let canSend = session.agent == AgentCatalog.claude && session.status != .working && !busy
         VStack(alignment: .leading, spacing: 4) {
+            if !images.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(images.indices, id: \.self) { i in
+                        ZStack(alignment: .topTrailing) {
+                            if let img = NSImage(data: images[i]) {
+                                Image(nsImage: img).resizable().scaledToFill()
+                                    .frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            Button { images.remove(at: i) } label: {
+                                Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(.white, .black.opacity(0.7))
+                            }
+                            .buttonStyle(.plain).offset(x: 4, y: -4)
+                        }
+                    }
+                }
+                .padding(.leading, 6)
+            }
             HStack(spacing: 8) {
+                Button(action: pickImages) {
+                    Image(systemName: "paperclip").font(.system(size: 13)).foregroundStyle(.white.opacity(canSend ? 0.7 : 0.25))
+                }
+                .buttonStyle(.plain).disabled(!canSend).help("Görsel ekle (sürükleyip bırakabilir ya da ⌘V ile yapıştırabilirsin)")
                 if snapshot {
                     // ImageRenderer metin kutusunu çizemez.
                     Text(placeholder(busy: busy)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.35))
@@ -544,6 +569,7 @@ struct SessionDetail: View {
                         .font(.system(size: 12))
                         .disabled(!canSend)
                         .onSubmit(send)
+                        .onPasteCommand(of: [.png, .tiff, .jpeg, .fileURL]) { providers in addImages(providers) }
                 }
                 if busy {
                     Button { runner.stop(session.id) } label: {
@@ -553,14 +579,18 @@ struct SessionDetail: View {
                 } else {
                     Button(action: send) {
                         Image(systemName: "arrow.up.circle.fill").font(.system(size: 18))
-                            .foregroundStyle(canSend && !draft.isEmpty ? .white : .white.opacity(0.25))
+                            .foregroundStyle(canSend && hasContent ? .white : .white.opacity(0.25))
                     }
                     .buttonStyle(.plain)
-                    .disabled(!canSend || draft.isEmpty)
+                    .disabled(!canSend || !hasContent)
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(Capsule().fill(.white.opacity(0.07)))
+            .background(Capsule().fill(.white.opacity(dropTargeted ? 0.16 : 0.07)))
+            .onDrop(of: snapshot ? [] : [.fileURL, .image], isTargeted: $dropTargeted) { providers in
+                addImages(providers)
+                return true
+            }
             if let err = sendError ?? runner.lastError[session.id] {
                 Text(err).font(.system(size: 10)).foregroundStyle(Palette.red).lineLimit(2)
             }
@@ -594,13 +624,44 @@ struct SessionDetail: View {
         return "\(session.project) oturumuna yaz — terminal kapalı olsa da devam eder"
     }
 
+    private var hasContent: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !images.isEmpty }
+
     private func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        sendError = AgentRunner.shared.send(text, to: session)
+        guard !text.isEmpty || !images.isEmpty else { return }
+        sendError = AgentRunner.shared.send(text.isEmpty ? "Bu görsele bak." : text, images: images, to: session)
         if sendError == nil {
             draft = ""
+            images = []
             model.pinnedStep = nil
+        }
+    }
+
+    /// Görsel dosyası seç (terminale görsel yapıştırmak gibi; en fazla 5).
+    private func pickImages() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = true
+        NSApp.activate()
+        guard panel.runModal() == .OK else { return }
+        for url in panel.urls.prefix(5 - images.count) { if let d = try? Data(contentsOf: url) { images.append(d) } }
+    }
+
+    /// Sürüklenen ya da yapıştırılan görseller / görsel dosyaları.
+    private func addImages(_ providers: [NSItemProvider]) {
+        for p in providers {
+            if p.canLoadObject(ofClass: URL.self) {
+                _ = p.loadObject(ofClass: URL.self) { url, _ in
+                    guard let url, let type = UTType(filenameExtension: url.pathExtension), type.conforms(to: .image),
+                          let d = try? Data(contentsOf: url) else { return }
+                    Task { @MainActor in if images.count < 5 { images.append(d) } }
+                }
+            } else if p.canLoadObject(ofClass: NSImage.self) {
+                _ = p.loadObject(ofClass: NSImage.self) { obj, _ in
+                    guard let img = obj as? NSImage, let tiff = img.tiffRepresentation else { return }
+                    Task { @MainActor in if images.count < 5 { images.append(tiff) } }
+                }
+            }
         }
     }
 }
@@ -1441,5 +1502,128 @@ struct CommandsView: View {
             Color.clear.frame(height: 1).id("son")
         }
         .padding(12)
+    }
+}
+
+/// "Adımlar": oturumdaki bütün araç çağrıları tek akışta — Bash çıktısıyla, Edit diff'iyle, Write içeriğiyle.
+struct ActivityView: View {
+    let path: String
+    let cwd: String
+    let refresh: Date
+    @State private var items: [ActivityItem] = []
+    @State private var truncated = false
+    @State private var window = 4 << 20
+    @Environment(\.snapshotMode) private var snapshot
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 7) {
+                Image(systemName: "list.bullet.rectangle").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text("Adımlar").font(.system(size: 11, weight: .medium))
+                Text("\(shown.count)").font(.system(size: 10)).foregroundStyle(.tertiary)
+                Spacer()
+                Text(StepBuilder.short(cwd)).font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
+                    .lineLimit(1).truncationMode(.head)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(.white.opacity(0.03))
+            Divider().overlay(.white.opacity(0.05))
+            if snapshot {
+                content.frame(maxHeight: .infinity, alignment: .top).clipped()
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView { content }
+                        .onChange(of: items.count) { proxy.scrollTo("son", anchor: .bottom) }
+                        .onAppear { proxy.scrollTo("son", anchor: .bottom) }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.editor))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .task(id: "\(path)|\(refresh.timeIntervalSince1970)|\(window)") {
+            let (p, w) = (path, window)
+            let r = await Task.detached(priority: .userInitiated) { TranscriptReader.activity(path: p, bytes: w) }.value
+            items = r.items
+            truncated = r.truncated
+        }
+    }
+
+    private var shown: [ActivityItem] { snapshot ? TranscriptReader.activity(path: path, bytes: window).items : items }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if truncated && !snapshot {
+                Button("Daha eskisini yükle") { window *= 4 }
+                    .buttonStyle(.plain).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+            if shown.isEmpty {
+                Text("Bu oturumda henüz adım yok.").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            ForEach(shown) { row($0) }
+            Color.clear.frame(height: 1).id("son")
+        }
+        .padding(12)
+    }
+
+    private func icon(_ tool: String) -> String {
+        switch tool {
+        case "Bash": "terminal"
+        case "Read": "doc.text"
+        case "Edit", "MultiEdit": "pencil"
+        case "Write": "square.and.pencil"
+        case "Grep", "Glob": "magnifyingglass"
+        case "WebFetch", "WebSearch": "globe"
+        case "Task", "Agent": "person.2"
+        default: "wrench.and.screwdriver"
+        }
+    }
+
+    @ViewBuilder private func row(_ it: ActivityItem) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: icon(it.tool)).font(.system(size: 10)).frame(width: 12)
+                    .foregroundStyle(it.isError ? Palette.red : .white.opacity(0.5))
+                if let cmd = it.command {
+                    (Text("$ ").foregroundColor(it.isError ? Palette.red : Palette.green) + Text(cmd).foregroundColor(.white))
+                        .font(.system(size: 11, design: .monospaced)).lineLimit(4)
+                } else {
+                    Text(it.title).font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(it.isError ? Palette.red : .white.opacity(0.85)).lineLimit(1).truncationMode(.middle)
+                }
+                Spacer(minLength: 4)
+                if it.running {
+                    Spinner().frame(width: 9, height: 9)
+                } else if let t = it.time {
+                    Text(t, format: .dateTime.hour().minute()).font(.system(size: 9)).foregroundStyle(.tertiary)
+                }
+            }
+            switch it.body {
+            case .none:
+                EmptyView()
+            case .output(let out):
+                Text(it.isError ? AttributedString(out) : CommandsView.colored(out))
+                    .font(.system(size: 10.5, design: .monospaced))
+                    .foregroundStyle(it.isError ? Palette.red.opacity(0.9) : .white.opacity(0.65))
+                    .lineLimit(24).padding(.leading, 18)
+            case .diff(let lines):
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(lines.indices, id: \.self) { i in
+                        Text((lines[i].1 ? "+ " : "− ") + lines[i].0)
+                            .font(.system(size: 10.5, design: .monospaced))
+                            .foregroundStyle(lines[i].1 ? Palette.green : Palette.red.opacity(0.85))
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background((lines[i].1 ? Palette.green : Palette.red).opacity(0.08))
+                    }
+                }
+                .padding(.leading, 18)
+            case .text(let t):
+                Text(t).font(.system(size: 10.5, design: .monospaced)).foregroundStyle(.white.opacity(0.6))
+                    .lineLimit(8).padding(.leading, 18)
+            }
+        }
+        .textSelection(.enabled)
     }
 }
