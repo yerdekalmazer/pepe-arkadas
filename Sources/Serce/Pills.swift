@@ -33,6 +33,8 @@ extension PillProvider {
 
 @MainActor final class PillRegistry: ObservableObject {
     static let maxActive = 5
+    /// Snapshot modunda false: kullanıcının pill seçimini değiştirmesin.
+    var persists = true
     @Published private(set) var all: [PillProvider] = []
     @Published private(set) var activeIds: [String] = UserDefaults.standard.stringArray(forKey: "aktifPilller") ?? []
 
@@ -60,7 +62,7 @@ extension PillProvider {
             provider(id)?.stop()
         }
         activeIds = ids
-        UserDefaults.standard.set(ids, forKey: "aktifPilller")
+        if persists { UserDefaults.standard.set(ids, forKey: "aktifPilller") }
     }
 
     /// Sesli asistan ve kısayollar için: bir pill'i diğeriyle değiştir.
@@ -70,7 +72,7 @@ extension PillProvider {
         var ids = activeIds
         ids[i] = new
         activeIds = ids
-        UserDefaults.standard.set(ids, forKey: "aktifPilller")
+        if persists { UserDefaults.standard.set(ids, forKey: "aktifPilller") }
         provider(new)?.start()
     }
 }

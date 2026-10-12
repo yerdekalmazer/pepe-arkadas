@@ -88,6 +88,27 @@ enum DemoScript {
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Read" }?.id
         shot("6-detay-okuma")
 
+        // Entegrasyon pill'leri: örnek JSON → gerçek ayrıştırıcı → kart
+        model.selectedSession = nil
+        model.pinnedStep = nil
+        app.pills.persists = false
+        for id in app.pills.activeIds { app.pills.setActive(id, false) }
+        let samples = IntegrationSamples.pills()
+        for p in samples { app.pills.register(p) }
+        for id in ["stripe", "github", "vercel", "n8n"] { app.pills.setActive(id, true) }
+        app.selectedPill = nil
+        shot("7-ana-pill-izgarasi")
+        for p in samples {
+            app.selectedPill = p.id
+            shot("8-pill-\(p.id)")
+        }
+        if let stripe = samples.first as? StripePill {
+            stripe.model = nil
+            stripe.status = .failed("Anahtar geçersiz")
+            app.selectedPill = "stripe"
+            shot("9-pill-baglanamadi")
+        }
+        for p in samples { print("ses[\(p.id)]: \(p.voiceSummary)") }
         // Sohbet ve dosya bırakma
         model.selectedSession = nil
         let chat = ChatSession.shared

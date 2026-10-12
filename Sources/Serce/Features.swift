@@ -8,6 +8,7 @@ import SwiftUI
         // pill'ler: müzik (Spotify, Apple Music)
         app.pills.register(MusicController(.spotify))
         app.pills.register(MusicController(.music))
+        Integrations.register(app)
         // ajanlar
         // karakter
         // sohbet
