@@ -20,7 +20,12 @@ struct AgentSession: Identifiable {
     var prompt = ""
     var steps: [Step] = []
     var finished = false
-    var project: String { cwd.isEmpty ? "oturum" : (cwd as NSString).lastPathComponent }
+    /// Serçe'nin başlattığı (terminalsiz) oturum mu?
+    var launchedBySerce = false
+    /// Proje adı ana depodan gelir: çalışma kopyasındaki oturum da aynı projede görünür.
+    var project: String { cwd.isEmpty ? "oturum" : ProjectNames.name(for: cwd) }
+    /// Ayrı git çalışma kopyasında çalışıyorsa kopyanın adı.
+    var worktree: String? { ProjectNames.worktree(for: cwd) }
     var agentName: String { AgentCatalog.name(agent) }
 }
 
@@ -306,6 +311,17 @@ struct Approval: Identifiable {
     // MARK: - Yardımcılar
 
     /// Kartlar yerinde güncellenir; tıklamak üzereyken altından kaymasın diye yalnızca yeni oturum en üste girer.
+    /// Serçe'nin başlattığı oturumu hook'lar gelmeden önce kart olarak göster.
+    func registerLaunched(id: String, cwd: String, prompt: String) {
+        var s = sessions.first { $0.id == id } ?? AgentSession(id: id, cwd: cwd)
+        s.status = .working
+        s.action = "Başlatılıyor…"
+        s.prompt = prompt
+        s.launchedBySerce = true
+        s.updated = Date()
+        upsert(s)
+    }
+
     private func upsert(_ s: AgentSession) {
         if let i = sessions.firstIndex(where: { $0.id == s.id }) { sessions[i] = s } else { sessions.insert(s, at: 0) }
     }
@@ -430,5 +446,22 @@ struct Approval: Identifiable {
         default:
             return nil
         }
+    }
+}
+
+/// cwd → proje adı ve çalışma kopyası adı (dosya sistemine her çizimde gitmemek için önbellekli).
+enum ProjectNames {
+    nonisolated(unsafe) private static var cache: [String: String] = [:]
+
+    static func name(for cwd: String) -> String {
+        if let n = cache[cwd] { return n }
+        let n = (ProjectMemory.projectRoot(cwd) as NSString).lastPathComponent
+        cache[cwd] = n
+        return n
+    }
+
+    static func worktree(for cwd: String) -> String? {
+        guard let r = cwd.range(of: "/.claude/worktrees/") ?? cwd.range(of: "/.worktrees/") else { return nil }
+        return cwd[r.upperBound...].split(separator: "/").first.map(String.init)
     }
 }

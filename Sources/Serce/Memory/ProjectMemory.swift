@@ -193,7 +193,17 @@ import Foundation
         var url = URL(fileURLWithPath: cwd)
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         while url.path.count > home.count {
-            if FileManager.default.fileExists(atPath: url.appendingPathComponent(".git").path) { return url.path }
+            let git = url.appendingPathComponent(".git")
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: git.path, isDirectory: &isDir) {
+                // Git çalışma kopyası (worktree): .git bir dosyadır ve ana depoyu gösterir; hafıza ana projeye yazılır.
+                if !isDir.boolValue, let text = try? String(contentsOf: git, encoding: .utf8),
+                   let r = text.range(of: "gitdir:") {
+                    let gitdir = text[r.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let w = gitdir.range(of: "/.git/worktrees/") { return String(gitdir[..<w.lowerBound]) }
+                }
+                return url.path
+            }
             url.deleteLastPathComponent()
         }
         return cwd

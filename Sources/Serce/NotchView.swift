@@ -12,6 +12,10 @@ import SwiftUI
     @Published var selectedSession: String?
     /// Kullanıcının tıkladığı adım; nil ise görüntüleyici son adımı izler.
     @Published var pinnedStep: UUID?
+    /// "Yeni oturum" ekranı açıkken önceden seçili proje klasörü ("" = seçilmedi).
+    @Published var newSessionCwd: String?
+    /// Ana sayfada tüm oturumlar mı (en çok 8) yoksa ilk 3 mü gösterilsin.
+    @Published var showAllSessions = false
     let wing: CGFloat = 40
     let ear: CGFloat = 7
     let expandedWidth: CGFloat = 660
@@ -209,7 +213,7 @@ struct ExpandedView: View {
     }
 
     @ViewBuilder private var home: some View {
-        if model.selectedSession == nil, !Reminders.shared.due.isEmpty || Briefing.shared.visible {
+        if model.selectedSession == nil, model.newSessionCwd == nil, !Reminders.shared.due.isEmpty || Briefing.shared.visible {
             VStack(spacing: 8) {
                 ReminderBanner(reminders: .shared)
                 BriefingCard(briefing: .shared)
@@ -221,7 +225,9 @@ struct ExpandedView: View {
     }
 
     @ViewBuilder private var homeContent: some View {
-        if let id = model.selectedSession, let s = store.sessions.first(where: { $0.id == id }) {
+        if let cwd = model.newSessionCwd {
+            NewSessionView(model: model, store: store, presetCwd: cwd)
+        } else if let id = model.selectedSession, let s = store.sessions.first(where: { $0.id == id }) {
             SessionDetail(session: s, model: model, open: { actions.openTerminal(s) })
         } else if pills.active.isEmpty {
             leftCard
@@ -252,14 +258,24 @@ struct ExpandedView: View {
             }
         } else {
             VStack(spacing: 8) {
-                ForEach(store.sessions.prefix(3)) { s in
+                ForEach(store.sessions.prefix(model.showAllSessions ? 8 : 3)) { s in
                     SessionCard(session: s) {
                         model.pinnedStep = nil
                         model.selectedSession = s.id
                     }
                 }
-                if store.sessions.count > 3 {
-                    Text("+\(store.sessions.count - 3) oturum daha").font(.system(size: 10)).foregroundStyle(.tertiary)
+                HStack {
+                    if store.sessions.count > 3 {
+                        Button(model.showAllSessions ? "Daha az göster" : "+\(store.sessions.count - 3) oturum daha") {
+                            model.showAllSessions.toggle()
+                        }
+                        .buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(.tertiary)
+                    }
+                    Spacer()
+                    Button { model.newSessionCwd = "" } label: {
+                        Label("Yeni oturum", systemImage: "plus").font(.system(size: 11, weight: .medium))
+                    }
+                    .buttonStyle(Pill(kind: .quiet))
                 }
             }
         }
@@ -319,6 +335,7 @@ struct SessionCard: View {
                 HStack(spacing: 6) {
                     Circle().fill(statusColor(session)).frame(width: 6, height: 6)
                     Text(session.project).font(.system(size: 12, weight: .bold))
+                    if let w = session.worktree { WorktreeChip(name: w) }
                     Text(session.agentName).font(.system(size: 11)).foregroundStyle(.secondary)
                     Spacer()
                     if !session.steps.isEmpty {
@@ -429,8 +446,22 @@ struct SessionDetail: View {
                 }
                 .padding(.top, 14)
                 Spacer(minLength: 10)
-                Button(action: open) {
-                    Label("Terminale git", systemImage: "arrow.up.forward.app").font(.system(size: 11, weight: .medium))
+                if let w = session.worktree { WorktreeChip(name: w).padding(.bottom, 6) }
+                Button { model.newSessionCwd = ProjectMemory.projectRoot(session.cwd) } label: {
+                    Label("Yeni oturum", systemImage: "plus").font(.system(size: 11, weight: .medium))
+                }
+                .buttonStyle(Pill(kind: .quiet))
+                .padding(.bottom, 4)
+                Button {
+                    // Serçe'nin başlattığı oturumun terminali yok: gerçek bir terminalde devral.
+                    if session.launchedBySerce || (session.tty.isEmpty && session.bundleId.isEmpty) {
+                        sendError = AgentRunner.shared.openInTerminal(session)
+                    } else {
+                        open()
+                    }
+                } label: {
+                    Label(session.launchedBySerce ? "Terminalde aç" : "Terminale git", systemImage: "arrow.up.forward.app")
+                        .font(.system(size: 11, weight: .medium))
                 }
                 .buttonStyle(Pill(kind: .quiet))
             }
@@ -930,5 +961,130 @@ struct RecapLine: View {
             Text("Bu hafta \(t.sessions) oturum · \(t.steps) adım · \(t.allowed + t.always) izin")
                 .font(.system(size: 10.5)).foregroundStyle(.tertiary).padding(.top, 2)
         }
+    }
+}
+
+struct WorktreeChip: View {
+    let name: String
+    var body: some View {
+        Label(name, systemImage: "arrow.triangle.branch")
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(.white.opacity(0.7))
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Capsule().fill(.white.opacity(0.08)))
+            .lineLimit(1)
+    }
+}
+
+/// Notch'tan yeni Claude Code oturumu: proje + görev + (isteğe bağlı) ayrı git çalışma kopyası.
+/// Terminal gerekmez; oturum arka planda çalışır, adımlar ve izinler notch'a düşer.
+struct NewSessionView: View {
+    @ObservedObject var model: NotchModel
+    @ObservedObject var store: SessionStore
+    let presetCwd: String
+    @State private var cwd = ""
+    @State private var task = ""
+    @State private var worktree = false
+    @State private var error: String?
+    @Environment(\.snapshotMode) private var snapshot
+
+    /// Bilinen projeler: proje hafızası + son oturumların klasörleri.
+    private var projects: [(name: String, root: String)] {
+        var seen = Set<String>()
+        var out: [(String, String)] = []
+        for s in store.sessions {
+            let r = ProjectMemory.projectRoot(s.cwd)
+            if !ProjectMemory.isContainer(r), seen.insert(r).inserted { out.append(((r as NSString).lastPathComponent, r)) }
+        }
+        for d in ProjectMemory.allDocs() where !d.root.isEmpty && seen.insert(d.root).inserted { out.append((d.name, d.root)) }
+        return out
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "plus.circle.fill").foregroundStyle(Palette.blue)
+                Text("Yeni oturum").font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Button { model.newSessionCwd = nil } label: {
+                    Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            HStack(spacing: 8) {
+                Text("Proje").font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 52, alignment: .leading)
+                Menu {
+                    ForEach(projects, id: \.root) { p in Button(p.name) { select(p.root) } }
+                    Divider()
+                    Button("Klasör seç…") { chooseFolder() }
+                } label: {
+                    Text(cwd.isEmpty ? "Seç…" : (cwd as NSString).lastPathComponent).font(.system(size: 12, weight: .medium))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                Spacer()
+                let running = projects.isEmpty || cwd.isEmpty ? 0 : store.sessions.filter {
+                    $0.project == (cwd as NSString).lastPathComponent && $0.status == .working
+                }.count
+                if running > 0 {
+                    Text("bu projede \(running) oturum çalışıyor").font(.system(size: 10)).foregroundStyle(Palette.amber)
+                }
+            }
+            Group {
+                if snapshot {
+                    Text(task.isEmpty ? "Görev — ör. \"giriş ekranındaki hatayı düzelt ve testleri çalıştır\"" : task)
+                        .foregroundStyle(.white.opacity(0.35)).frame(maxWidth: .infinity, minHeight: 54, alignment: .topLeading)
+                } else {
+                    TextField("Görev — ör. \"giriş ekranındaki hatayı düzelt ve testleri çalıştır\"", text: $task, axis: .vertical)
+                        .textFieldStyle(.plain)
+                        .lineLimit(3...6)
+                }
+            }
+            .font(.system(size: 12))
+            .padding(10)
+            .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.06)))
+            Toggle(isOn: $worktree) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Ayrı çalışma kopyasında (git worktree)").font(.system(size: 12))
+                    Text("Aynı projede paralel oturumlar birbirinin dosyalarını ezmez.").font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+            }
+            .toggleStyle(.switch).controlSize(.mini)
+            if let error { Text(error).font(.system(size: 10)).foregroundStyle(Palette.red) }
+            HStack {
+                Text("Terminal gerekmez; adımlar ve izinler notch'ta.").font(.system(size: 10)).foregroundStyle(.tertiary)
+                Spacer()
+                Button("Vazgeç") { model.newSessionCwd = nil }.buttonStyle(Pill(kind: .ghost))
+                Button("Başlat", action: start).buttonStyle(Pill(kind: .primary))
+                    .disabled(cwd.isEmpty || task.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .onAppear { if !presetCwd.isEmpty { select(presetCwd) } }
+    }
+
+    private func select(_ root: String) {
+        cwd = root
+        // Projede çalışan bir oturum varsa yenisi varsayılan olarak ayrı kopyada açılır.
+        worktree = AgentRunner.shared.hasActiveSession(in: root)
+        error = nil
+    }
+
+    private func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        NSApp.activate()
+        if panel.runModal() == .OK, let url = panel.url { select(url.path) }
+    }
+
+    private func start() {
+        let text = task.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let err = AgentRunner.shared.start(text, in: cwd, worktree: worktree) {
+            error = err
+            return
+        }
+        task = ""
+        model.newSessionCwd = nil
+        model.showAllSessions = true
     }
 }

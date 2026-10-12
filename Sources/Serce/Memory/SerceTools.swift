@@ -20,7 +20,8 @@ import Foundation
                  required: ["message"]),
             tool("start_session", "Bir projenin klasöründe yeni bir Claude Code oturumu başlatır ve görevi verir.",
                  ["project": ["type": "string", "description": "Hafızadaki proje adı"],
-                  "message": ["type": "string", "description": "Görev"]],
+                  "message": ["type": "string", "description": "Görev"],
+                  "worktree": ["type": "boolean", "description": "Ayrı git çalışma kopyasında aç (projede başka oturum çalışıyorsa önerilir)"]],
                  required: ["project", "message"]),
             tool("set_reminder", "Hatırlatma kurar. Zamanı ya 'at' (yerel saat, 'YYYY-MM-DD HH:mm') ya da 'in_minutes' ile ver.",
                  ["text": ["type": "string"], "at": ["type": "string"], "in_minutes": ["type": "integer"],
@@ -85,7 +86,10 @@ import Foundation
             let q = (input["project"] as? String ?? "").lowercased()
             let message = input["message"] as? String ?? ""
             let candidates = store.sessions.filter { $0.agent == AgentCatalog.claude }
-            guard let s = q.isEmpty ? candidates.first : candidates.first(where: { $0.project.lowercased().contains(q) }) else {
+            // Aynı projede birden fazla oturum varsa: çalışmayan, en son güncellenen.
+            let matching = candidates.filter { q.isEmpty || $0.project.lowercased().contains(q) }
+                .sorted { $0.updated > $1.updated }
+            guard let s = matching.first(where: { $0.status != .working }) ?? matching.first else {
                 return ("Açık ya da yakın zamanda çalışmış bir Claude Code oturumu bulunamadı; start_session kullanılabilir.", true)
             }
             if let err = AgentRunner.shared.send(message, to: s) { return (err, true) }
@@ -95,8 +99,9 @@ import Foundation
             guard let doc = ProjectMemory.find(input["project"] as? String ?? ""), !doc.root.isEmpty else {
                 return ("Bu proje hafızada yok ya da klasörü bilinmiyor.", true)
             }
-            if let err = AgentRunner.shared.start(input["message"] as? String ?? "", in: doc.root) { return (err, true) }
-            return ("\(doc.name) klasöründe yeni oturum başladı.", false)
+            let wt = input["worktree"] as? Bool ?? AgentRunner.shared.hasActiveSession(in: doc.root)
+            if let err = AgentRunner.shared.start(input["message"] as? String ?? "", in: doc.root, worktree: wt) { return (err, true) }
+            return ("\(doc.name) projesinde yeni oturum başladı\(wt ? " (ayrı çalışma kopyasında)" : "").", false)
 
         case "set_reminder":
             let text = input["text"] as? String ?? ""

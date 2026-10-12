@@ -203,6 +203,9 @@ enum DemoScript {
         _ = Briefing.shared.text(weekly: true)
         Briefing.shared.visible = true
         shot("15-kisisel")
+        model.newSessionCwd = FileManager.default.homeDirectoryForCurrentUser.path + "/Desktop/Projeler/Bireysel/serce"
+        shot("16-yeni-oturum")
+        model.newSessionCwd = nil
         Briefing.shared.visible = false
         musicShots(into: dir)
     }

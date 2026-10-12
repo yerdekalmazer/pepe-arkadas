@@ -295,6 +295,22 @@ MainActor.assumeIsolated {
         }
         RunLoop.main.run()
     }
+    // Aynı projede paralel iki oturum (biri ayrı çalışma kopyasında): Serce --paralel-testi git-deposu
+    if let i = CommandLine.arguments.firstIndex(of: "--paralel-testi"), i + 1 < CommandLine.arguments.count {
+        let repo = CommandLine.arguments[i + 1]
+        AgentRunner.modelOverride = "haiku"
+        Task { @MainActor in
+            let r = AgentRunner.shared
+            print("1:", r.start("Sadece 'bir' yaz.", in: repo) ?? "başladı")
+            print("2:", r.start("Sadece pwd komutunun çıktısını yaz.", in: repo, worktree: true) ?? "başladı (worktree)")
+            print("eşzamanlı çalışan:", r.running.count)
+            while !r.running.isEmpty { try? await Task.sleep(for: .milliseconds(400)) }
+            for (k, v) in r.lastResult { print("•", k.prefix(8), "→", v.text.prefix(120), r.lastError[k] ?? "") }
+            for s in AppState.shared.store.sessions { print("kart:", s.project, s.worktree ?? "-", s.launchedBySerce) }
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

@@ -8,6 +8,8 @@ struct MemorySettings: View {
     @AppStorage("hafizaBaglam") private var inject = true
     @AppStorage("hafizaOzet") private var summarize = true
     @AppStorage("hafizaModeli") private var model = "claude-haiku-5-5"
+    @AppStorage("arkaPlanModel") private var agentModel = ""
+    @AppStorage("paralelOturum") private var parallel = 4
 
     var body: some View {
         SettingsGroup(title: "Proje hafızası",
@@ -31,6 +33,13 @@ struct MemorySettings: View {
         }
         SettingsGroup(title: "Bütçe",
                       footer: "Arka plan özetleri günlük bütçeye ulaşınca o gün durur; sohbet ve ses etkilenmez. Maliyetler liste fiyatından tahmindir.") {
+            Picker("Serçe'nin başlattığı oturumlar", selection: $agentModel) {
+                Text("Claude Code varsayılanı").tag("")
+                Text("Opus").tag("opus")
+                Text("Sonnet — daha ucuz").tag("sonnet")
+                Text("Haiku — en ucuz").tag("haiku")
+            }
+            Stepper("Aynı anda en fazla \(parallel) oturum", value: $parallel, in: 1...8)
             HStack {
                 Text("Günlük arka plan bütçesi")
                 Spacer()
