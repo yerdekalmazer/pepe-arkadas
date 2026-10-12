@@ -184,7 +184,7 @@ import Foundation
     nonisolated static func isContainer(_ root: String) -> Bool {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let containers: Set<String> = ["Desktop", "Documents", "Downloads", "Projeler", "Bireysel", "Divizyon",
-                                       "Polenist", "Tema", "Tipbox-pilot", "Arşiv", "Arsiv"]
+                                       "Polenist", "Tema", "Tipbox-pilot", "Tipbox", "Research", "Arşiv", "Arsiv"]
         return root == home || !root.hasPrefix(home + "/") || containers.contains((root as NSString).lastPathComponent)
     }
 
