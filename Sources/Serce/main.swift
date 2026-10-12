@@ -172,7 +172,7 @@ import SwiftUI
 }
 
 MainActor.assumeIsolated {
-    // Derleme betiği ikonu kuşun kendi çiziminden üretir: Serce --render-icon cikti.png
+    // Derleme betiği ikonu Pepe'nin kendi çiziminden üretir: Serce --render-icon cikti.png
     if let i = CommandLine.arguments.firstIndex(of: "--render-icon"), i + 1 < CommandLine.arguments.count {
         let view = ZStack {
             RoundedRectangle(cornerRadius: 230, style: .continuous).fill(Color(red: 0.08, green: 0.08, blue: 0.09))
@@ -185,6 +185,20 @@ MainActor.assumeIsolated {
         if let img = r.nsImage, let tiff = img.tiffRepresentation,
            let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
             try? png.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+        }
+        exit(0)
+    }
+    // Tanıtım videosu ve sayfa için şeffaf karakter görselleri: Serce --render-pepe <klasör>
+    if let i = CommandLine.arguments.firstIndex(of: "--render-pepe"), i + 1 < CommandLine.arguments.count {
+        let dir = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        for (name, mood) in [("pepe", Mood.idle), ("pepe-mutlu", Mood.happy), ("pepe-uyku", Mood.sleep)] {
+            let r = ImageRenderer(content: Bird(mood: mood, size: 800, outfit: Outfit.none, eyes: .fixed).frame(width: 800, height: 800))
+            r.scale = 1
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent(name + ".png"))
+            }
         }
         exit(0)
     }
