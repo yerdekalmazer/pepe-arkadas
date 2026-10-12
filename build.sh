@@ -49,11 +49,24 @@ else
 fi
 echo "Hazır: $APP"
 if [ "$1" = "--install" ]; then
-  pkill -x Serce 2>/dev/null || true
+  # Çalışan Serçe'yi dinlediği porttan bul (pgrep/pkill süreci göremiyor; eski sürüm açık kalıyordu).
+  port_pid() { lsof -t -nP -iTCP:47823 -sTCP:LISTEN 2>/dev/null | head -1 || true; }
+  OLD="$(port_pid)"
+  if [ -n "$OLD" ]; then
+    kill "$OLD" 2>/dev/null || true
+    for i in 1 2 3 4 5 6 7 8 9 10; do [ -z "$(port_pid)" ] && break; sleep 0.3; done
+    [ -n "$(port_pid)" ] && kill -9 "$OLD" 2>/dev/null || true
+  fi
   rm -rf "/Applications/Serçe.app"
   ditto "$APP" "/Applications/Serçe.app"
-  # Eski süreç tam kapanmadan açmaya çalışınca macOS -600 verir: kısa bekle, gerekirse tekrar dene.
   sleep 1
   open "/Applications/Serçe.app" 2>/dev/null || { sleep 2; open "/Applications/Serçe.app"; }
-  echo "Kuruldu: /Applications/Serçe.app"
+  # Yeni sürüm gerçekten açıldı mı? Portu yeni bir süreç dinlemeli.
+  NEW=""
+  for i in $(seq 1 20); do
+    NEW="$(port_pid)"
+    [ -n "$NEW" ] && [ "$NEW" != "$OLD" ] && break
+    sleep 0.5
+  done
+  if [ -n "$NEW" ] && [ "$NEW" != "$OLD" ]; then echo "Kuruldu ve yeniden başlatıldı: /Applications/Serçe.app (pid $NEW)"; else echo "UYARI: yeni sürüm başlatılamadı"; exit 1; fi
 fi

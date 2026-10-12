@@ -78,6 +78,22 @@ final class HookServer {
     }
 
     private func handle(_ req: HTTPRequest, on c: NWConnection) {
+        // Tanı: canlı oturumların kısa durumu (yalnızca bu Mac'ten, jetonla).
+        if req.path == "/durum", req.headers["x-serce-token"] == token {
+            let body: String = DispatchQueue.main.sync {
+                MainActor.assumeIsolated {
+                    let list = AppState.shared.store.sessions.map { s -> [String: Any] in
+                        ["id": String(s.id.prefix(8)), "proje": s.project, "durum": "\(s.status)", "ajan": s.agent,
+                         "dokum": s.transcriptPath.isEmpty ? "YOK" : (FileManager.default.fileExists(atPath: s.transcriptPath) ? "var" : "dosya yok"),
+                         "adim": s.steps.count, "kapali": s.ended]
+                    }
+                    let d = (try? JSONSerialization.data(withJSONObject: list, options: [.prettyPrinted])) ?? Data()
+                    return String(data: d, encoding: .utf8) ?? "[]"
+                }
+            }
+            reply(c, status: "200 OK", body: body)
+            return
+        }
         guard req.path == "/hook", req.headers["x-serce-token"] == token else {
             reply(c, status: "403 Forbidden", body: "")
             return

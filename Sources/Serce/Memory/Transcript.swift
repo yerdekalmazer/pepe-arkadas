@@ -73,7 +73,18 @@ enum TranscriptReader {
         return (Array(list.suffix(150)), truncated)
     }
 
-    static func read(path: String, bytes: Int, includeTools: Bool = false) -> (items: [HistoryItem], truncated: Bool) {
+    /// Sohbet: en az `minItems` mesaj bulana (ya da dosyanın başına varana) kadar sondan geriye doğru okur.
+    /// Araç çıktıları büyük olduğunda 2 MB'a birkaç mesaj sığabilir; pencere 4 katına büyür, üst sınır 64 MB.
+    static func read(path: String, bytes: Int, includeTools: Bool = false, minItems: Int = 40) -> (items: [HistoryItem], truncated: Bool) {
+        var window = bytes
+        while true {
+            let r = parse(path: path, bytes: window, includeTools: includeTools)
+            if !r.truncated || r.items.count >= minItems || window >= 64 << 20 { return r }
+            window *= 4
+        }
+    }
+
+    private static func parse(path: String, bytes: Int, includeTools: Bool) -> (items: [HistoryItem], truncated: Bool) {
         guard let (data, truncated) = tail(path, bytes) else { return ([], false) }
         let start: UInt64 = truncated ? 1 : 0
 
@@ -90,7 +101,11 @@ enum TranscriptReader {
             pendingTools = []
         }
 
+        let toolResultMark = Data("\"tool_result\"".utf8)
+        let userMark = Data("\"type\":\"user\"".utf8)
         for line in data.split(separator: 0x0A) {
+            // Araç sonucu satırları (çoğu zaman çok büyük) çözümlenmeden atlanır.
+            if line.count > 4096, line.range(of: userMark) != nil, line.range(of: toolResultMark) != nil { continue }
             guard line.count > 2, let d = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
                   let type = d["type"] as? String, type == "user" || type == "assistant",
                   (d["isSidechain"] as? Bool) != true, (d["isMeta"] as? Bool) != true,
