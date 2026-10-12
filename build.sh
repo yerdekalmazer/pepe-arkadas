@@ -52,6 +52,8 @@ if [ "$1" = "--install" ]; then
   pkill -x Serce 2>/dev/null || true
   rm -rf "/Applications/Serçe.app"
   ditto "$APP" "/Applications/Serçe.app"
-  open "/Applications/Serçe.app"
+  # Eski süreç tam kapanmadan açmaya çalışınca macOS -600 verir: kısa bekle, gerekirse tekrar dene.
+  sleep 1
+  open "/Applications/Serçe.app" 2>/dev/null || { sleep 2; open "/Applications/Serçe.app"; }
   echo "Kuruldu: /Applications/Serçe.app"
 fi
