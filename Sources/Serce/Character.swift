@@ -39,7 +39,7 @@ enum Outfit: String, CaseIterable, Identifiable {
 
 /// Mood'dan bağımsız, kısa süreli tepkiler: dürtülünce sinirlenme, ısrarda baş dönmesi, açılışta selam, baloncuklar.
 enum BirdEmote: Equatable {
-    case annoyed, dizzy, greet
+    case annoyed, dizzy, greet, hop
     case bubble(String)
 
     var duration: Double {
@@ -47,6 +47,7 @@ enum BirdEmote: Equatable {
         case .annoyed: 1.3
         case .dizzy: 2.6
         case .greet: 2.2
+        case .hop: 0.75
         case .bubble: 2.0
         }
     }
@@ -72,7 +73,8 @@ enum CharacterMirror {
     /// Kullanıcının seçtiği kıyafet; nil ise mevsime göre.
     @Published private(set) var chosen: Outfit?
     @Published private(set) var outfit: Outfit = .none
-    private var pokes: [Date] = []
+    /// Her tepkide artar; kuşlar yalnızca bu değişince kısa süre canlanır, geri kalan zamanda hareketsizdir.
+    @Published private(set) var emoteCount = 0
     private var dayTimer: Timer?
 
     private init() {
@@ -99,20 +101,13 @@ enum CharacterMirror {
     func emote(_ e: BirdEmote) {
         CharacterMirror.emote = e
         CharacterMirror.emoteStart = Date().timeIntervalSinceReferenceDate
+        emoteCount += 1
     }
 
-    /// Dürtme: 2 saniyede 4+ dokunuş baş döndürür, daha azı sinirlendirir.
+    /// Sevme: tıklayınca bir kez zıplar.
     func poke() {
-        let now = Date()
-        pokes = pokes.filter { now.timeIntervalSince($0) < 2 } + [now]
-        if pokes.count >= 4 {
-            pokes.removeAll()
-            emote(.dizzy)
-            SoundEngine.shared.play(.dizzy)
-        } else {
-            emote(.annoyed)
-            SoundEngine.shared.play(.poke)
-        }
+        emote(.hop)
+        SoundEngine.shared.play(.poke)
     }
 
     func greet() {

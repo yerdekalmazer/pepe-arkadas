@@ -25,6 +25,10 @@ struct Bird: View {
     /// Anlık görüntü için sabit tepki: (tepki, başlangıçtan bu yana geçen süre).
     var frozenEmote: (BirdEmote, Double)? = nil
 
+    @ObservedObject private var character = CharacterState.shared
+    /// Yalnızca bir tepki oynarken kare çizilir; geri kalan zamanda kuş tamamen durur (işlemci harcamaz).
+    @State private var playing = false
+
     // Akbaş: krem-beyaz kısa tüy, biraz daha koyu krem kulaklar.
     private static let baseFur = Color(red: 0.99, green: 0.975, blue: 0.94)
     private static let baseShade = Color(red: 0.91, green: 0.88, blue: 0.83)
@@ -44,12 +48,11 @@ struct Bird: View {
     }
 
     var body: some View {
-        let fps = (mood == .sleep && !interactive) ? 1.0 / 12 : 1.0 / 40
-        TimelineView(.animation(minimumInterval: fps)) { tl in
+        TimelineView(.animation(minimumInterval: 1.0 / 40, paused: !playing)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
-            let emote = frozenEmote ?? (interactive ? CharacterMirror.current(at: t) : nil)
+            let emote = frozenEmote ?? (interactive && playing ? CharacterMirror.current(at: t) : nil)
             Canvas { ctx, sz in
-                draw(&ctx, sz.width, t, emote)
+                draw(&ctx, sz.width, t, emote, still: emote == nil)
             }
             .overlay(alignment: .topTrailing) {
                 if let text = bubbleText(emote) {
@@ -66,6 +69,16 @@ struct Bird: View {
         }
         .frame(width: size, height: size)
         .modifier(BirdInteraction(enabled: interactive))
+        .onChange(of: character.emoteCount) { _ in if interactive { play() } }
+    }
+
+    private func play() {
+        playing = true
+        let n = character.emoteCount
+        let d = (CharacterMirror.emote?.duration ?? 1) + 0.1
+        DispatchQueue.main.asyncAfter(deadline: .now() + d) {
+            if character.emoteCount == n { playing = false }
+        }
     }
 
     private func bubbleText(_ e: (BirdEmote, Double)?) -> String? {
@@ -77,7 +90,7 @@ struct Bird: View {
         }
     }
 
-    private func draw(_ ctx: inout GraphicsContext, _ s: CGFloat, _ t: Double, _ emote: (BirdEmote, Double)?) {
+    private func draw(_ ctx: inout GraphicsContext, _ s: CGFloat, _ t: Double, _ emote: (BirdEmote, Double)?, still: Bool) {
         // Hareket: nefes, iş başında sekme, alarmda zıplama, bitince sevinç.
         var dy = 0.0, tilt = 0.0, squash = 1 + 0.025 * sin(t * 2.2), puff = 1.0
         var wingAngle = mood == .happy ? -0.5 + sin(t * 14) * 0.3 : -0.25
@@ -100,6 +113,11 @@ struct Bird: View {
         case .idle:
             break
         }
+        // Tepki yokken duruş sabittir: nefes, sekme ve sallanma yok.
+        if still {
+            dy = 0; tilt = 0; squash = 1
+            wingAngle = mood == .happy ? -0.5 : -0.25
+        }
 
         // Tepkiler hareketin üstüne biner.
         var k = 0.0
@@ -117,6 +135,11 @@ struct Bird: View {
             case .greet:
                 dy = -abs(sin(el * 7)) * 0.10
                 wingAngle = -1.05 + sin(el * 24) * 0.55
+            case .hop:
+                dy = -sin(.pi * p) * 0.14
+                squash = 1 + 0.08 * sin(2 * .pi * p)
+                tilt = -sin(.pi * p) * 0.08
+                wingAngle = -0.9 + sin(el * 20) * 0.3
             case .bubble:
                 break
             }
@@ -132,7 +155,7 @@ struct Bird: View {
         }
 
         let annoyed: Bool = { if case .annoyed? = emote?.0 { return true }; return false }()
-        let greeting: Bool = { if case .greet? = emote?.0 { return true }; return false }()
+        let greeting: Bool = { if case .greet? = emote?.0 { return true }; if case .hop? = emote?.0 { return true }; return false }()
         // Oturan Akbaş, yandan (sağa bakıyor). Birim kare: baş sağ üstte, kalça sol altta, ön bacaklar dik.
         let outline = StrokeStyle(lineWidth: 0.014, lineCap: .round, lineJoin: .round)
         let worn = outfit ?? CharacterMirror.outfit
@@ -145,7 +168,7 @@ struct Bird: View {
         let wagSpeed: Double = greeting || mood == .happy ? 18 : mood == .working || mood == .dance ? 9 : mood == .sleep ? 0 : 3
         var tailCtx = ctx
         tailCtx.translateBy(x: 0.17, y: 0.76)
-        tailCtx.rotate(by: .radians(annoyed ? 0.2 : sin(t * wagSpeed) * 0.25))
+        tailCtx.rotate(by: .radians(annoyed ? 0.2 : still ? 0 : sin(t * wagSpeed) * 0.25))
         var curl = Path()
         curl.move(to: CGPoint(x: 0.03, y: 0.02))
         curl.addCurve(to: CGPoint(x: -0.06, y: -0.26), control1: CGPoint(x: -0.10, y: -0.02), control2: CGPoint(x: -0.13, y: -0.20))
@@ -263,7 +286,7 @@ struct Bird: View {
 
         // Göz: badem biçimli, koyu kahve, siyah çerçeveli; fareyi izler, ara sıra kırpar; uykuda ve sevinçte çizgi olur.
         let eye = CGPoint(x: 0.67, y: 0.265)
-        let blink = fmod(t, 3.9) < 0.12
+        let blink = !still && fmod(t, 3.9) < 0.12
         if case .dizzy? = emote?.0 {
             var hc = headSpace(ctx)
             OutfitArt.dizzy(&hc, eye: Self.oldEye, t: t)
@@ -276,7 +299,7 @@ struct Bird: View {
             }, with: .color(Self.nose), style: StrokeStyle(lineWidth: 0.02, lineCap: .round))
         } else {
             var dx = 0.0, dyy = 0.0
-            if eyes != .fixed {
+            if eyes != .fixed && !still {
                 let m = MouseTracker.location
                 let a = eyes == .desktop ? MouseTracker.desktopAnchor : MouseTracker.birdAnchor
                 dx = max(-1, min(1, (m.x - a.x) / 300))
