@@ -96,7 +96,8 @@ struct CollapsedView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Bird(mood: AppState.shared.mood, size: model.notchHeight * 0.78)
+            Bird(mood: AppState.shared.mood, size: model.notchHeight * 0.78, interactive: true)
+                .birdDragSource()
                 .frame(width: model.wing)
             Color.clear.frame(width: model.notchWidth)
             indicator.frame(width: model.wing)
@@ -199,7 +200,8 @@ struct ExpandedView: View {
             ConnectCard(install: actions.installHooks)
         } else if store.sessions.isEmpty {
             HStack(spacing: 14) {
-                Bird(mood: .sleep, size: 44)
+                Bird(mood: .sleep, size: 44, interactive: true)
+                    .birdDragSource()
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Ortalık sakin").font(.system(size: 13, weight: .semibold))
                     Text("Bir terminalde claude'u başlat; Serçe her adımı burada gösterir.")
@@ -673,6 +675,7 @@ struct BirdTile: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             Bird(mood: mood, size: size)
+                .birdDragSource()
             if let (color, symbol) = badge { Badge(color: color, symbol: symbol) }
         }
     }

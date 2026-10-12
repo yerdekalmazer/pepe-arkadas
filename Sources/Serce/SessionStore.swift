@@ -119,7 +119,7 @@ struct Approval: Identifiable {
                 s.status = .waiting
                 s.action = "Sana soru soruyor — terminale bak"
                 showFlash("\(s.project) bir soru soruyor")
-                play("Pop")
+                play(.chirp)
                 break
             }
             let a = Approval(sessionId: sid, project: s.project, tool: tool,
@@ -135,7 +135,7 @@ struct Approval: Identifiable {
             s.action = "İzin bekliyor · " + ToolText.action(tool, input)
             if let i = s.steps.lastIndex(where: { $0.key == a.key }) { s.steps[i].status = .waiting }
             else { s.steps.append(a.preview) }
-            play("Pop")
+            play(.approval)
             onAttention?()
             // Claude Code hook'u ~120 sn bekler; ondan önce terminale bırak.
             Task { [weak self] in
@@ -221,7 +221,7 @@ struct Approval: Identifiable {
             if !Task.isCancelled { self?.happy = false }
         }
         showFlash("\(project) bitti")
-        play("Glass")
+        play(.done)
     }
 
     private func showFlash(_ text: String) {
@@ -233,9 +233,8 @@ struct Approval: Identifiable {
         }
     }
 
-    private func play(_ name: String) {
-        guard soundsOn else { return }
-        NSSound(named: NSSound.Name(name))?.play()
+    private func play(_ cue: SoundEngine.Cue) {
+        SoundEngine.shared.play(cue)
     }
 
     private func prune() {

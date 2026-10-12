@@ -88,6 +88,47 @@ enum DemoScript {
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Read" }?.id
         shot("6-detay-okuma")
 
+        // Karakter: kıyafetler, tepkiler, ayar bölümleri.
+        func save<V: View>(_ name: String, _ view: V) {
+            let r = ImageRenderer(content: view.environment(\.colorScheme, .dark).environment(\.snapshotMode, true))
+            r.scale = 2
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: dir.appendingPathComponent(name + ".png"))
+            }
+        }
+        let outfits = LazyVGrid(columns: Array(repeating: GridItem(.fixed(120)), count: 4), spacing: 14) {
+            ForEach(Outfit.allCases) { o in
+                VStack(spacing: 6) {
+                    Bird(mood: .idle, size: 96, outfit: o, eyes: .fixed)
+                    Text(o.title).font(.system(size: 12)).foregroundStyle(.white)
+                }
+            }
+        }
+        .padding(20).background(Color.black)
+        save("7-kiyafetler", outfits)
+        let emotes = HStack(spacing: 40) {
+            ForEach(Array([(BirdEmote.annoyed, 0.5, "sinirli"), (.dizzy, 1.0, "başı dönmüş"), (.greet, 0.4, "selam"),
+                           (.bubble("📸"), 0.5, "baloncuk")].enumerated()), id: \.offset) { _, e in
+                VStack(spacing: 8) {
+                    Bird(mood: .idle, size: 110, eyes: .fixed, frozenEmote: (e.0, e.1))
+                    Text(e.2).font(.system(size: 12)).foregroundStyle(.white)
+                }
+            }
+        }
+        .padding(30).padding(.trailing, 30).background(Color.black)
+        save("8-tepkiler", emotes)
+        let small = HStack(spacing: 16) {
+            ForEach([Outfit.none, .beanie, .crown, .santa, .partyHat], id: \.self) { o in
+                Bird(mood: .idle, size: 25, outfit: o, eyes: .fixed)
+            }
+        }
+        .padding(10).background(Color.black)
+        save("9-notch-boyutu", small)
+        save("10-ayar-karakter", VStack(alignment: .leading) { CharacterSettings(character: .shared) }
+            .frame(width: 560).padding(20).background(Color(nsColor: .windowBackgroundColor)))
+        save("11-ayar-kisayollar", VStack(alignment: .leading) { ShortcutSettings(center: .shared) }
+            .frame(width: 560).padding(20).background(Color(nsColor: .windowBackgroundColor)))
         // Entegrasyon pill'leri: örnek JSON → gerçek ayrıştırıcı → kart
         model.selectedSession = nil
         model.pinnedStep = nil

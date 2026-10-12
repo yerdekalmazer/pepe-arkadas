@@ -11,6 +11,7 @@ import SwiftUI
         Integrations.register(app)
         // ajanlar
         // karakter
+        CharacterFeature.register(app)
         // sohbet
         ChatFeature.register(app)
         // ses
