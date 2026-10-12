@@ -130,9 +130,10 @@ enum TranscriptReader {
                             items.append(HistoryItem(id: items.count, kind: .assistant, text: t, time: time))
                         }
                     case "tool_use":
-                        // Araç adımları "Komutlar" sayfasında; geçmişte yalnızca konuşma kalır.
-                        if includeTools {
-                            let name = b["name"] as? String ?? ""
+                        // Geçmişte yalnızca dosya yazma/düzenleme adımları kalır; Bash "Komutlar" sayfasında,
+                        // okuma/arama gibi adımlar hiç gösterilmez.
+                        let name = b["name"] as? String ?? ""
+                        if includeTools || ["Write", "Edit", "MultiEdit", "NotebookEdit"].contains(name) {
                             pendingTools.append(ToolText.action(name, b["input"] as? [String: Any] ?? [:]))
                         }
                     default:
@@ -161,6 +162,9 @@ enum TranscriptReader {
             }
             s = (name + " " + args).trimmingCharacters(in: .whitespaces)
         }
-        return s.trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Claude Code'un kendi notları kullanıcı mesajı değildir.
+        if s.hasPrefix("[Request interrupted") || s.hasPrefix("Caveat:") { return "" }
+        return s
     }
 }

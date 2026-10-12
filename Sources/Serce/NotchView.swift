@@ -429,7 +429,8 @@ struct SessionDetail: View {
         // Oturum çalışmıyorken ve adım seçilmemişken: konuşma geçmişi (yoksa son yanıt).
         let idle = model.pinnedStep == nil && session.status != .working
         let showCommands = hasHistory && model.pinnedStep == Self.commandsId
-        let showHistory = hasHistory && !showCommands && (model.pinnedStep == Self.historyId || idle)
+        // Ana görünüm konuşmadır: oturum çalışırken de (adım seçilmediyse) geçmiş gösterilir.
+        let showHistory = hasHistory && !showCommands && (model.pinnedStep == Self.historyId || model.pinnedStep == nil)
         let showReply = !showHistory && hasReply && (model.pinnedStep == Self.replyId || idle)
         let selected = visible.first { $0.id == model.pinnedStep } ?? visible.last
         HStack(alignment: .top, spacing: 14) {
@@ -509,7 +510,8 @@ struct SessionDetail: View {
                 if showCommands {
                     CommandsView(path: session.transcriptPath, cwd: session.cwd, refresh: session.updated)
                 } else if showHistory {
-                    HistoryView(path: session.transcriptPath, refresh: session.updated)
+                    HistoryView(path: session.transcriptPath, refresh: session.updated,
+                                live: session.status == .working ? session.action : nil)
                 } else if showReply {
                     ReplyView(text: session.lastReply)
                 } else {
@@ -1254,6 +1256,8 @@ struct HistoryView: View {
     let path: String
     /// Oturum güncellenince (yeni olay) yeniden okunur.
     let refresh: Date
+    /// Oturum çalışıyorsa o anki adım (en altta canlı satır).
+    var live: String? = nil
     @State private var items: [HistoryItem] = []
     @State private var truncated = false
     @State private var window = 2 << 20
@@ -1290,6 +1294,13 @@ struct HistoryView: View {
                     .font(.system(size: 11)).foregroundStyle(.secondary).padding(12)
             }
             ForEach(shown) { row($0) }
+            if let live {
+                HStack(spacing: 6) {
+                    Spinner().frame(width: 9, height: 9)
+                    Text(live).font(.system(size: 10, design: .monospaced)).lineLimit(1).truncationMode(.middle)
+                }
+                .foregroundStyle(.white.opacity(0.5))
+            }
             Color.clear.frame(height: 1).id("son")
         }
         .padding(10)
@@ -1316,7 +1327,7 @@ struct HistoryView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         case .tools:
             HStack(spacing: 5) {
-                Image(systemName: "gearshape.2").font(.system(size: 9))
+                Image(systemName: "pencil.line").font(.system(size: 9))
                 Text(it.text).font(.system(size: 10, design: .monospaced)).lineLimit(1).truncationMode(.middle)
             }
             .foregroundStyle(.white.opacity(0.4))
