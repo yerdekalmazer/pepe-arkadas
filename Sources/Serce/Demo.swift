@@ -195,6 +195,15 @@ enum DemoScript {
         chat.newChat()
         app.tab = .home
         voiceShots(into: dir)
+        // Kişisel katman: hatırlatma şeridi + sabah brifingi (gerçek proje hafızasından, salt okuma)
+        app.tab = .home
+        model.selectedSession = nil
+        app.selectedPill = nil
+        Reminders.shared.showForSnapshot("Tessera 1.4'ü App Store incelemesine gönder", project: "tessera-ios")
+        _ = Briefing.shared.text(weekly: true)
+        Briefing.shared.visible = true
+        shot("15-kisisel")
+        Briefing.shared.visible = false
         musicShots(into: dir)
     }
 

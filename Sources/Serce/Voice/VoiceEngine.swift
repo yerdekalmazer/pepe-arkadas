@@ -209,6 +209,11 @@ import SwiftUI
         self.answer = answer
     }
 
+    /// Brifing gibi kendiliğinden konuşmalar: dinlemeyi bölmeden okur.
+    func say(_ text: String) {
+        Task { await speaker.speak(text, language: language) }
+    }
+
     /// Ayarlardaki "Dene" düğmesi.
     func preview() {
         Task { await speaker.speak(language.hasPrefix("tr") ? "Merhaba, ben Serçe. Seni dinliyorum." : "Hi, I'm Serçe. I'm listening.",

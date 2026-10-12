@@ -5,7 +5,39 @@ import SwiftUI
 @MainActor final class ChatSession: ObservableObject {
     static let shared = ChatSession()
 
-    @Published var messages: [ChatMessage] = []
+    @Published var messages: [ChatMessage] = [] {
+        didSet { scheduleSave() }
+    }
+    private var saveWork: DispatchWorkItem?
+    private static var historyURL: URL { Support.dir.appendingPathComponent("sohbet.json") }
+
+    /// Geçmiş diske yazılır (yalnızca metin ve ek adları; ek içerikleri yazılmaz), açılışta geri gelir.
+    /// Anlık görüntü ve test modlarında kapatılır; gerçek geçmişin üzerine yazılmasın.
+    nonisolated(unsafe) static var persist = true
+
+    private func scheduleSave() {
+        guard Self.persist else { return }
+        saveWork?.cancel()
+        let snapshot = messages.suffix(60).map { ["rol": $0.role.rawValue, "metin": $0.text, "ekler": $0.attachmentNames.joined(separator: "|"),
+                                                  "hata": $0.isError ? "1" : ""] }
+        let work = DispatchWorkItem {
+            if let d = try? JSONSerialization.data(withJSONObject: snapshot) { try? d.write(to: Self.historyURL, options: .atomic) }
+        }
+        saveWork = work
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1, execute: work)
+    }
+
+    init() {
+        guard Self.persist, let d = try? Data(contentsOf: Self.historyURL),
+              let arr = (try? JSONSerialization.jsonObject(with: d)) as? [[String: String]] else { return }
+        messages = arr.compactMap { m in
+            guard let role = ChatMessage.Role(rawValue: m["rol"] ?? "") else { return nil }
+            var msg = ChatMessage(role: role, text: m["metin"] ?? "")
+            msg.attachmentNames = (m["ekler"] ?? "").split(separator: "|").map(String.init)
+            msg.isError = m["hata"] == "1"
+            return msg
+        }
+    }
     @Published var draft = ""
     @Published private(set) var streaming = false
     @Published var provider: ChatProvider = .current {

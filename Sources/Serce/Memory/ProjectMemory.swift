@@ -203,7 +203,7 @@ import Foundation
 
     nonisolated static func allDocs() -> [ProjectDoc] {
         let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
-        return files.filter { $0.pathExtension == "md" && !$0.lastPathComponent.hasSuffix(".arsiv.md") }
+        return files.filter { $0.pathExtension == "md" && !$0.lastPathComponent.hasSuffix(".arsiv.md") && !$0.lastPathComponent.hasPrefix("_") }
             .compactMap { ProjectDoc.read($0) }
             .sorted { $0.name.lowercased() < $1.name.lowercased() }
     }

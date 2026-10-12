@@ -168,6 +168,8 @@ struct WorkingDots: View {
 // MARK: - Açık hal
 
 struct ExpandedView: View {
+    @ObservedObject var reminders = Reminders.shared
+    @ObservedObject var briefing = Briefing.shared
     @ObservedObject var app: AppState
     @ObservedObject var store: SessionStore
     @ObservedObject var pills: PillRegistry
@@ -207,6 +209,18 @@ struct ExpandedView: View {
     }
 
     @ViewBuilder private var home: some View {
+        if model.selectedSession == nil, !Reminders.shared.due.isEmpty || Briefing.shared.visible {
+            VStack(spacing: 8) {
+                ReminderBanner(reminders: .shared)
+                BriefingCard(briefing: .shared)
+                homeContent
+            }
+        } else {
+            homeContent
+        }
+    }
+
+    @ViewBuilder private var homeContent: some View {
         if let id = model.selectedSession, let s = store.sessions.first(where: { $0.id == id }) {
             SessionDetail(session: s, model: model, open: { actions.openTerminal(s) })
         } else if pills.active.isEmpty {

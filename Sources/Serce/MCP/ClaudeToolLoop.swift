@@ -75,7 +75,7 @@ import Foundation
                         if isError { result["is_error"] = true }
                     } else if SerceTools.owns(name) {
                         o.onProgress(SerceTools.progress(name))
-                        let (text, isError) = SerceTools.run(name, input)
+                        let (text, isError) = await SerceTools.run(name, input)
                         result["content"] = text
                         if isError { result["is_error"] = true }
                     } else if let handler = o.handler {

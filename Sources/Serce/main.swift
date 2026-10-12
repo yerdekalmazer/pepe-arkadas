@@ -271,6 +271,30 @@ MainActor.assumeIsolated {
         }
         RunLoop.main.run()
     }
+    // Test ve anlık görüntü modları gerçek sohbet geçmişine dokunmaz.
+    if CommandLine.arguments.contains(where: { $0.hasPrefix("--") }) { ChatSession.persist = false }
+    // Kişisel katman: brifing (gerçek hafıza, salt okuma), tarih ayrıştırma, Trello okuma ve yazma koruması: Serce --kisisel-testi klasor
+    if let i = CommandLine.arguments.firstIndex(of: "--kisisel-testi"), i + 1 < CommandLine.arguments.count {
+        Task { @MainActor in
+            print("── brifing (haftalık):\n" + Briefing.shared.text(weekly: true))
+            for s in ["2026-10-13 10:00", "2026-10-13T09:30", "yarın"] { print("parse \(s) →", Reminders.parse(s).map { Reminders.format($0) } ?? "nil") }
+            ProjectMemory.dirOverride = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+            AboutMe.seedIfNeeded()
+            print("── ben (istem bloğu, \(AboutMe.promptBlock().count) karakter):" + AboutMe.promptBlock().prefix(700))
+            do {
+                let (b, l) = try await TrelloAPI.resolve(board: nil, list: "Inbox")
+                let cards = try await TrelloAPI.cards(list: l!)
+                print("── Trello \(b.name) › \(l!.name): \(cards.count) kart")
+                let pill = TrelloPill(); pill.refresh(); try? await Task.sleep(for: .seconds(6)); print("── pill sesli özet:", pill.voiceSummary)
+                if let other = try await TrelloAPI.boards().first(where: { !TrelloAPI.isWritable($0.name) }) {
+                    do { _ = try await TrelloAPI.addCard(board: other.name, list: "x", name: "x", desc: "") ; print("✗ koruma çalışmadı!") }
+                    catch { print("✓ yazma koruması (\(other.name)):", error.localizedDescription) }
+                }
+            } catch { print("Trello hata:", error.localizedDescription) }
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
     // Ekrana dokunmadan arayüz görüntüsü: Serce --snapshot klasor
     if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), i + 1 < CommandLine.arguments.count {
         Snapshot.run(into: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
