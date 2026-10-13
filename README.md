@@ -19,8 +19,8 @@ Açık kaynak [Coucou](https://github.com/Louis-CFM/coucou)'dan ilham aldı; kod
 ## Kurulum
 
 ```sh
-git clone https://github.com/yerdekalmazer/serce.git
-cd serce
+git clone https://github.com/yerdekalmazer/pepe-arkadas.git
+cd pepe-arkadas
 ./build.sh            # build/Pepe.app üretir
 ./build.sh --install  # /Applications/Pepe.app'e kurar ve açar
 ```
