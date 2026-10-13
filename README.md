@@ -65,7 +65,7 @@ defaults write com.tahayerdekalmazer.serce kapsayiciKlasorler -array Isler Kisis
 | Klasör | İçerik |
 | --- | --- |
 | `Sources/Serce` | Uygulama (SwiftPM, SwiftUI). Mimari notları: [MIMARI.md](MIMARI.md) |
-| `landing/` | Tanıtım sayfası (statik HTML) |
+| — | Tanıtım sayfası ayrı depoda: [pepe-landing](https://github.com/yerdekalmazer/pepe-landing) (gizli) |
 | `reklam/` | Tanıtım videosu: HTML sahneler + `render.mjs` (Playwright) + `muzik.py` (sentez müzik) |
 
 Ekran görüntülerini ekrana dokunmadan üretmek için: `build/Pepe.app/Contents/MacOS/Serce --snapshot <klasör>`.

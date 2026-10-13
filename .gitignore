@@ -8,7 +8,4 @@ build/
 *.wav
 *.mp4
 
-# Tanıtım sayfasıyla yayınlanan dosyalar
-!landing/assets/pepe-tanitim.mp4
-!landing/indir/Pepe.dmg
 !reklam/sesler/pepe-havlama.wav
