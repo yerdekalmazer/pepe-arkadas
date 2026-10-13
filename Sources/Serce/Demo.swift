@@ -284,19 +284,22 @@ enum DemoScript {
             model.selectedSession = nil
             model.pinnedStep = nil
         }
-        // Kişisel katman: hatırlatma şeridi + sabah brifingi (gerçek proje hafızasından, salt okuma)
+        // Kişisel katman: hatırlatma şeridi + sabah brifingi (örnek veriyle; gerçek hafıza okunmaz)
         app.tab = .home
         model.selectedSession = nil
         app.selectedPill = nil
         Reminders.shared.showForSnapshot("Tessera 1.4'ü App Store incelemesine gönder", project: "tessera-ios")
         let trello = TrelloPill()
-        trello.preview(lists: [("📥 Lead Takip", 1), ("📝 İçerik Kuyruğu", 3), ("Inbox", 3), ("Ürün Geliştirme", 3),
-                               ("Müşteriler", 4), ("Araştırma", 1), ("Diğer", 1)],
-                       cards: ["📊 Hafta 32 Raporu", "Tessera ekran görüntüleri", "Bülten taslağı"])
+        trello.preview(lists: [("📥 Gelen", 2), ("Bugün", 3), ("Bu hafta", 5), ("Yapılıyor", 2), ("Bekliyor", 1)],
+                       cards: ["Haftalık rapor", "Tessera ekran görüntüleri", "Bülten taslağı"])
         app.pills.persists = false
         app.pills.register(trello)
         app.pills.setActive("trello", true)
-        _ = Briefing.shared.text(weekly: true)
+        Briefing.shared.preview = (worked: ["tessera-ios (3 oturum)", "kesit (2 oturum)"],
+                                   next: ["tessera-ios: 1.4 için App Store ekran görüntülerini yenile",
+                                          "kesit: KDV testlerini CI'a ekle"])
+        _ = Briefing.shared.text(weekly: false)
+        Briefing.shared.preview = nil
         Briefing.shared.visible = true
         shot("15-kisisel")
         model.newSessionCwd = FileManager.default.homeDirectoryForCurrentUser.path + "/Projeler/serce"

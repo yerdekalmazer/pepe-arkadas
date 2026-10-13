@@ -18,6 +18,8 @@ import SwiftUI
     @Published private(set) var sections: [Section] = []
     @Published private(set) var title = ""
     @Published var visible = false
+    /// Yalnızca anlık görüntü için: proje hafızası yerine örnek "dün çalışılanlar" / "kaldığın yerler".
+    var preview: (worked: [String], next: [String])?
     private var timer: Timer?
 
     var enabled: Bool { UserDefaults.standard.object(forKey: "brifingAcik") as? Bool ?? true }
@@ -73,12 +75,13 @@ import SwiftUI
         let dayLabel = Self.journalDay(yesterday)
         var worked: [String] = []
         var next: [String] = []
-        for d in docs {
+        for d in docs where preview == nil {
             let entries = d.section("Oturumlar").components(separatedBy: "### ").filter { $0.hasPrefix(dayLabel) }
             if !entries.isEmpty { worked.append("\(d.name) (\(entries.count) oturum)") }
             let open = d.section("Sıradaki").components(separatedBy: "\n").filter { $0.hasPrefix("- [ ]") }
             if !entries.isEmpty, let first = open.first { next.append("\(d.name): \(first.dropFirst(6))") }
         }
+        if let preview { worked = preview.worked; next = preview.next }
         if !worked.isEmpty { out.append(Section(title: "Dün çalışılanlar", icon: "clock.arrow.circlepath", lines: worked, tint: Palette.blue)) }
         if !next.isEmpty { out.append(Section(title: "Kaldığın yerler", icon: "arrow.turn.down.right", lines: next, tint: Palette.green)) }
 
