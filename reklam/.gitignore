@@ -2,3 +2,14 @@ node_modules/
 muzik.wav
 *.mp4
 onizleme-*.png
+muzik-20.wav
+muzik-30.wav
+muzik-45.wav
+muzik-motion-v2.wav
+
+# Kişisel fotoğraflar (yalnızca Pepe çizimine referans)
+assets/foto/
+*.log
+*.jsonl
+codex/*.jpg
+codex/kalite-kontrol.json

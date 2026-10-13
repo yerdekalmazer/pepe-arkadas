@@ -28,7 +28,7 @@ import Foundation
           {"title":"Mozaik ızgarası hızlandı","number":7,"html_url":"https://github.com/yerdekalmazer/tessera/pull/7","repository_url":"https://api.github.com/repos/yerdekalmazer/tessera","updated_at":"\(iso(1500))","pull_request":{"url":"https://api.github.com/repos/yerdekalmazer/tessera/pulls/7"}}
         ]}
         """)), reviewRequested: GitHubPill.parsePRs(json("""
-        {"total_count":1,"items":[{"title":"Onboarding metinleri","number":88,"html_url":"https://github.com/divizyon/site/pull/88","repository_url":"https://api.github.com/repos/divizyon/site","updated_at":"\(iso(30))","pull_request":{"url":"x"}}]}
+        {"total_count":1,"items":[{"title":"Onboarding metinleri","number":88,"html_url":"https://github.com/ornek/site/pull/88","repository_url":"https://api.github.com/repos/ornek/site","updated_at":"\(iso(30))","pull_request":{"url":"x"}}]}
         """)))
         gh.mine[0].ci = GitHubPill.parseChecks(json("""
         {"total_count":2,"check_runs":[{"status":"completed","conclusion":"success"},{"status":"completed","conclusion":"failure"}]}

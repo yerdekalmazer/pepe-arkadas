@@ -17,6 +17,8 @@ import UniformTypeIdentifiers
     @Published var pinnedStep: UUID?
     /// "Yeni oturum" ekranı açıkken önceden seçili proje klasörü ("" = seçilmedi).
     @Published var newSessionCwd: String?
+    /// "Başka ajana aktar" ekranı açıkken kaynak oturum.
+    @Published var forwardFrom: String?
     /// Ana sayfada tüm oturumlar mı (en çok 8) yoksa ilk 3 mü gösterilsin.
     @Published var showAllSessions = false
     /// Çentiğin iki yanındaki kanatlar. Kuş sol kanatta, çentikten uzağa yaslı durur (kamera altına girmesin).
@@ -131,7 +133,8 @@ struct CollapsedView: View {
                 .frame(width: model.wing, alignment: .leading)
                 .clipped()
             Color.clear.frame(width: model.notchWidth)
-            indicator.frame(width: model.wing)
+            // Gösterge boşken de sağ kanat yer kaplasın; yoksa satır kayar ve kuş kameranın altına girer.
+            Color.clear.frame(width: model.wing).overlay { indicator }
         }
         .padding(.horizontal, model.ear)
         .frame(height: model.notchHeight)
@@ -159,7 +162,7 @@ struct CollapsedView: View {
 struct WorkingDots: View {
     var count: Int
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20)) { tl in
+        TimelineView(.animation(minimumInterval: 1.0 / 10)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             HStack(spacing: 2.5) {
                 ForEach(0..<3, id: \.self) { i in
@@ -221,7 +224,7 @@ struct ExpandedView: View {
     }
 
     @ViewBuilder private var home: some View {
-        if model.selectedSession == nil, model.newSessionCwd == nil, !Reminders.shared.due.isEmpty || Briefing.shared.visible {
+        if model.selectedSession == nil, model.newSessionCwd == nil, model.forwardFrom == nil, !Reminders.shared.due.isEmpty || Briefing.shared.visible {
             VStack(spacing: 8) {
                 ReminderBanner(reminders: .shared)
                 BriefingCard(briefing: .shared)
@@ -233,7 +236,9 @@ struct ExpandedView: View {
     }
 
     @ViewBuilder private var homeContent: some View {
-        if let cwd = model.newSessionCwd {
+        if let fid = model.forwardFrom, let s = store.sessions.first(where: { $0.id == fid }) {
+            ForwardView(source: s, model: model, store: store)
+        } else if let cwd = model.newSessionCwd {
             NewSessionView(model: model, store: store, presetCwd: cwd)
         } else if let id = model.selectedSession, let s = store.sessions.first(where: { $0.id == id }) {
             SessionDetail(session: s, model: model, open: { actions.openTerminal(s) })
@@ -543,10 +548,11 @@ struct SessionDetail: View {
                 } else {
                     Viewer(step: selected, cwd: session.cwd, prompt: session.prompt)
                 }
-                if session.agent == AgentCatalog.claude {
-                    RunControls(options: Binding(get: { AgentRunner.shared.options(for: session.id) },
+                if AgentRunner.canWrite(session.agent) {
+                    RunControls(options: Binding(get: { AgentRunner.shared.options(for: session.id, agent: session.agent) },
                                                  set: { AgentRunner.shared.setOptions($0, for: session.id) }),
-                                terminalMode: session.permissionMode)
+                                agent: session.agent,
+                                terminalMode: session.agent == AgentCatalog.claude ? session.permissionMode : "")
                 }
                 composer
             }
@@ -555,17 +561,31 @@ struct SessionDetail: View {
         .frame(height: inWindow ? nil : 320)
         .frame(minHeight: 320, maxHeight: inWindow ? .infinity : 320)
         // Görseli detayın herhangi bir yerine bırakabilirsin; o oturumun mesajına eklenir.
-        .onDrop(of: snapshot ? [] : [.fileURL, .image], isTargeted: $dropTargeted) { providers in
-            guard session.agent == AgentCatalog.claude else { return false }
+        // ImageRenderer bırakma alanını çizemez (sarı yer tutucu), görüntü alırken eklenmez.
+        .modifier(DropTarget(enabled: !snapshot, targeted: $dropTargeted) { providers in
+            guard AgentRunner.canWrite(session.agent) else { return false }
             ComposerStore.shared.addDropped(providers, to: session.id)
             return true
+        })
+    }
+
+    private struct DropTarget: ViewModifier {
+        let enabled: Bool
+        @Binding var targeted: Bool
+        let perform: ([NSItemProvider]) -> Bool
+        func body(content: Content) -> some View {
+            if enabled {
+                content.onDrop(of: [.fileURL, .image], isTargeted: $targeted, perform: perform)
+            } else {
+                content
+            }
         }
     }
 
-    /// Terminal açık olmasa da bu oturuma yaz: `claude -p --resume` arka planda çalışır.
+    /// Terminal açık olmasa da bu oturuma yaz: `claude -p --resume`, `codex exec resume`, `gemini --resume` arka planda çalışır.
     @ViewBuilder private var composer: some View {
         let busy = runner.isRunning(session.id)
-        let isClaude = session.agent == AgentCatalog.claude
+        let isClaude = AgentRunner.canWrite(session.agent)
         let draft = composerStore.draft(session.id)
         let queued = composerStore.queued[session.id] != nil
         VStack(alignment: .leading, spacing: 4) {
@@ -616,13 +636,18 @@ struct SessionDetail: View {
                 .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.07)))
             }
             HStack(spacing: 8) {
+                Button { model.forwardFrom = session.id } label: {
+                    Image(systemName: "arrowshape.turn.up.right").font(.system(size: 12)).foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain).help("Başka ajana aktar — bu oturumdaki hatayı, yanıtı ya da görevi başka bir oturuma gönder")
                 Button(action: pickImages) {
                     Image(systemName: "paperclip").font(.system(size: 13)).foregroundStyle(.white.opacity(isClaude ? 0.7 : 0.25))
                 }
                 .buttonStyle(.plain).disabled(!isClaude).help("Görsel ekle — sürükleyip bırakabilir ya da ⌘V ile yapıştırabilirsin")
                 if snapshot {
                     // ImageRenderer metin kutusunu çizemez.
-                    Text(placeholder(busy: busy)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.35))
+                    Text(draft.text.isEmpty ? placeholder(busy: busy) : draft.text).font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(draft.text.isEmpty ? 0.35 : 1))
                         .frame(maxWidth: .infinity, alignment: .leading).lineLimit(1)
                 } else {
                     TextField(placeholder(busy: busy), text: Binding(get: { composerStore.draft(session.id).text },
@@ -683,8 +708,8 @@ struct SessionDetail: View {
 
     private func placeholder(busy: Bool) -> String {
         if busy { return "Pepe yürütüyor — yazarsan sıraya alınır" }
-        if session.ended, session.agent == AgentCatalog.claude { return "Terminal kapalı — yazarsan Pepe arka planda sürdürür" }
-        if session.agent != AgentCatalog.claude { return "Şimdilik yalnızca Claude Code oturumlarına yazılabiliyor" }
+        if session.ended, AgentRunner.canWrite(session.agent) { return "Terminal kapalı — yazarsan Pepe arka planda sürdürür" }
+        if !AgentRunner.canWrite(session.agent) { return "\(session.agentName) oturumlarına şimdilik yazılamıyor" }
         if session.status == .working { return "Oturum çalışıyor — yaz, bitince gönderilir" }
         return "\(session.project) oturumuna yaz — terminal kapalı olsa da devam eder"
     }
@@ -761,7 +786,7 @@ struct StatusIcon: View {
 
 struct Spinner: View {
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
+        TimelineView(.animation(minimumInterval: 1.0 / 15)) { tl in
             Circle()
                 .trim(from: 0, to: 0.7)
                 .stroke(.white, style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
@@ -1167,7 +1192,8 @@ struct NewSessionView: View {
     @State private var cwd = ""
     @State private var task = ""
     @State private var worktree = false
-    @State private var runOptions = AgentRunner.RunOptions(mode: nil, model: AgentRunner.model, effort: nil)
+    @State private var agent = RunnableAgent.claude
+    @State private var runOptions = RunnableAgent.claude.defaultOptions
     @State private var error: String?
     @Environment(\.snapshotMode) private var snapshot
 
@@ -1195,9 +1221,27 @@ struct NewSessionView: View {
                 .buttonStyle(.plain)
             }
             HStack(spacing: 8) {
+                Text("Ajan").font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 52, alignment: .leading)
+                Menu {
+                    ForEach(RunnableAgent.allCases) { a in
+                        Button((agent == a ? "✓ " : "") + a.title + (a.installed ? "" : " — kurulu değil")) {
+                            agent = a
+                            runOptions = a.defaultOptions
+                            error = nil
+                        }
+                        .disabled(!a.installed)
+                    }
+                } label: {
+                    Text(agent.title).font(.system(size: 12, weight: .medium))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                Spacer()
+            }
+            HStack(spacing: 8) {
                 Text("Proje").font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 52, alignment: .leading)
                 Menu {
-                    Button("Projesiz — genel bir Claude oturumu") { select("") }
+                    Button("Projesiz — genel bir oturum") { select("") }
                     Divider()
                     ForEach(projects, id: \.root) { p in Button(p.name) { select(p.root) } }
                     Divider()
@@ -1240,10 +1284,12 @@ struct NewSessionView: View {
             }
             .toggleStyle(.switch).controlSize(.mini)
             }
-            RunControls(options: $runOptions)
+            RunControls(options: $runOptions, agent: agent.rawValue)
             if let error { Text(error).font(.system(size: 10)).foregroundStyle(Palette.red) }
             HStack {
-                Text("Terminal gerekmez; adımlar ve izinler notch'ta.").font(.system(size: 10)).foregroundStyle(.tertiary)
+                Text(agent == .claude ? "Terminal gerekmez; adımlar ve izinler notch'ta."
+                                      : "Terminal gerekmez; adımlar notch'ta. Neye izin verildiğini Mod belirler.")
+                    .font(.system(size: 10)).foregroundStyle(.tertiary)
                 Spacer()
                 Button("Vazgeç") { model.newSessionCwd = nil }.buttonStyle(Pill(kind: .ghost))
                 Button("Başlat", action: start).buttonStyle(Pill(kind: .primary))
@@ -1274,7 +1320,7 @@ struct NewSessionView: View {
         // Proje seçilmediyse Pepe'nin kendi "Projesiz" klasöründe çalışır.
         let dir = cwd.isEmpty ? AgentRunner.projectlessDir : cwd
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        if let err = AgentRunner.shared.start(text, in: dir, worktree: worktree && !cwd.isEmpty) {
+        if let err = AgentRunner.shared.start(text, in: dir, worktree: worktree && !cwd.isEmpty, agent: agent) {
             AgentRunner.shared.pendingOptions = nil
             error = err
             return
@@ -1289,38 +1335,46 @@ struct NewSessionView: View {
 /// Seçimler oturum başına saklanır; terminalde açık oturumu etkilemez, yalnızca Pepe'nin gönderdiklerini.
 struct RunControls: View {
     @Binding var options: AgentRunner.RunOptions
+    var agent = AgentCatalog.claude
     var terminalMode = ""
     @ObservedObject private var runner = AgentRunner.shared
+    @ObservedObject private var codexModels = CodexModels.shared
     @Environment(\.snapshotMode) private var snapshot
 
     var body: some View {
         let o = options
+        let kind = RunnableAgent(agent: agent) ?? .claude
+        let models = kind.models
         HStack(spacing: 6) {
             if !terminalMode.isEmpty {
                 Text("terminalde: \(Self.modeTitle(terminalMode))")
                     .font(.system(size: 10)).foregroundStyle(.tertiary).lineLimit(1)
             }
             Spacer(minLength: 4)
-            chip(icon: modeIcon(o.mode), text: o.mode.map(Self.modeTitle) ?? "Mod", warn: o.mode == "bypassPermissions") {
-                ForEach(AgentRunner.modes, id: \.title) { m in
+            chip(icon: modeIcon(o.mode), text: o.mode.map { Self.modeTitle($0, agent: agent) } ?? "Mod", warn: kind.isDangerous(o.mode)) {
+                ForEach(kind.modes, id: \.title) { m in
                     Button { options.mode = m.id } label: {
                         Text(m.title + (o.mode == m.id ? "  ✓" : "") + "\n" + m.hint)
                     }
                 }
             }
-            chip(icon: "cpu", text: o.model == nil ? "Model" : (AgentRunner.models.first { $0.id == o.model }?.title ?? o.model!), warn: false) {
-                ForEach(AgentRunner.models, id: \.title) { m in
+            chip(icon: "cpu", text: o.model == nil ? "Model" : (models.first { $0.id == o.model }?.title ?? o.model!), warn: false) {
+                ForEach(models, id: \.title) { m in
                     Button((o.model == m.id ? "✓ " : "") + m.title) { options.model = m.id }
                 }
             }
-            chip(icon: "gauge.with.dots.needle.50percent", text: o.effort.map(Self.effortTitle) ?? "Efor", warn: false) {
-                ForEach(AgentRunner.efforts, id: \.self) { e in
-                    Button((o.effort == e ? "✓ " : "") + (e.map(Self.effortTitle) ?? "Varsayılan")) {
-                        options.effort = e
+            if !kind.efforts.isEmpty {
+                chip(icon: "gauge.with.dots.needle.50percent", text: o.effort.map(Self.effortTitle) ?? "Efor", warn: false) {
+                    ForEach(kind.efforts, id: \.self) { e in
+                        Button((o.effort == e ? "✓ " : "") + (e.map(Self.effortTitle) ?? "Varsayılan")) {
+                            options.effort = e
+                        }
                     }
                 }
             }
         }
+        .onAppear { if kind == .codex { codexModels.load() } }
+        .onChange(of: agent) { if agent == RunnableAgent.codex.rawValue { codexModels.load() } }
     }
 
     @ViewBuilder
@@ -1349,14 +1403,16 @@ struct RunControls: View {
         case "acceptEdits": "pencil.and.outline"
         case "plan": "list.bullet.clipboard"
         case "dontAsk": "hand.raised.slash"
-        case "bypassPermissions": "exclamationmark.triangle.fill"
+        case "bypassPermissions", "full-access", "yolo": "exclamationmark.triangle.fill"
+        case "read-only": "eye"
+        case "workspace-write", "auto_edit": "pencil.and.outline"
         case "manual": "hand.raised"
         default: "shield.lefthalf.filled"
         }
     }
 
-    static func modeTitle(_ m: String) -> String {
-        AgentRunner.modes.first { $0.id == m }?.title ?? (m == "default" ? "Sor" : m)
+    static func modeTitle(_ m: String, agent: String = AgentCatalog.claude) -> String {
+        (RunnableAgent(agent: agent) ?? .claude).modes.first { $0.id == m }?.title ?? (m == "default" ? "Sor" : m)
     }
 
     static func effortTitle(_ e: String) -> String {

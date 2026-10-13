@@ -5,11 +5,11 @@ Coucou'nun (github.com/Louis-CFM/coucou, MIT) macOS özelliklerini kendi kodu ve
 Coucou adı, Mochi ve sesleri kullanılmaz.
 
 ## Derleme ve doğrulama
-- `swift build` — hızlı derleme. `./build.sh` → `build/Serçe.app`; `./build.sh --install` → /Applications.
-- Görsel doğrulama: `build/Serçe.app/Contents/MacOS/Serce --snapshot <klasör>` ekrana dokunmadan PNG üretir (Demo.swift → Snapshot).
+- `swift build` — hızlı derleme. `./build.sh` → `build/Pepe.app`; `./build.sh --install` → /Applications/Pepe.app.
+- Görsel doğrulama: `build/Pepe.app/Contents/MacOS/Serce --snapshot <klasör>` ekrana dokunmadan PNG üretir (Demo.swift → Snapshot).
   Yeni görünüm eklerken Snapshot.run'a kendi karelerini ekle. ImageRenderer ScrollView içini çizmez; `@Environment(\.snapshotMode)` ile düz bas.
 - **Sentetik fare/klavye olayı gönderme.** Kullanıcı Mac'i aynı anda kullanıyor.
-- Çalışan uygulamayı (`/Applications/Serçe.app`) öldürme/yeniden başlatma; dal birleştirildikten sonra ana oturum kurar.
+- Çalışan uygulamayı (`/Applications/Pepe.app`) öldürme/yeniden başlatma; dal birleştirildikten sonra ana oturum kurar.
 
 ## Parçalar
 - `HookServer` 127.0.0.1:47823, `X-Serce-Token`. Hook betiği `~/Library/Application Support/Serce/serce-hook` (Support.swift üretir).
@@ -19,7 +19,7 @@ Coucou adı, Mochi ve sesleri kullanılmaz.
 - Pill'ler: `PillProvider` protokolü (Pills.swift). Kart `card()`, ayar `settings()`. Kayıt: `Features.register` içinde `app.pills.register(...)`.
 - Ayarlar penceresi: `SettingsRegistry.shared.add(SettingsSection(...))`; ortak parçalar `SettingsGroup`, `SecretField`.
 - Diğer ajanların kurulum satırları: `AgentRegistry.shared.add(AgentEntry(...))`.
-- API anahtarları yalnızca `Keychain` (Keychain.swift). UserDefaults'a anahtar yazma.
+- API anahtarları yalnızca `Keychain` (Keychain.swift → `anahtarlar.json`, 0600). UserDefaults'a anahtar yazma.
 - Kuş: `Bird(mood:size:tint:)`; ruh halleri `Mood` (sleep, idle, working, alert, happy, dance).
 
 ## Kurallar

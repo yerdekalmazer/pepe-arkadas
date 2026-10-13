@@ -2,126 +2,110 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<title>Pepe — reklam</title>
+<title>Pepe · tanıtım</title>
 <style>
+  /* pepe.tahayerdekalmazer.com ile aynı kimlik: Playfair + Montserrat, kömür zemin, kâğıt beyazı. */
+  @font-face { font-family: "Playfair Display"; src: url(fonts/Playfair.ttf); font-weight: 400 900; }
+  @font-face { font-family: "Playfair Display"; src: url(fonts/PlayfairItalic.ttf); font-weight: 400 900; font-style: italic; }
+  @font-face { font-family: "Montserrat"; src: url(fonts/Montserrat.ttf); font-weight: 100 900; }
+  :root { --black: #161616; --paper: #f5f1ea; --dim: #8a837a; --soft: #cfc8bd; --line: rgba(255,255,255,.14);
+    --serif: "Playfair Display", Georgia, serif; --sans: "Montserrat", sans-serif; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0d0c0b; }
-  body { font-family: -apple-system, "SF Pro Display", system-ui, sans-serif; color: #f5efe6; }
-  #stage { position: absolute; inset: 0; overflow: hidden;
-    background: radial-gradient(1200px 700px at 50% -10%, #3a2a1c 0%, #1a1410 45%, #0d0c0b 100%); }
-  .glow { position: absolute; left: 50%; top: -260px; width: 1400px; height: 700px; margin-left: -700px;
-    background: radial-gradient(closest-side, rgba(255,179,77,.18), transparent); filter: blur(10px); }
-  .notch { position: absolute; left: 50%; top: 0; width: 360px; height: 58px; margin-left: -180px;
-    background: #000; border-radius: 0 0 26px 26px; z-index: 20; }
-  .notch::before, .notch::after { content: ""; position: absolute; top: 0; width: 18px; height: 18px; }
-  .notch::before { left: -18px; background: radial-gradient(circle at 0 100%, transparent 17px, #000 18px); }
-  .notch::after { right: -18px; background: radial-gradient(circle at 100% 100%, transparent 17px, #000 18px); }
-  .panel { position: absolute; left: 50%; top: 0; transform-origin: 50% 0; z-index: 25; opacity: 0; }
-  .panel img { display: block; width: 100%; filter: drop-shadow(0 40px 80px rgba(0,0,0,.55)); }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--black); }
+  body { font-family: var(--sans); color: var(--paper); -webkit-font-smoothing: antialiased; }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+  .o { position: absolute; opacity: 0; }
+
+  .corner { position: absolute; top: 40px; font-size: 17px; font-weight: 600; letter-spacing: .14em; color: #d9d3c9; z-index: 60; }
+  .corner span { display: block; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+  #cl { left: 56px; } #cr { right: 56px; text-align: right; }
+
+  .notch { position: absolute; left: 50%; top: 0; width: 330px; height: 52px; margin-left: -165px;
+    background: #000; border-radius: 0 0 24px 24px; z-index: 40; }
+  .notch::before, .notch::after { content: ""; position: absolute; top: 0; width: 16px; height: 16px; }
+  .notch::before { left: -16px; background: radial-gradient(circle at 0 100%, transparent 15px, #000 16px); }
+  .notch::after { right: -16px; background: radial-gradient(circle at 100% 100%, transparent 15px, #000 16px); }
+
+  /* Fotoğraf penceresi: anıt sitesindeki kemer formu */
+  .arch { position: absolute; overflow: hidden; clip-path: url(#arch); }
+  .arch img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .arch.draw { background: #1f1d1b; }
+  .arch.draw img { object-fit: contain; inset: 12% 8% 4%; width: 84%; height: 84%; }
+
+  .serif { font-family: var(--serif); font-weight: 700; color: #fff; }
+  .kicker { font-size: 15px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); }
+  .body { font-size: 27px; line-height: 1.7; color: var(--soft); }
+
+  .panel { position: absolute; left: 50%; top: 0; z-index: 30; opacity: 0; transform-origin: 50% 0; }
+  .panel img { display: block; width: 100%; }
   .panel .stack { position: relative; }
   .panel .stack img + img { position: absolute; left: 0; top: 0; opacity: 0; }
-  .card { position: absolute; left: 50%; z-index: 25; opacity: 0; transform-origin: 50% 30%; }
-  .card img { display: block; width: 100%; border-radius: 30px;
-    box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.6); }
-  .cap { position: absolute; left: 0; right: 0; text-align: center; z-index: 30; opacity: 0;
-    font-weight: 700; letter-spacing: -0.02em; font-size: 66px; line-height: 1.12; }
-  .cap em { font-style: normal; color: #ffb34d; }
-  .cap small { display: block; font-size: 32px; font-weight: 500; letter-spacing: 0; color: rgba(245,239,230,.62); margin-top: 18px; }
-  .bird { position: absolute; z-index: 15; }
-  .bird img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
-  .bird .closed, .bird .happy { opacity: 0; }
-  #logo { position: absolute; left: 0; right: 0; text-align: center; z-index: 30; opacity: 0; }
-  #logo .word { font-size: 150px; font-weight: 800; letter-spacing: -0.045em; }
-  .chip { display: inline-block; padding: 14px 30px; border-radius: 999px; background: #f5efe6; color: #0d0c0b;
-    font-size: 34px; font-weight: 700; }
-  .chip.ghost { background: rgba(255,255,255,.08); color: #f5efe6; font-weight: 500; }
-  .badge { position: absolute; z-index: 40; opacity: 0; padding: 12px 22px; border-radius: 16px;
-    background: #ffb34d; color: #1a1209; font-size: 28px; font-weight: 700; white-space: nowrap; }
-  .cursor { position: absolute; z-index: 50; width: 34px; height: 34px; opacity: 0; }
-  .feats { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: 1500px; margin: 0 auto 44px; }
-  .feats span { padding: 10px 22px; border-radius: 999px; border: 1px solid rgba(255,179,77,.35);
-    color: #ffcf8a; font-size: 26px; font-weight: 600; opacity: 0; }
+  .card { position: absolute; left: 50%; z-index: 30; opacity: 0; }
+  .card img { display: block; width: 100%; border-radius: 26px; box-shadow: 0 0 0 1px var(--line); }
+
+  .cap { position: absolute; left: 150px; bottom: 112px; width: 1500px; z-index: 50; opacity: 0; }
+  .cap .num { display: flex; align-items: center; gap: 18px; margin-bottom: 22px; }
+  .cap .num i { display: block; width: 56px; height: 1px; background: var(--dim); }
+  .cap h2 { font-family: var(--serif); font-weight: 700; font-size: 58px; line-height: 1.15; color: #fff; }
+  .cap p { margin-top: 14px; font-size: 26px; line-height: 1.6; color: var(--soft); }
+
+  .cursor { position: absolute; z-index: 55; width: 32px; height: 32px; opacity: 0; }
+  .bird { position: absolute; }
+  .bird img { position: absolute; inset: 0; width: 100%; height: 100%; }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <clipPath id="arch" clipPathUnits="objectBoundingBox">
+      <path d="M 0 1 L 0 0.26 C 0 0.10 0.17 0.065 0.37 0.038 C 0.455 0.026 0.49 0.014 0.5 0 C 0.51 0.014 0.545 0.026 0.63 0.038 C 0.83 0.065 1 0.10 1 0.26 L 1 1 Z"/>
+    </clipPath>
+  </defs>
+</svg>
 
 <div id="stage">
-  <div class="glow" id="glow"></div>
-  <div class="notch" id="notch"></div>
+  <p class="corner o" id="cl"><span>Uygulama</span>Pepe</p>
+  <p class="corner o" id="cr"><span>Platform</span>macOS</p>
 
-  <!-- 0 · Kanca: çentiğin altından inen Pepe -->
-  <div class="bird" id="peek" style="width:170px;height:170px;left:50%;margin-left:-85px;top:-10px"><img class="open" src="assets/pepe.png"><img class="closed" src="assets/pepe-uyku.png"></div>
-  <div class="cap" id="c0" style="top:540px">Terminalin artık<br><em>çentiğinde.</em></div>
-
-  <!-- 1 · Logo -->
-  <div id="logo" style="top:250px">
-    <div class="bird" id="bigBird" style="position:relative;display:inline-block;width:300px;height:300px"><img class="open" src="assets/pepe.png"><img class="closed" src="assets/pepe-uyku.png"></div>
-    <div class="word">Pepe</div>
-    <div id="tag" style="font-size:42px;font-weight:500;color:rgba(245,239,230,.7);margin-top:6px">Terminaldeki ajanların için <span style="color:#ffb34d">çentikteki kontrol kulesi</span>.</div>
+  <!-- Açılış: problem, sonra çözüm -->
+  <div class="arch draw o" id="a0" style="left:1090px;top:150px;width:600px;height:800px"><img src="assets/pepe-uyku.png" id="a0img"></div>
+  <div class="arch draw o" id="a1" style="left:1090px;top:150px;width:600px;height:800px"><img src="assets/pepe.png"></div>
+  <div class="o" id="t0" style="left:200px;top:400px;width:800px">
+    <p class="kicker">Her gün</p>
+    <h1 class="serif" style="font-size:76px;line-height:1.12;margin-top:26px">Ajanım izin bekliyordu, ben başka penceredeydim.</h1>
+  </div>
+  <div class="o" id="t1" style="left:200px;top:380px;width:800px">
+    <h1 class="serif" style="font-size:76px;line-height:1.12">Artık çentikten haber veriyor.</h1>
+    <p class="body" style="margin-top:30px;width:700px">MacBook'un çentiğinde, terminalin arkasında olan biteni izleyerek.</p>
   </div>
 
-  <!-- 2 · Canlı durum -->
-  <div class="panel" id="p1" style="width:1188px;margin-left:-594px"><img src="assets/1-ana-calisiyor.png"></div>
-  <div class="cap" id="c1" style="top:470px">Terminalin arkada çalışırken<br><em>her adımı çentikten izle.</em></div>
+  <!-- Başlık -->
+  <div class="notch o" id="notch"></div>
+  <div class="bird o" id="peek" style="left:50%;width:150px;height:150px;margin-left:-75px;top:40px;z-index:35"><img src="assets/pepe.png" class="open"><img src="assets/pepe-uyku.png" class="closed" style="opacity:0"></div>
+  <div class="o" id="title" style="left:0;right:0;top:330px;text-align:center">
+    <h1 class="serif" style="font-weight:900;font-size:170px;letter-spacing:.05em;line-height:1">PEPE</h1>
+    <p class="body" style="margin-top:34px">Claude Code, Codex, Cursor ve Gemini CLI için çentik uygulaması.</p>
+  </div>
 
-  <!-- 3 · Adımlar -->
-  <div class="card" id="k1" style="width:1040px;margin-left:-520px;top:90px"><img src="assets/k-adimlar.png"></div>
-  <div class="cap" id="c2" style="top:790px">Okuduğu dosya, çalıştırdığı komut,<br><em>değiştirdiği satır. Canlı.</em></div>
+  <div id="scenes"></div>
 
-  <!-- 4 · İzin -->
-  <div class="panel" id="p2" style="width:1056px;margin-left:-528px"><img src="assets/2-izin.png"></div>
-  <div class="cap" id="c3" style="top:690px">İzin mi istiyor?<br><em>Tek tıkla ver, akışın bozulmasın.</em></div>
+  <!-- Kıyafetler -->
+  <div class="o" id="dress" style="left:0;right:0;top:120px;height:620px">
+    <div class="arch draw" style="left:330px;top:0;width:300px;height:400px"><img src="assets/pepe-gozluk.png"></div>
+    <div class="arch draw" style="left:650px;top:0;width:300px;height:400px"><img src="assets/pepe-papyon.png"></div>
+    <div class="arch draw" style="left:970px;top:0;width:300px;height:400px"><img src="assets/pepe-kulaklik.png"></div>
+    <div class="arch draw" style="left:1290px;top:0;width:300px;height:400px"><img src="assets/pepe-parti.png"></div>
+  </div>
+
+  <!-- Kapanış -->
+  <div class="arch draw o" id="endPhoto" style="left:810px;top:120px;width:300px;height:400px"><img src="assets/pepe-mutlu.png"></div>
+  <div class="o" id="end" style="left:0;right:0;top:575px;text-align:center">
+    <h1 class="serif" style="font-weight:900;font-size:120px;letter-spacing:.05em;line-height:1">PEPE</h1>
+    <p class="serif" style="font-style:italic;font-weight:400;font-size:34px;color:var(--soft);margin-top:22px">Ajanların ne yaptığını görmek için.</p>
+    <p class="kicker" style="margin-top:56px;color:#d9d3c9">Erken erişim &nbsp;·&nbsp; hi@tahayerdekalmazer.com</p>
+  </div>
+
   <svg class="cursor" id="cur" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15 L12.5 22 L15.5 20.6 L12 13.8 L19 13.8 Z" fill="#fff" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/></svg>
-
-  <!-- 5 · Soru -->
-  <div class="panel" id="p3" style="width:1056px;margin-left:-528px"><img src="assets/9-soru-coklu.png"></div>
-  <div class="cap" id="c4" style="top:680px">Soru mu soruyor?<br><em>Cevabı çentikten seç.</em></div>
-
-  <!-- 6 · Diff -->
-  <div class="card" id="k2" style="width:1040px;margin-left:-520px;top:90px"><img src="assets/k-diff.png"></div>
-  <div class="cap" id="c5" style="top:780px">Neyi değiştirdiğini<br><em>satır satır gör.</em></div>
-
-  <!-- 7 · Bitti -->
-  <div class="panel" id="p4" style="width:1188px;margin-left:-594px"><img src="assets/3-ana-bitti.png"></div>
-  <div class="cap" id="c6" style="top:560px">İş bitince Pepe <em>havlar.</em><small>Terminal kapalı olsa da oturuma buradan devam edersin.</small></div>
-
-  <!-- 8 · Bütün ajanlar -->
-  <div class="panel" id="p5" style="width:1056px;margin-left:-528px"><img src="assets/7-ajanlar.png"></div>
-  <div class="cap" id="c7" style="top:690px">Codex, Cursor, Gemini CLI…<br><em>Bütün ajanların tek bakışta.</em></div>
-  <div class="badge" id="b7" style="left:960px;top:900px">Paralel oturumlar · ayrı çalışma kopyaları</div>
-
-  <!-- 9 · Entegrasyonlar -->
-  <div class="panel" id="p6" style="width:1188px;margin-left:-594px"><div class="stack"><img src="assets/8-pill-stripe.png"><img src="assets/8-pill-github.png"><img src="assets/8-pill-vercel.png"><img src="assets/8-pill-calcom.png"></div></div>
-  <div class="cap" id="c8" style="top:520px">Stripe, GitHub, Vercel, Notion, n8n, Cal.com…<br><em>İşinin nabzı da çentikte.</em></div>
-
-  <!-- 10 · Ses -->
-  <div class="cap" id="c9" style="top:250px">«OK Pepe» de.<br><em>Sesle sor, sesle cevap al.</em></div>
-  <div class="panel" id="v1" style="width:1040px;margin-left:-520px;top:560px"><img src="assets/12-ses-dinliyor.png"></div>
-  <div class="panel" id="v2" style="width:1040px;margin-left:-520px;top:560px"><img src="assets/14-ses-konusuyor.png"></div>
-
-  <!-- 11 · Kişisel -->
-  <div class="panel" id="p7" style="width:880px;margin-left:-440px"><img src="assets/k-kisisel.png"></div>
-  <div class="cap" id="c10" style="top:690px;left:0;right:0">Sabah brifingi, hatırlatıcılar, Trello…<br><em>Günün tek ekranda.</em></div>
-
-  <!-- 12 · Müzik + dosya -->
-  <div class="panel" id="p8" style="width:1188px;margin-left:-594px"><div class="stack"><img src="assets/7-spotify.png"><img src="assets/11-birak-ekli.png"></div></div>
-  <div class="cap" id="c11" style="top:560px">Müziğin, dosyaların, sohbetin…<br><em>hepsi bir tık uzakta.</em></div>
-
-  <!-- 13 · Kıyafetler -->
-  <div class="panel" id="p9" style="width:900px;margin-left:-450px;top:110px"><img src="assets/7-kiyafetler.png" style="border-radius:40px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 40px 90px rgba(0,0,0,.6)"></div>
-  <div class="cap" id="c12" style="top:860px">Ve evet, <em>Pepe'yi giydirebilirsin.</em></div>
-
-  <!-- 14 · Kapanış -->
-  <div id="end" style="position:absolute;left:0;right:0;top:150px;text-align:center;z-index:30;opacity:0">
-    <div class="bird" id="endDog" style="position:relative;display:inline-block;width:240px;height:240px"><img class="open" src="assets/pepe.png"><img class="closed" src="assets/pepe-uyku.png"><img class="happy" src="assets/pepe-mutlu.png"></div>
-    <div style="font-size:130px;font-weight:800;letter-spacing:-0.045em;line-height:1">Pepe</div>
-    <div style="font-size:44px;font-weight:600;margin:20px 0 34px">Terminalin, <span style="color:#ffb34d">çentiğinde.</span></div>
-    <div class="feats" id="feats">
-      <span>Canlı adımlar</span><span>Tek tıkla izin</span><span>Çentikten cevap</span><span>Satır satır diff</span>
-      <span>Paralel oturumlar</span><span>«OK Pepe» sesli asistan</span><span>Stripe · GitHub · Vercel</span><span>Sabah brifingi</span>
-    </div>
-    <span class="chip">Erken erişim</span>&nbsp;&nbsp;<span class="chip ghost">hi@tahayerdekalmazer.com</span>
-  </div>
 </div>
 
 <script>
@@ -130,120 +114,139 @@ const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, k) => a + (b - a) * k;
 const easeOut = k => 1 - Math.pow(1 - k, 3);
 const easeInOut = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-const back = k => { const c = 1.5; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
-// a..b arasında 0→1
 const prog = (t, a, b) => clamp((t - a) / (b - a));
-// Görünürlük: a'da girer (dur kadar), b'de çıkar.
-const vis = (t, a, b, dur = .45) => Math.min(easeOut(prog(t, a, a + dur)), 1 - easeInOut(prog(t, b - dur, b)));
+// a'da girer, b'de çıkar; ikisi de yumuşak.
+const vis = (t, a, b, d = .6) => Math.min(easeOut(prog(t, a, a + d)), 1 - easeInOut(prog(t, b - d, b)));
 
-// Panel çentikten açılır: çentik genişliğinden tam boya, kapanırken geri çentiğe.
+// Özellik sahneleri: görsel çentikten açılır (panel) ya da üstte süzülür (card); altta numaralı not.
+// w: orijinal piksel genişliği, s: ölçek.
+const SCENES = [
+  { kind: 'panel', imgs: ['1-ana-calisiyor'], w: 1320, s: 1,
+    h: 'Terminal arkada kalsa da ne yaptığını görüyorum.' },
+  { kind: 'card', imgs: ['k-adimlar'], w: 880, s: .98,
+    h: 'Hangi dosyayı okudu, hangi komutu çalıştırdı.', p: 'Her adım, olduğu anda.' },
+  { kind: 'panel', imgs: ['2-izin'], w: 1320, s: .9, cursor: [.89, .86],
+    h: 'İzin isteyince terminali aramıyorum.', p: 'Çentikten veriyorum, iş kaldığı yerden devam ediyor.' },
+  { kind: 'panel', imgs: ['9-soru-coklu'], w: 1320, s: .9,
+    h: 'Soru sorduğunda cevabı da oradan seçiyorum.' },
+  { kind: 'card', imgs: ['k-diff'], w: 856, s: 1.02,
+    h: 'Neyi değiştirdiğini satır satır gösteriyor.' },
+  { kind: 'panel', imgs: ['3-ana-bitti'], w: 1320, s: 1, bark: true,
+    h: 'İş bitince havlıyor.', p: 'Terminal kapalı olsa bile oturuma buradan devam edebiliyorum.' },
+  { kind: 'panel', imgs: ['7-ajanlar'], w: 1320, s: .85,
+    h: 'Birden fazla ajan aynı anda.', p: 'Her biri kendi çalışma kopyasında, birbirine karışmadan.' },
+  { kind: 'panel', imgs: ['8-pill-stripe', '8-pill-github', '8-pill-vercel', '8-pill-calcom'], w: 1320, s: 1,
+    h: 'Stripe, GitHub, Vercel ve Cal.com da çentikte.', p: 'Bugün ne sattım, hangi deploy düştü, sıradaki görüşme ne zaman.' },
+  { kind: 'voice', imgs: ['12-ses-dinliyor', '14-ses-konusuyor'], w: [860, 1040], s: 1,
+    h: '“OK Pepe” deyince dinliyor.', p: 'Sesle soruyorum, sesle cevap veriyor.' },
+  { kind: 'panel', imgs: ['k-kisisel'], w: 1320, s: .72,
+    h: 'Sabah brifingi, hatırlatıcılar, Trello.', p: 'Günün geri kalanı da aynı yerde.' },
+];
+const T0 = 13.2, STEP = 3.7;
+SCENES.forEach((sc, i) => {
+  sc.a = T0 + i * STEP; sc.b = sc.a + STEP;
+  const root = $('scenes');
+  const src = n => `assets/${n}.png`;
+  if (sc.kind === 'voice') {
+    sc.els = sc.imgs.map((n, j) => {
+      const d = document.createElement('div'); d.className = 'panel';
+      d.style.width = sc.w[j] + 'px'; d.style.marginLeft = -sc.w[j] / 2 + 'px';
+      d.innerHTML = `<img src="${src(n)}">`; root.appendChild(d); return d;
+    });
+  } else {
+    const d = document.createElement('div'); d.className = sc.kind;
+    const W = sc.w * sc.s; d.style.width = W + 'px'; d.style.marginLeft = -W / 2 + 'px';
+    if (sc.kind === 'card') d.style.top = '120px';
+    d.innerHTML = sc.imgs.length > 1 ? `<div class="stack">${sc.imgs.map(n => `<img src="${src(n)}">`).join('')}</div>`
+                                     : `<img src="${src(sc.imgs[0])}">`;
+    root.appendChild(d); sc.el = d;
+  }
+  const c = document.createElement('div'); c.className = 'cap';
+  c.innerHTML = `<div class="num kicker">${String(i + 1).padStart(2, '0')}<i></i></div><h2>${sc.h}</h2>${sc.p ? `<p>${sc.p}</p>` : ''}`;
+  root.appendChild(c); sc.cap = c;
+});
+
+// Panel çentikten açılır: önce çentik genişliğinde, sonra tam boy.
 function panel(el, t, a, b) {
-  const open = back(prog(t, a, a + .7)), close = easeInOut(prog(t, b - .45, b));
-  const k = clamp(open) * (1 - close) + (open > 1 ? open - 1 : 0) * (1 - close);
+  const open = easeOut(prog(t, a, a + .8)), close = easeInOut(prog(t, b - .5, b));
+  const k = open * (1 - close);
   const w = el.offsetWidth, h = el.offsetHeight;
-  const nx = Math.max(0, (w - 360) / 2) / w * 100, ny = Math.max(0, h - 58) / h * 100;
-  const ix = lerp(nx, 0, clamp(k, 0, 1.05)), iy = lerp(ny, 0, clamp(k, 0, 1.05));
+  const ix = lerp(Math.max(0, (w - 330) / 2) / w * 100, 0, k), iy = lerp(Math.max(0, h - 52) / h * 100, 0, k);
   el.style.opacity = t < a || t > b ? 0 : 1;
-  el.style.clipPath = `inset(0 ${ix}% ${iy}% ${ix}% round 0 0 ${lerp(26, 44, clamp(k))}px ${lerp(26, 44, clamp(k))}px)`;
-  el.style.transform = `scale(${lerp(.96, 1, clamp(k))})`;
+  el.style.clipPath = `inset(0 ${ix}% ${iy}% ${ix}% round 0 0 ${lerp(24, 40, k)}px ${lerp(24, 40, k)}px)`;
 }
-// Serbest kart: hafif büyüyerek belirir, yavaşça yaklaşır.
 function card(el, t, a, b) {
-  const v = vis(t, a, b, .5);
+  const v = vis(t, a, b);
   el.style.opacity = v;
-  el.style.transform = `translateY(${lerp(40, 0, easeOut(prog(t, a, a + .7)))}px) scale(${lerp(.93, 1, easeOut(prog(t, a, a + .7))) + prog(t, a, b) * .03})`;
+  el.style.transform = `translateY(${lerp(24, 0, easeOut(prog(t, a, a + .8)))}px)`;
 }
 function cap(el, t, a, b) {
   const v = vis(t, a, b, .5);
   el.style.opacity = v;
-  el.style.transform = `translateY(${lerp(30, 0, easeOut(prog(t, a, a + .6)))}px)`;
-  el.style.filter = `blur(${(1 - v) * 8}px)`;
+  el.style.transform = `translateY(${lerp(18, 0, easeOut(prog(t, a, a + .7)))}px)`;
 }
-// Aynı panel içinde görseller sırayla yer değiştirir.
-function cycle(el, t, times) {
-  const imgs = el.querySelectorAll('.stack img');
-  imgs.forEach((im, i) => {
-    if (i === 0) return;
-    im.style.opacity = easeInOut(prog(t, times[i - 1], times[i - 1] + .35));
-  });
-}
-// Göz kırpma: kapalı gözlü görsel kısa süre öne geçer.
-function blink(el, t, times) {
-  const shut = times.some(b => Math.abs(t - b) < .08);
-  el.querySelector('.closed').style.opacity = shut ? 1 : 0;
-  el.querySelector('.open').style.opacity = shut ? 0 : 1;
+function rise(el, t, a, b, d = .9) {
+  const v = vis(t, a, b, d);
+  el.style.opacity = v;
+  el.style.transform = `translateY(${lerp(22, 0, easeOut(prog(t, a, a + d * 1.4)))}px)`;
 }
 
 window.seek = function (t) {
-  // 0–3.4: çentiğin altından inen Pepe
-  const peekIn = back(prog(t, .5, 1.3)), peekOut = easeInOut(prog(t, 3.0, 3.5));
-  $('peek').style.transform = `translateY(${lerp(-110, 52, clamp(peekIn, 0, 1.2)) - peekOut * 160}px) rotate(${Math.sin(t * 3) * 4}deg)`;
-  $('peek').style.opacity = t > 3.5 ? 0 : 1;
-  blink($('peek'), t, [1.9, 2.6]);
-  cap($('c0'), t, .9, 3.3);
+  // 0–9: uyuyan Pepe, sonra uyanık
+  const corners = vis(t, .4, 9.2, 1);
+  $('cl').style.opacity = $('cr').style.opacity = corners;
+  $('a0').style.opacity = vis(t, .2, 6.2, 1.1);
+  $('a0img').style.transform = `scale(${lerp(1.08, 1, prog(t, 0, 6.2))})`;
+  $('a1').style.opacity = vis(t, 5.2, 9.2, 1.1);
+  rise($('t0'), t, .9, 4.7);
+  rise($('t1'), t, 5.0, 9.0);
 
-  // 3.4–6.8: logo
-  const lg = vis(t, 3.4, 6.8, .55);
-  $('logo').style.opacity = lg;
-  $('logo').style.transform = `scale(${lerp(.92, 1, easeOut(prog(t, 3.4, 4.2)))}) translateY(${-easeInOut(prog(t, 6.3, 6.8)) * 40}px)`;
-  $('bigBird').style.transform = `translateY(${Math.sin(t * 2.4) * 8}px) rotate(${Math.sin(t * 1.7) * 3}deg)`;
-  $('tag').style.opacity = easeOut(prog(t, 4.1, 4.8));
-  blink($('bigBird'), t, [5.2, 6.1]);
+  // 9.2–13.2: çentik ve başlık
+  $('notch').style.opacity = t > 9.3 ? 1 : easeOut(prog(t, 8.9, 9.3));
+  const pk = easeOut(prog(t, 9.8, 10.6)) * (1 - easeInOut(prog(t, 12.6, 13.1)));
+  $('peek').style.opacity = pk > 0 ? 1 : 0;
+  $('peek').style.transform = `translateY(${lerp(-130, 30, pk)}px)`;
+  const shut = Math.abs(t - 11.6) < .08;
+  $('peek').querySelector('.closed').style.opacity = shut ? 1 : 0;
+  $('peek').querySelector('.open').style.opacity = shut ? 0 : 1;
+  rise($('title'), t, 10.2, 13.1, .8);
 
-  // Ajan akışı
-  panel($('p1'), t, 6.8, 10.6);  cap($('c1'), t, 7.2, 10.5);
-  card($('k1'), t, 10.6, 14.4);  cap($('c2'), t, 11.0, 14.3);
-  panel($('p2'), t, 14.4, 18.6); cap($('c3'), t, 14.8, 18.5);
-  // İmleç "İzin ver"e gider, tıklar.
-  const cm = easeInOut(prog(t, 15.8, 17.0));
-  $('cur').style.opacity = vis(t, 15.6, 18.0, .3);
-  const clickS = t > 17.1 && t < 17.35 ? .82 : 1;
-  $('cur').style.transform = `translate(${lerp(1240, 1372, cm)}px, ${lerp(760, 512, cm)}px) scale(${clickS})`;
-  panel($('p3'), t, 18.6, 22.2); cap($('c4'), t, 19.0, 22.1);
-  card($('k2'), t, 22.2, 25.8);  cap($('c5'), t, 22.6, 25.7);
-  panel($('p4'), t, 25.8, 29.6); cap($('c6'), t, 26.2, 29.5);
-  panel($('p5'), t, 29.6, 33.4); cap($('c7'), t, 30.0, 33.3);
-  const bb = vis(t, 30.6, 33.2, .4);
-  $('b7').style.opacity = bb;
-  $('b7').style.transform = `translateX(-50%) translateY(${lerp(20, 0, bb)}px) rotate(-3deg)`;
+  for (const sc of SCENES) {
+    if (sc.kind === 'panel') panel(sc.el, t, sc.a, sc.b);
+    else if (sc.kind === 'card') card(sc.el, t, sc.a, sc.b);
+    else { panel(sc.els[0], t, sc.a, sc.a + STEP * .5); panel(sc.els[1], t, sc.a + STEP * .5, sc.b); }
+    cap(sc.cap, t, sc.a + .3, sc.b - .05);
+    if (sc.imgs.length > 1 && sc.kind === 'panel') {
+      const imgs = sc.el.querySelectorAll('.stack img'), seg = (STEP - 1) / imgs.length;
+      imgs.forEach((im, j) => { if (j) im.style.opacity = easeInOut(prog(t, sc.a + .6 + j * seg, sc.a + .9 + j * seg)); });
+    }
+    if (sc.cursor) {
+      const W = sc.w * sc.s, H = sc.el.offsetHeight;
+      const tx = 960 - W / 2 + sc.cursor[0] * W, ty = sc.cursor[1] * H;
+      const m = easeInOut(prog(t, sc.a + 1.1, sc.a + 2.2));
+      $('cur').style.opacity = vis(t, sc.a + .9, sc.b - .5, .3);
+      $('cur').style.transform = `translate(${lerp(tx - 160, tx, m)}px, ${lerp(ty + 220, ty, m)}px) scale(${t > sc.a + 2.3 && t < sc.a + 2.5 ? .84 : 1})`;
+    }
+  }
 
-  // Entegrasyonlar: Stripe → GitHub → Vercel → Cal.com
-  panel($('p6'), t, 33.4, 38.0); cap($('c8'), t, 33.8, 37.9);
-  cycle($('p6'), t, [34.6, 35.7, 36.8]);
+  // 50.2–54.6: kıyafetler
+  const kA = T0 + SCENES.length * STEP, kB = kA + 4.4;
+  rise($('dress'), t, kA + .1, kB);
+  if (!window._dcap) {
+    const c = document.createElement('div'); c.className = 'cap';
+    c.innerHTML = `<div class="num kicker">Bir de<i></i></div><h2>Pepe\'nin on bir kıyafeti var.</h2><p>Gözlük, papyon, kulaklık, parti şapkası...</p>`;
+    $('stage').appendChild(c); window._dcap = c;
+  }
+  cap(window._dcap, t, kA + .4, kB);
 
-  // Ses: dinliyor → konuşuyor
-  cap($('c9'), t, 38.1, 41.9);
-  const v1 = vis(t, 38.6, 40.2, .35), v2 = vis(t, 40.0, 41.9, .35);
-  $('v1').style.opacity = v1; $('v1').style.transform = `translateY(${lerp(30, 0, easeOut(prog(t, 38.6, 39.1)))}px) scale(${lerp(.92, 1, v1)})`;
-  $('v2').style.opacity = v2; $('v2').style.transform = `scale(${lerp(.95, 1, v2)})`;
-
-  panel($('p7'), t, 42.0, 45.8); cap($('c10'), t, 42.4, 45.7);
-  panel($('p8'), t, 45.8, 49.4); cap($('c11'), t, 46.2, 49.3);
-  cycle($('p8'), t, [47.5]);
-
-  const k9 = vis(t, 49.4, 52.4, .5);
-  $('p9').style.opacity = k9;
-  $('p9').style.transform = `scale(${lerp(.9, 1, easeOut(prog(t, 49.4, 50.2)))})`;
-  cap($('c12'), t, 49.7, 52.4);
-
-  // 52.4–57: kapanış
-  const e = easeOut(prog(t, 52.5, 53.3));
-  $('end').style.opacity = e;
-  $('end').style.transform = `translateY(${lerp(30, 0, e)}px)`;
-  document.querySelectorAll('#feats span').forEach((s, i) => {
-    const f = easeOut(prog(t, 53.2 + i * .12, 53.6 + i * .12));
-    s.style.opacity = f; s.style.transform = `translateY(${lerp(14, 0, f)}px)`;
-  });
-  blink($('endDog'), t, [53.9]);
-  // Kapanışta sevinç: dil dışarıda, bir zıplama.
-  const hp = t > 54.6 && t < 56.2;
-  $('endDog').querySelector('.happy').style.opacity = hp ? 1 : 0;
-  if (hp) $('endDog').querySelector('.open').style.opacity = 0;
-  $('endDog').style.transform = `translateY(${-Math.sin(Math.PI * prog(t, 54.6, 55.2)) * 30}px)`;
-
-  $('glow').style.opacity = .7 + .3 * Math.sin(t * .9);
+  // Kapanış
+  const e = kB + .2;
+  $('notch').style.opacity = t > e ? 1 - easeInOut(prog(t, e, e + .6)) : $('notch').style.opacity;
+  rise($('endPhoto'), t, e + .3, 99, 1.1);
+  rise($('end'), t, e + 1.0, 99, 1.1);
+  $('cl').style.opacity = $('cr').style.opacity = Math.max(corners, easeOut(prog(t, e + 1.6, e + 2.6)));
 };
-window.DURATION = 57;
+window.DURATION = 61;
 window.seek(0);
 </script>
 </body>

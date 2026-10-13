@@ -140,7 +140,6 @@ import Foundation
         let base = fm.homeDirectoryForCurrentUser.appendingPathComponent(".claude/projects")
         var roots = Set<String>()
         let pathPattern = try! NSRegularExpression(pattern: "~/[^\\s`)\\],;'\"]+")
-        let shortPattern = try! NSRegularExpression(pattern: "(?:Projeler/)?(Bireysel|Divizyon|Polenist|Tema|Tipbox-pilot)/[A-Za-z0-9._-]+")
         for proj in (try? fm.contentsOfDirectory(atPath: base.path)) ?? [] {
             let mem = base.appendingPathComponent(proj).appendingPathComponent("memory")
             for file in (try? fm.contentsOfDirectory(atPath: mem.path)) ?? [] where file.hasPrefix("project") {
@@ -149,10 +148,6 @@ import Foundation
                 var candidates: [String] = []
                 for m in pathPattern.matches(in: s, range: NSRange(location: 0, length: ns.length)) {
                     candidates.append(home + ns.substring(with: m.range).dropFirst(1))
-                }
-                for m in shortPattern.matches(in: s, range: NSRange(location: 0, length: ns.length)) {
-                    let rel = ns.substring(with: m.range).replacingOccurrences(of: "Projeler/", with: "")
-                    candidates.append(home + "/Desktop/Projeler/" + rel)
                 }
                 for c in candidates {
                     var isDir: ObjCBool = false
@@ -181,10 +176,12 @@ import Foundation
     // MARK: - Proje kimliği
 
     /// Proje olmayan kapsayıcı klasörler: ev dizini, Masaüstü, kategori klasörleri…
+    /// Kendi kategori klasörlerin için: `defaults write com.tahayerdekalmazer.serce kapsayiciKlasorler -array Isler Kisisel`
     nonisolated static func isContainer(_ root: String) -> Bool {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let containers: Set<String> = ["Desktop", "Documents", "Downloads", "Projeler", "Bireysel", "Divizyon",
-                                       "Polenist", "Tema", "Tipbox-pilot", "Tipbox", "Research", "Arşiv", "Arsiv"]
+        var containers: Set<String> = ["Desktop", "Documents", "Downloads", "Developer", "Projects", "Projeler",
+                                       "Code", "src", "Research", "Arşiv", "Arsiv"]
+        containers.formUnion(UserDefaults.standard.stringArray(forKey: "kapsayiciKlasorler") ?? [])
         return root == home || root == AgentRunner.projectlessDir || !root.hasPrefix(home + "/") || containers.contains((root as NSString).lastPathComponent)
     }
 

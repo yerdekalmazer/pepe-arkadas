@@ -7,7 +7,7 @@ import path from 'node:path';
 const exe = path.join(homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell');
 const browser = await chromium.launch({ executablePath: exe });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-await page.goto('file://' + path.resolve('reklam.html'));
+await page.goto('file://' + path.resolve(process.env.HTML || 'reklam.html'));
 await page.waitForTimeout(300);
 const times = process.argv.slice(2).map(Number);
 if (times.length) {

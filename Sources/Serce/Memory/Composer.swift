@@ -46,6 +46,20 @@ import UniformTypeIdentifiers
         return nil
     }
 
+    /// Hazır bir metni gönder (başka oturumdan aktarma); oturum çalışıyorsa sıraya alır, kullanıcının taslağına dokunmaz.
+    func enqueue(_ text: String, for s: AgentSession) -> String? {
+        if s.status == .working || AgentRunner.shared.isRunning(s.id) {
+            if let old = queued[s.id], !old.text.isEmpty {
+                queued[s.id]?.text = old.text + "\n\n" + text
+            } else {
+                queued[s.id] = Draft(text: text)
+            }
+            return nil
+        }
+        errors[s.id] = nil
+        return AgentRunner.shared.send(text, to: s)
+    }
+
     func cancelQueued(_ sid: String) {
         if let d = queued.removeValue(forKey: sid) { drafts[sid] = d }
     }

@@ -201,7 +201,8 @@ struct Equalizer: View {
     var height: CGFloat = 12
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20)) { tl in
+        // Müzik çaldıkça saatlerce görünür: düşük kare hızı yeterli.
+        TimelineView(.animation(minimumInterval: 1.0 / 8)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             HStack(alignment: .bottom, spacing: 2) {
                 ForEach(0..<bars, id: \.self) { i in

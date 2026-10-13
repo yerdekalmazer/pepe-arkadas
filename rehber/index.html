@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pepe · Kullanım rehberi</title>
+<style>
+  /* Tanıtım videosuyla aynı kimlik: Playfair + Montserrat, kömür zemin, kâğıt beyazı. */
+  @font-face { font-family: "Playfair Display"; src: url(fonts/Playfair.ttf); font-weight: 400 900; }
+  @font-face { font-family: "Playfair Display"; src: url(fonts/PlayfairItalic.ttf); font-weight: 400 900; font-style: italic; }
+  @font-face { font-family: "Montserrat"; src: url(fonts/Montserrat.ttf); font-weight: 100 900; }
+  :root { --black: #161616; --panel: #1e1d1b; --paper: #f5f1ea; --dim: #8a837a; --soft: #cfc8bd; --line: rgba(255,255,255,.12);
+    --amber: #f0a43a; --green: #4cc38a; --red: #e5534b; --blue: #5b9cf5;
+    --serif: "Playfair Display", Georgia, serif; --sans: "Montserrat", -apple-system, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, monospace; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 32px; }
+  body { background: var(--black); color: var(--soft); font: 16px/1.75 var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: var(--paper); text-decoration-color: var(--dim); text-underline-offset: 3px; }
+
+  /* Yan menü */
+  nav { position: fixed; top: 0; left: 0; bottom: 0; width: 270px; padding: 40px 28px; border-right: 1px solid var(--line); overflow-y: auto; }
+  nav .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 34px; text-decoration: none; }
+  nav .brand img { width: 46px; }
+  nav .brand b { font: 900 26px var(--serif); color: #fff; letter-spacing: .05em; }
+  nav ol { list-style: none; counter-reset: n; }
+  nav li { counter-increment: n; }
+  nav li a { display: flex; gap: 12px; padding: 6px 0; font-size: 13.5px; color: var(--dim); text-decoration: none; transition: color .15s; }
+  nav li a::before { content: counter(n, decimal-leading-zero); font-size: 11px; letter-spacing: .12em; padding-top: 2px; color: #5d5852; }
+  nav li a:hover, nav li a.on { color: var(--paper); }
+
+  main { margin-left: 270px; padding: 0 64px 120px; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  header { padding: 110px 0 70px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1fr 240px; gap: 40px; align-items: center; }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); }
+  header h1 { font: 900 92px/1 var(--serif); color: #fff; letter-spacing: .04em; margin: 18px 0 22px; }
+  header p { font-size: 19px; line-height: 1.7; max-width: 560px; }
+  header img { width: 100%; }
+
+  section { padding: 76px 0 10px; border-bottom: 1px solid var(--line); }
+  section > .kicker { display: flex; align-items: center; gap: 16px; }
+  section > .kicker i { width: 48px; height: 1px; background: var(--dim); }
+  h2 { font: 700 46px/1.15 var(--serif); color: #fff; margin: 16px 0 18px; }
+  h3 { font: 600 15px var(--sans); color: var(--paper); letter-spacing: .02em; margin: 40px 0 10px; }
+  p { margin-bottom: 14px; }
+  .lead { font-size: 19px; color: var(--soft); max-width: 720px; }
+  ul.list { margin: 6px 0 18px 0; list-style: none; }
+  ul.list li { position: relative; padding-left: 22px; margin-bottom: 8px; }
+  ul.list.nodot li { padding-left: 0; }
+  ul.list.nodot li::before { display: none; }
+  ul.list li::before { content: ""; position: absolute; left: 4px; top: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+  b, strong { color: var(--paper); font-weight: 600; }
+  code { font: 13.5px var(--mono); background: rgba(255,255,255,.07); padding: 2px 6px; border-radius: 5px; color: var(--paper); }
+  kbd { font: 600 12.5px var(--sans); padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(255,255,255,.22); border-bottom-width: 2px; color: var(--paper); white-space: nowrap; }
+  .btn { font-size: 13px; font-weight: 600; padding: 1px 10px; border-radius: 99px; background: rgba(255,255,255,.1); color: var(--paper); white-space: nowrap; }
+  .btn.w { background: var(--paper); color: #161616; }
+
+  figure { margin: 26px 0 30px; }
+  figure img { display: block; max-width: 100%; border-radius: 22px; box-shadow: 0 0 0 1px var(--line); }
+  figure.sm img { max-width: 640px; }
+  figcaption { font-size: 13px; color: var(--dim); margin-top: 10px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .row figure { margin: 10px 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 26px; font-size: 14.5px; }
+  th { text-align: left; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); font-weight: 600; padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); }
+  td { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { color: var(--paper); font-weight: 600; white-space: nowrap; }
+
+  .note { border-left: 2px solid var(--amber); background: rgba(240,164,58,.07); padding: 14px 18px; border-radius: 0 12px 12px 0; margin: 18px 0 24px; font-size: 15px; }
+  .note.g { border-color: var(--green); background: rgba(76,195,138,.07); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0 26px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; font-size: 14.5px; line-height: 1.6; }
+  .card b { display: block; font-family: var(--serif); font-size: 19px; margin-bottom: 6px; color: #fff; font-weight: 700; }
+  .flow { counter-reset: s; list-style: none; margin: 10px 0 24px; }
+  .flow li { counter-increment: s; position: relative; padding: 0 0 16px 50px; }
+  .flow li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
+    display: grid; place-items: center; font: 700 15px var(--serif); color: var(--paper); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  footer { padding: 60px 0 0; color: var(--dim); font-size: 13px; }
+
+  @media (max-width: 1000px) {
+    nav { display: none; } main { margin-left: 0; padding: 0 24px 80px; }
+    header { grid-template-columns: 1fr; } header img { width: 180px; } header h1 { font-size: 64px; }
+    .row, .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="#ust"><img src="img/pepe.png" alt=""><b>PEPE</b></a>
+  <ol>
+    <li><a href="#ozet">Pepe nedir?</a></li>
+    <li><a href="#kurulum">Kurulum ve ajanlar</a></li>
+    <li><a href="#centik">Çentik ve oturumlar</a></li>
+    <li><a href="#izin">İzinler ve sorular</a></li>
+    <li><a href="#yaz">Oturuma yazmak</a></li>
+    <li><a href="#yeni">Yeni ve paralel oturumlar</a></li>
+    <li><a href="#sohbet">Pepe ile sohbet</a></li>
+    <li><a href="#kisisel">Hatırlatıcı ve otomasyon</a></li>
+    <li><a href="#hafiza">Proje hafızası</a></li>
+    <li><a href="#pill">Entegrasyonlar</a></li>
+    <li><a href="#ses">« OK Pepe »</a></li>
+    <li><a href="#karakter">Karakter ve sesler</a></li>
+    <li><a href="#kisayol">Kısayollar ve menüler</a></li>
+    <li><a href="#gizlilik">Gizlilik ve veriler</a></li>
+  </ol>
+</nav>
+
+<main id="ust">
+<div class="wrap">
+
+<header>
+  <div>
+    <p class="kicker">macOS · Kullanım rehberi · v0.2</p>
+    <h1>PEPE</h1>
+    <p>MacBook'un çentiğinde yaşayan, kodlama ajanlarının ne yaptığını gösteren ve senin yerine onlarla konuşan küçük bir yardımcı. Bu rehber uygulamanın bütün işlevlerini, nereden açıldıklarını ve sınırlarını anlatır.</p>
+  </div>
+  <img src="img/pepe-mutlu.png" alt="Pepe">
+</header>
+
+<!-- 01 -->
+<section id="ozet">
+  <p class="kicker">01<i></i>Genel bakış</p>
+  <h2>Pepe nedir?</h2>
+  <p class="lead">Claude Code, Codex, Cursor, Gemini CLI gibi ajanlar terminalde çalışırken sen çoğu zaman başka bir penceredesin. Pepe bu oturumları çentiğe taşır: ne yaptıklarını adım adım gösterir, izin istediklerinde haber verir, iş bitince havlar.</p>
+  <div class="grid">
+    <div class="card"><b>Görür</b>Her oturumun durumu, okuduğu dosyalar, çalıştırdığı komutlar, değiştirdiği satırlar ve konuşma geçmişi.</div>
+    <div class="card"><b>Karar verdirir</b>İzin ve soru kartları çentikte açılır; terminali aramadan cevaplarsın.</div>
+    <div class="card"><b>Yürütür</b>Terminal kapalı olsa bile oturuma yazarsın, yeni oturum başlatırsın, birden fazla ajanı paralel çalıştırırsın.</div>
+    <div class="card"><b>Hatırlar</b>Her proje için bir hafıza dosyası tutar; yeni oturumlara kısa özet verir, sabah brifingi hazırlar.</div>
+    <div class="card"><b>Asistanlık eder</b>Sohbet ya da sesle sorarsın; hatırlatıcı, tekrarlayan otomasyon, oturuma mesaj kurar.</div>
+    <div class="card"><b>Bağlanır</b>Stripe, GitHub, Vercel, Cal.com, n8n, Resend, Notion, Trello ve müzik çentikte birer “pill”.</div>
+  </div>
+  <figure><img src="img/1-ana-calisiyor.png" alt=""><figcaption>Bir Claude Code oturumu çalışırken açılmış çentik.</figcaption></figure>
+</section>
+
+<!-- 02 -->
+<section id="kurulum">
+  <p class="kicker">02<i></i>Başlarken</p>
+  <h2>Kurulum ve ajanlar</h2>
+  <p>Pepe menü çubuğunda bir pati simgesiyle durur, Dock'ta görünmez (pencere açıkken hariç). Çentiği olmayan Mac'lerde ekranın üstüne sahte bir çentik çizer.</p>
+  <p>Ajanlar Pepe'ye <b>hook</b>'larla bağlanır: ajan bir şey yaptığında küçük bir betik bunu Pepe'ye bildirir. Bağlamak için menü çubuğundaki <b>Claude Code'a bağla</b>'yı, çentikteki <span class="btn">Bağla</span> kartını ya da <b>Ayarlar → Ajanlar</b>'ı kullan. Pepe yapılandırma dosyasına yalnızca kendi satırlarını ekler ve önce bir yedek (<code>*.serce-yedek</code>) alır.</p>
+  <table>
+    <tr><th>Ajan</th><th>Yazdığı dosya</th><th>Çentikte izin kartı</th></tr>
+    <tr><td>Claude Code</td><td><code>~/.claude/settings.json</code></td><td>Evet, soru kartlarıyla birlikte</td></tr>
+    <tr><td>Codex</td><td><code>~/.codex/hooks.json</code></td><td>Evet</td></tr>
+    <tr><td>Copilot CLI</td><td><code>~/.copilot/hooks/serce.json</code></td><td>Evet (Pepe kapalıysa terminalde sorar)</td></tr>
+    <tr><td>Gemini CLI</td><td><code>~/.gemini/settings.json</code></td><td>Hayır, oturum ve adımlar görünür</td></tr>
+    <tr><td>Cursor</td><td><code>~/.cursor/hooks.json</code></td><td>Hayır, istekler ve düzenlemeler görünür</td></tr>
+    <tr><td>OpenCode</td><td><code>~/.config/opencode/plugins/serce.js</code></td><td>Hayır, yalnızca olaylar</td></tr>
+    <tr><td>Diğerleri</td><td>Elle: <code>serce-hook --agent &lt;ad&gt; &lt;Olay&gt;</code></td><td>—</td></tr>
+  </table>
+  <p>Claude Desktop'tan açılan Claude Code oturumları ayrıca tanınır. Pepe kapalıyken hook betiği sessizce çıkar; ajanı hiçbir zaman bekletmez.</p>
+  <div class="note g">Denemek için menü çubuğundaki <b>Demo göster</b>, sahte bir oturum ve izin isteği oynatır. Verdiğin kararlar hiçbir yere gitmez.</div>
+</section>
+
+<!-- 03 -->
+<section id="centik">
+  <p class="kicker">03<i></i>Ana ekran</p>
+  <h2>Çentik ve oturumlar</h2>
+  <h3>Kapalıyken</h3>
+  <p>Pepe çentiğin sol kanadında oturur. Sağ kanatta bir gösterge, önem sırasına göre durumu özetler:</p>
+  <ul class="list nodot">
+    <li><span class="dot" style="background:var(--amber)"></span><b>Turuncu “!”</b>: bir izin ya da soru seni bekliyor.</li>
+    <li><span class="dot" style="background:var(--green)"></span><b>Yeşil ✓</b>: bir iş az önce bitti.</li>
+    <li><span class="dot" style="background:var(--blue)"></span><b>Mavi noktalar</b>: çalışan oturum var (birden fazlaysa sayısı).</li>
+    <li><span class="dot" style="background:var(--green)"></span><b>Ekolayzer</b>: müzik çalıyor.</li>
+  </ul>
+  <h3>Açmak</h3>
+  <p>Fareyle çentiğin üstüne gel; bir an sonra açılır, fare çıkınca kapanır. İzin ya da soru gelirse kendiliğinden açılır ve cevaplayana kadar açık kalır. <kbd>⌃⌥Space</kbd> ile de açıp kapatabilirsin. Üst çubukta soldan sağa: Ana sayfa, Sohbet, <b>+</b> (dosya bırakma), plan kullanımı, pencerede aç, ayarlar ve ses düğmesi.</p>
+  <h3>Oturum kartları</h3>
+  <p>Her kartta ajana göre renklenmiş bir Pepe, proje adı, ajan adı, adım sayacı (<code>3/5</code>), şu anki adım ve son komutun çıktısı görünür. Terminali kapanmış oturumlar <b>kapalı</b> etiketi alır, ayrı çalışma kopyasındakiler bir dal çipi taşır. Varsayılan olarak 3 kart görünür; <b>+N oturum daha</b> ile 8'e kadar açılır. Üç saattir hareketsiz ve seni beklemeyen oturumlar listeden düşer.</p>
+  <figure><img src="img/7-ajanlar.png" alt=""><figcaption>Cursor, Gemini CLI ve Codex oturumları aynı anda.</figcaption></figure>
+  <h3>Oturum ayrıntısı: Sohbet ve Adımlar</h3>
+  <p>Bir karta tıklayınca ayrıntı açılır. Claude Code oturumlarında iki görünüm vardır:</p>
+  <ul class="list">
+    <li><b>Sohbet</b>: oturumun konuşma geçmişi; senin mesajların saatleriyle, Claude'un cevapları biçimli metin olarak. Oturum çalışıyorsa altta canlı bir satır döner. Eski kısımlar <b>Daha eskisini yükle</b> ile gelir.</li>
+    <li><b>Adımlar</b>: her araç çağrısı sırayla; okunan dosyalar, komutlar ve çıktıları, düzenlemelerin satır satır farkı (kırmızı/yeşil), hatalar renkli.</li>
+  </ul>
+  <p>Diğer ajanlarda son altı adımın canlı listesi ve ajanın son cevabı (<b>Yanıt</b>) görünür; dosya farkları satır numaralı ve renklendirilmiş, komutlar terminal görünümünde.</p>
+  <div class="row">
+    <figure><img src="img/r-adimlar.png" alt=""><figcaption>Adımlar: okuma, düzenleme, komut, hata.</figcaption></figure>
+    <figure><img src="img/r-oturuma-yaz-2.png" alt=""><figcaption>Sohbet: oturumun konuşma geçmişi.</figcaption></figure>
+  </div>
+  <p>Sol sütundaki düğmeler: <span class="btn">Yeni oturum</span> (bu projede), <span class="btn">Terminale git</span> (Terminal ve iTerm2'de tam o sekmeye; Ghostty, Warp, kitty öne gelir; VS Code, Cursor, Windsurf, Zed proje klasörünü açar), terminali olmayan oturumlarda <span class="btn">Terminalde aç</span> (<code>claude --resume</code> ile), ve <span class="btn">Oturumu kapat</span> (dört saniye içinde ikinci tıklamayla onaylanır; ajan süreci durur, terminal sekmesi açık kalır).</p>
+  <h3>Plan kullanımı</h3>
+  <p>Üst çubuktaki <b>Claude %67 · Codex %88</b> göstergesi aboneliğinin ne kadarını kullandığını gösterir. <b>Ayarlar → Ajanlar → Plan kullanımı</b>'ndan açılır (Claude için Pro/Max, Codex için Codex CLI gerekir). Tıklayınca 5 saatlik ve haftalık pencereler ile sıfırlanma süreleri çıkar. Yüzde 50'nin altı yeşil, 80'in altı turuncu, üstü kırmızı.</p>
+</section>
+
+<!-- 04 -->
+<section id="izin">
+  <p class="kicker">04<i></i>Karar anları</p>
+  <h2>İzinler ve sorular</h2>
+  <p>Ajan bir komut çalıştırmak, dosya değiştirmek ya da web'e çıkmak için izin istediğinde çentik açılır, Pepe “!” ile uyarır ve izin isteği sesi çalar. Kartta ne istendiği (komut ya da fark) önizlenir.</p>
+  <figure><img src="img/2-izin.png" alt=""><figcaption>Bir komut izni.</figcaption></figure>
+  <table>
+    <tr><th>Düğme</th><th>Ne yapar</th></tr>
+    <tr><td><span class="btn w">İzin ver</span></td><td>Bu isteğe izin verir. Kısayol: <kbd>Return</kbd></td></tr>
+    <tr><td><span class="btn">Reddet</span></td><td>İsteği reddeder. Kısayol: <kbd>Esc</kbd></td></tr>
+    <tr><td><span class="btn">Hep izin ver</span></td><td>Ajan bir kural önerdiyse (ör. bu komuta hep izin), onu kalıcı yapar.</td></tr>
+    <tr><td><span class="btn">⚡ Otomatiğe geç</span></td><td>Yalnızca terminaldeki Claude Code oturumlarında: izni verir ve oturumu otomatik moda geçirir.</td></tr>
+    <tr><td><span class="btn">Terminalde yanıtla</span></td><td>Kararı terminale bırakır.</td></tr>
+  </table>
+  <p>Yaklaşık iki dakika cevap gelmezse kart kendiliğinden düşer ve ajan terminalde sormaya devam eder. Birden fazla istek varsa <b>+N istek daha bekliyor</b> yazar. <kbd>⌃⌥A</kbd> seni doğrudan bekleyen uyarıya götürür.</p>
+  <h3>Soru kartları</h3>
+  <p>Claude Code sana soru sorduğunda (en fazla dört soru, her biri en fazla dört seçenek) çentikte seçenekler çıkar. Tek seçimlik sorularda seçince bir sonrakine geçilir; çok seçimlilerde birden fazlasını işaretleyebilirsin. <b>Başka bir cevap yaz…</b> alanına kendi cevabını yazabilirsin. <span class="btn">Sonraki</span> ve <span class="btn w">Gönder</span> (<kbd>Return</kbd>) ile bitir.</p>
+  <figure><img src="img/9-soru-coklu.png" alt=""><figcaption>Birden fazla sorulu bir kart.</figcaption></figure>
+</section>
+
+<!-- 05 -->
+<section id="yaz">
+  <p class="kicker">05<i></i>Terminalsiz devam</p>
+  <h2>Oturuma çentikten yazmak</h2>
+  <p class="lead">Oturum ayrıntısının altındaki kutuya yazdığın mesaj o oturuma gider; terminal kapalı olsa bile. Pepe arka planda Claude Code için <code>claude -p --resume</code>, Codex için <code>codex exec resume</code>, Gemini CLI için <code>gemini --resume</code> çalıştırır; adımlar ve cevap yine çentikte görünür.</p>
+  <figure><img src="img/r-oturuma-yaz-2.png" alt=""><figcaption>Kutudaki ipucu: “kesit oturumuna yaz — terminal kapalı olsa da devam eder”.</figcaption></figure>
+  <ul class="list">
+    <li><b>Sıraya alma</b>: oturum o an çalışıyorsa mesajın bekler (“Sırada — oturum bitince gönderilecek”), iş bitince gönderilir. <b>Geri al</b> ile vazgeçebilirsin.</li>
+    <li><b>Durdur</b>: Pepe'nin yürüttüğü bir çalışmayı ■ düğmesiyle kesersin.</li>
+    <li><b>Görseller</b>: mesaja en fazla 5 görsel; 📎 ile seç, ayrıntının herhangi bir yerine sürükle ya da <kbd>⌘V</kbd> ile yapıştır.</li>
+    <li><b>Eğik çizgi komutları</b>: <code>/</code> yazınca öneriler çıkar (<code>/compact</code>, <code>/review</code>, <code>/model</code>… ve projendeki özel komutlar, beceriler). <kbd>Tab</kbd> ilkini tamamlar.</li>
+  </ul>
+  <h3>Başka ajana aktarmak</h3>
+  <p>Bir oturumda çıkan sorunu ya da sonucu başka bir ajana devretmek için yazma kutusunun solundaki <b>↪</b> düğmesine bas. Açılan ekranda:</p>
+  <ul class="list">
+    <li><b>İçerik</b>: <b>Son yanıt</b>, <b>Hata veren adım</b> (komut ve çıktısıyla) ve <b>Görev</b>. Hata varsa hata ve görev, yoksa son yanıt kendiliğinden seçili gelir.</li>
+    <li><b>Kime</b>: yazılabilen başka bir oturum (önce aynı projedekiler) ya da aynı projede <b>yeni bir Claude Code, Codex veya Gemini</b> oturumu. Varsayılan hedef, aynı projedeki başka bir ajanın oturumu; yoksa farklı bir ajanla yeni oturum.</li>
+    <li><b>Ne yapsın?</b> alanına notunu yaz (“Bu hatayı düzelt”, “Bu planı gözden geçir”). Altta gidecek mesajın önizlemesi görünür; mesaj hangi projeden, hangi ajandan ve hangi klasörden geldiğini de söyler.</li>
+    <li><span class="btn w">Aktar</span>: hedef çalışıyorsa mesaj sıraya girer, bitince gider. Kaynak oturum Cursor ya da Copilot gibi yazılamayan bir ajan olsa bile aktarabilirsin.</li>
+  </ul>
+  <figure><img src="img/19-aktar.png" alt=""><figcaption>Claude Code oturumunun yanıtı yeni bir Codex oturumuna aktarılıyor.</figcaption></figure>
+  <p>Aynısını sohbetten de yapabilirsin: “kesit'teki Claude'un bulduğu hatayı Codex'e gönder, düzeltsin”. Pepe önce oturumu okur, sonra mesajı iletir.</p>
+  <h3>Mod, Model, Efor</h3>
+  <p>Kutunun üstündeki üç çip, bu oturuma Pepe'den giden mesajların nasıl çalışacağını belirler ve oturum başına hatırlanır:</p>
+  <table>
+    <tr><td>Mod</td><td>Oturumdaki gibi · Sor · Düzenlemeleri kabul et · Otomatik · Plan (değişiklik yapmaz, yalnızca plan çıkarır) · Sorma · Tüm izinleri atla ⚠︎. Otomatik ya da Düzenlemeleri kabul et seçilirse terminaldeki oturum da bir sonraki izin isteğinde o moda geçer.</td></tr>
+    <tr><td>Model</td><td>Varsayılan · Fable · Opus · Sonnet · Haiku</td></tr>
+    <tr><td>Efor</td><td>Varsayılan · Düşük · Orta · Yüksek · Çok yüksek · En yüksek</td></tr>
+  </table>
+  <p>Codex ve Gemini oturumlarında çipler o ajana göre değişir. Codex'te Mod: Proje klasörüne yazar, Salt okunur, Tam erişim ⚠︎; Model listesi Codex hesabından gelir; Efor da var. Gemini'de Mod: Düzenlemeleri kabul et, Plan, Hepsini onayla ⚠︎; Efor yok.</p>
+  <div class="note"><b>Claude Code, Codex ve Gemini CLI</b> oturumlarına yazılabilir. Cursor, Copilot, OpenCode gibi diğer ajanların oturumlarını izlersin ama mesaj gönderemezsin. Codex ve Gemini terminalsiz çalışırken izin soramaz; neye izin verildiğini Mod belirler.</div>
+</section>
+
+<!-- 06 -->
+<section id="yeni">
+  <p class="kicker">06<i></i>Başlatmak</p>
+  <h2>Yeni ve paralel oturumlar</h2>
+  <p><span class="btn">Yeni oturum</span> düğmesi boş ana ekranda, oturum listesinin altında ve her oturumun ayrıntısında bulunur. Açılan formda:</p>
+  <ol class="flow">
+    <li><b>Ajan</b> seç: Claude Code, Codex ya da Gemini CLI (kurulu olanlar).</li>
+    <li><b>Proje</b> seç: son oturumların ve hafızası olan projeler listelenir; <b>Klasör seç…</b> ile başka bir klasör, ya da <b>Projesiz</b> genel bir Claude oturumu.</li>
+    <li><b>Görev</b> alanına ne yapılacağını yaz.</li>
+    <li>İstersen <b>Ayrı çalışma kopyasında (git worktree)</b> seçeneğini aç (Codex ve Gemini'de kopya <code>&lt;proje&gt;/.worktrees/</code> altında açılır). Projede başka bir oturum zaten çalışıyorsa bu kendiliğinden açık gelir; iki ajan birbirinin dosyalarına karışmaz.</li>
+    <li>Mod, model ve eforu seç, <span class="btn w">Başlat</span>'a bas. Terminal gerekmez; adımlar çentikte. Claude Code'da izinler de çentikte sorulur; Codex ve Gemini'de izinleri seçtiğin Mod belirler.</li>
+  </ol>
+  <figure><img src="img/16-yeni-oturum.png" alt=""><figcaption>Yeni oturum formu.</figcaption></figure>
+  <p>Aynı anda en fazla 4 oturum çalışır; bu sınırı <b>Ayarlar → Hafıza ve bütçe</b>'den 1 ile 8 arasında değiştirebilirsin.</p>
+</section>
+
+<!-- 07 -->
+<section id="sohbet">
+  <p class="kicker">07<i></i>Asistan</p>
+  <h2>Pepe ile sohbet</h2>
+  <p class="lead">Üst çubuktaki 💬 sekmesi (ya da <kbd>⌃⌥C</kbd>) Pepe'nin kendisiyle konuştuğun yerdir. Pepe çalışan oturumlarını, aktif pill'lerini ve seni (Ben dosyası) bilir.</p>
+  <div class="row">
+    <figure><img src="img/7-sohbet-bos.png" alt=""><figcaption>Boş sohbet ve hızlı sorular.</figcaption></figure>
+    <figure><img src="img/8-sohbet.png" alt=""><figcaption>Dosya ekli bir soru.</figcaption></figure>
+  </div>
+  <h3>Modeller</h3>
+  <p>Üstteki model etiketine tıklayıp seçersin: Claude (Opus 5.5 varsayılan, Sonnet 5.5, Haiku 5.5), OpenAI (gpt-5, gpt-5-mini), Gemini (2.5 Pro, 2.5 Flash), ve kendi makinende Ollama ya da LM Studio. Anahtarlar <b>Ayarlar → Sohbet</b>'ten girilir.</p>
+  <h3>Kullanım</h3>
+  <ul class="list">
+    <li>Hızlı sorular: <b>Günümü özetle</b>, <b>Ajanlarım ne yapıyor?</b>, <b>Son değişiklikleri açıkla</b>.</li>
+    <li><kbd>⌘Return</kbd> gönderir, ■ cevabı durdurur, ✎ yeni sohbet açar. 🎤 ile dikte edersin (sağ tıkla dil seç).</li>
+    <li>Ekler: PDF, görsel, kod ve metin dosyaları. PDF'ler Claude ve Gemini'ye olduğu gibi, diğerlerine metin olarak gider.</li>
+    <li>Son 60 mesaj saklanır ve uygulama yeniden açılınca geri gelir.</li>
+  </ul>
+  <h3>Pepe'nin araçları</h3>
+  <p>Sohbette Pepe yalnızca cevap vermez, iş de yapar:</p>
+  <table>
+    <tr><td>Oturuma yaz</td><td>“kesit oturumuna yaz: fatura PDF'ini de yeniden üret” → mesaj o oturuma gider, terminal kapalı olsa da.</td></tr>
+    <tr><td>Oturum oku ve aktar</td><td>“kesit'teki Claude'un bulduğu hatayı Codex oturumuna gönder”: Pepe kaynağın görevini, hatasını ve son yanıtını okuyup hedefe iletir.</td></tr>
+    <tr><td>Oturum başlat</td><td>“tessera'da yeni oturum aç, giriş ekranındaki hatayı düzelt”; “Codex'le aç” ya da “Gemini'yle aç” dersen o ajanla (proje meşgulse ayrı çalışma kopyasında).</td></tr>
+    <tr><td>Hatırlatıcı</td><td>“yarın 10'da Tessera'yı App Store'a göndermemi hatırlat”, “20 dakika sonra hatırlat”; listele, iptal et.</td></tr>
+    <tr><td>Otomasyon</td><td>“hafta içi her sabah 9'da günün planını çıkar”; listele, iptal et.</td></tr>
+    <tr><td>Brifing</td><td>“günün özetini çıkar”, “geçen haftayı özetle”.</td></tr>
+    <tr><td>Proje hafızası</td><td>Bir projenin hafıza dosyasını okur ya da bütün hafızada arar.</td></tr>
+    <tr><td>Trello</td><td>Kartları listeler; kart eklemek ya da taşımak için çentikte senin onayını ister.</td></tr>
+    <tr><td>MCP ve web</td><td>Bağlı MCP sunucularının araçları (GitHub, Notion, Linear…) ve web araması.</td></tr>
+  </table>
+  <div class="row">
+    <figure><img src="img/r-sohbet-oturum.png" alt=""><figcaption>Sohbetten oturuma mesaj.</figcaption></figure>
+    <figure><img src="img/r-sohbet-otomasyon.png" alt=""><figcaption>Hatırlatıcı ve otomasyon kurmak.</figcaption></figure>
+  </div>
+  <div class="note">Araçlar şu an yalnızca sohbet sağlayıcısı <b>Claude</b> iken ve <b>en az bir MCP sunucusu bağlıyken</b> devreye giriyor (GitHub, <code>gh</code> girişin varsa kendiliğinden bağlanır). Üst çubukta “N MCP · M araç” çipini görüyorsan araçlar açık demektir. Aksi hâlde Pepe yalnızca sohbet eder.</div>
+  <h3>Dosya bırakma (+)</h3>
+  <p>Bir dosyayı çentiğe sürükleyince <b>+</b> sekmesi açılır ve Pepe dosyayı “yutar”. Sonra: <span class="btn">Sor</span> (eklerle sohbete geç), <span class="btn">E-postayla gönder</span> (Mail'de ekli bir taslak açar, kendisi göndermez) ya da <span class="btn">Temizle</span>.</p>
+  <figure class="sm"><img src="img/11-birak-ekli.png" alt=""></figure>
+</section>
+
+<!-- 08 -->
+<section id="kisisel">
+  <p class="kicker">08<i></i>Kişisel katman</p>
+  <h2>Hatırlatıcı, otomasyon, brifing</h2>
+  <h3>Hatırlatıcılar</h3>
+  <p>Sohbetten ya da sesle kurulur. Zamanı gelince çentik açılır, ⏰ balonu ve zil sesiyle bir şerit çıkar: <span class="btn">10 dk</span> erteler, <span class="btn w">Tamam</span> kapatır. Kontrol yerel yapılır, token harcamaz. Liste <b>Ayarlar → Kişisel → Hatırlatmalar</b>'da.</p>
+  <figure><img src="img/r-hatirlatma.png" alt=""><figcaption>Saati gelen bir hatırlatma.</figcaption></figure>
+  <h3>Otomasyonlar</h3>
+  <p>Her gün ya da seçtiğin günlerde, belirlediğin saatte bir mesajı Pepe'ye kendiliğinden gönderir; cevap sohbet sekmesinde açılır. Örneğin “her sabah 10'da bana günün planını sor”. Mac o saatte uykudaysa açıldığında, en geç üç saat gecikmeyle çalışır; aynı gün iki kez çalışmaz.</p>
+  <p>Sohbetten kurabileceğin gibi <b>Ayarlar → Kişisel → Otomasyonlar</b>'dan da eklersin: mesajı yaz, saati ve günleri (Pzt…Paz; hiçbiri seçili değilse her gün) seç, <span class="btn">Ekle</span>. Her satırda aç/kapat, ▶ <b>Şimdi dene</b> ve 🗑 <b>Sil</b> var.</p>
+  <h3>Sabah brifingi</h3>
+  <p>Her sabah (varsayılan 09:30'dan sonra Mac'i ilk kullandığında) çentikte bir <b>Günaydın</b> kartı açılır: dün çalışılan projeler, kaldığın yerler, bugünkü hatırlatmalar, Trello kartların, GitHub ve Cal.com özeti. Pazartesileri geçen haftanın özeti eklenir. Yapay zekâ kullanmaz. Saatini, sesli okunmasını ve <b>Şimdi göster</b>'i <b>Ayarlar → Kişisel → Sabah brifingi</b>'nde bulursun.</p>
+  <figure><img src="img/k-kisisel.png" alt=""><figcaption>Hatırlatma şeridi ve sabah brifingi.</figcaption></figure>
+  <h3>Haftalık özet</h3>
+  <p><b>Ayarlar → Haftalık özet</b>: oturum, adım, verilen ve reddedilen izin, cevaplanan soru sayıları; yedi günlük grafik, en çok çalışılan projeler ve ajan dağılımı. İçerik saklanmaz, yalnızca sayılar.</p>
+  <figure class="sm"><img src="img/12-haftalik.png" alt=""></figure>
+</section>
+
+<!-- 09 -->
+<section id="hafiza">
+  <p class="kicker">09<i></i>Bağlam</p>
+  <h2>Proje hafızası ve “Ben”</h2>
+  <p>Pepe her proje için bir markdown dosyası tutar: <code>~/Library/Application Support/Serce/Hafiza/&lt;proje&gt;.md</code>. Bölümleri: Özet, Durum, Sıradaki, Kararlar, Notlar, Oturumlar. Dosyayı elle de düzenleyebilirsin; eklediğin bölümler korunur.</p>
+  <ul class="list">
+    <li><b>Oturum günlüğü</b>: her oturumun istekleri, düzenlenen dosyaları ve komutları (✓/✗) yapay zekâsız yazılır. Son 15 oturum dosyada kalır, eskileri <code>.arsiv.md</code>'ye taşınır.</li>
+    <li><b>Özet güncellemesi</b>: oturumda anlamlı bir iş yapıldıysa Durum, Sıradaki ve Kararlar küçük bir modelle (varsayılan Haiku) güncellenir. Günlük bütçe varsayılan <b>$0.10</b>; 0 yaparsan kapanır.</li>
+    <li><b>Yeni oturumlara özet</b>: Claude Code oturumu başlarken projenin yaklaşık 400 token'lık kısa özeti ajana verilir.</li>
+    <li><b>Kullanım tablosu</b>: <b>Ayarlar → Hafıza ve bütçe</b>'de bugünkü çağrılar, token ve dolar karşılığı amaç amaç (Sohbet, Ses, Proje hafızası, Arka plan ajanı).</li>
+  </ul>
+  <p><b>Ben</b> dosyası (<code>Hafiza/_ben.md</code>) seni anlatır: Hakkımda, Kurallarım, Tercihler. Her sohbet ve sesli cevapta Pepe'nin bağlamına eklenir. <b>Ayarlar → Kişisel → Ben → Aç</b>.</p>
+</section>
+
+<!-- 10 -->
+<section id="pill">
+  <p class="kicker">10<i></i>Entegrasyonlar</p>
+  <h2>Pill'ler</h2>
+  <p>Pill'ler ana ekranın sağında iki sütunlu çipler olarak durur; ilki her zaman <b>Ajanlar</b>. Birine tıklayınca kartı solda açılır. Dikkat isteyen bir durum varsa çipte turuncu nokta yanar. En fazla 5 pill aynı anda aktif olur; <b>Ayarlar → Aktif pill'ler</b>'den seçilir, anahtarlar da orada girilir. Servisler dakikada bir yenilenir. <kbd>⌃⌥P</kbd> bir sonraki pill'e geçer.</p>
+  <figure><img src="img/7-ana-pill-izgarasi.png" alt=""></figure>
+  <table>
+    <tr><th>Pill</th><th>Gösterdiği</th><th>Uyarır</th><th>Gerekli</th></tr>
+    <tr><td>Stripe</td><td>Bugünkü gelir, ödeme sayısı, son 4 ödeme</td><td>Başarısız ödeme</td><td>Gizli ya da kısıtlı anahtar</td></tr>
+    <tr><td>GitHub</td><td>Açık PR'lar, inceleme bekleyenler, CI durumu</td><td>Kırık CI, inceleme isteği</td><td>Token ya da <code>gh</code> girişi</td></tr>
+    <tr><td>Vercel</td><td>Son deploy'lar: Hazır, Hata, Derleniyor…</td><td>Hatalı deploy</td><td>Token (+ takım kimliği)</td></tr>
+    <tr><td>Cal.com</td><td>Sıradaki görüşme ve yaklaşanlar</td><td>10 dk içinde başlayan</td><td>API anahtarı</td></tr>
+    <tr><td>n8n</td><td>Aktif akışlar, bugünkü çalışmalar</td><td>Başarısız çalışma</td><td>Adres + API anahtarı</td></tr>
+    <tr><td>Resend</td><td>Bugün gönderilen e-postalar ve durumları</td><td>Geri dönen, şikâyet</td><td>API anahtarı</td></tr>
+    <tr><td>Notion</td><td>Bugün düzenlenen sayfalar</td><td>—</td><td>Entegrasyon token'ı</td></tr>
+    <tr><td>Trello</td><td>Liste çipleri, kartlar, geciken kartlar</td><td>Geciken kart</td><td><code>~/.config/trello/.env</code></td></tr>
+    <tr><td>Spotify · Apple Music</td><td>Kapak, şarkı, ilerleme, karıştır, tekrar, ses</td><td>—</td><td>macOS otomasyon izni</td></tr>
+  </table>
+  <div class="row">
+    <figure><img src="img/8-pill-stripe.png" alt=""></figure>
+    <figure><img src="img/7-spotify.png" alt=""></figure>
+  </div>
+  <h3>MCP sunucuları</h3>
+  <p><b>Ayarlar → MCP</b>: GitHub varsayılan olarak açık; Notion, Linear, Sentry, Vercel, Stripe, Atlassian ve Context7 tarayıcıdan tek tıkla bağlanır. Claude Code, Claude Desktop, Cursor ve Codex'te tanımlı sunucular kendiliğinden içe alınır; <b>Sunucu ekle…</b> ile kendi sunucunu eklersin. Yalnızca okuyan araçlar doğrudan çalışır, yazan araçlar çentikte izin ister.</p>
+</section>
+
+<!-- 11 -->
+<section id="ses">
+  <p class="kicker">11<i></i>Sesli asistan</p>
+  <h2>« OK Pepe »</h2>
+  <p><b>Ayarlar → Ses → Sesli asistan açık</b> ile açılır; mikrofon ve konuşma tanıma izni ile bir Anthropic anahtarı gerekir. Sonra “OK Pepe”, “Okey Pepe” ya da “Hey Pepe” deyip sorunu söylersin; Pepe havlayarak duyduğunu belli eder. <kbd>⌃⌥S</kbd> uyandırma sözü olmadan dinletir.</p>
+  <figure class="sm"><img src="img/12-ses-dinliyor.png" alt=""></figure>
+  <figure class="sm"><img src="img/r-ses-konusuyor.png" alt=""><figcaption>Çentiğin altında dinliyor, sonra cevaplıyor.</figcaption></figure>
+  <ul class="list">
+    <li>Bir buçuk saniye kadar sustuğunda komut biter. Cevap soruyla biterse tekrar “OK Pepe” demeden cevap verebilirsin.</li>
+    <li>Örnekler: “Stripe'ta bugün ne kazandım?”, “GitHub yerine Stripe koy”, “biraz Daft Punk çal”, “Enzo'ya görselin hazır olduğunu yaz” (yalnızca taslak açar), “izni ver”, “terminali aç”, haber, hava durumu.</li>
+    <li>Sohbetteki bütün araçlar (hatırlatıcı, otomasyon, oturuma yazma…) sesle de çalışır.</li>
+    <li>Ses Mac'in en iyi Türkçe sesiyle okunur; kadın/erkek ve perde ayarlanır, istersen ElevenLabs bağlanır. Dil: Türkçe ya da İngilizce.</li>
+    <li>Konuşma tanıma mümkünse cihazda yapılır, ses kaydı hiçbir yere gönderilmez; yalnızca tanınan metin Anthropic'e gider.</li>
+  </ul>
+</section>
+
+<!-- 12 -->
+<section id="karakter">
+  <p class="kicker">12<i></i>Pepe'nin kendisi</p>
+  <h2>Karakter ve sesler</h2>
+  <p>Pepe ruh hâliyle durumu anlatır: oturum yokken uyur, çalışırken hareketlenir, bir şey beklerken uyarır, iş bitince sevinir, müzik çalarken dans eder. Gözleri imleci izler. İşlemciyi yormamak için boşta kıpırdamaz; tıklayınca zıplar.</p>
+  <h3>Gardırop</h3>
+  <p>11 kıyafet: Sade Pepe, Bere, Atkı, Güneş gözlüğü, Taç, Kulaklık, Papyon, Parti şapkası, Fes, Yılbaşı şapkası, Çiçek. Varsayılan <b>Mevsime göre</b>: yılbaşında şapka, kışın atkı, baharda çiçek, yazın gözlük. Pepe'ye sağ tıkla (<b>Gardırop</b>), <kbd>⌃⌥W</kbd>'ye bas ya da <b>Ayarlar → Karakter</b>'e git.</p>
+  <figure class="sm"><img src="img/7-kiyafetler.png" alt=""></figure>
+  <h3>Masaüstü Pepe</h3>
+  <p>Pepe'yi çentikten aşağı sürükle (ya da <kbd>⌃⌥D</kbd>, sağ tık → <b>Masaüstüne gönder</b>): masaüstünde oturur, yeri hatırlanır. İzin beklendiğinde çentiğe uçar, sonra döner. <b>Bir pencerenin üstüne bırakırsan</b> o pencerenin ekran görüntüsünü alıp sohbete ekler (Ekran Kaydı izni gerekir). Çift tıklayınca ya da çentiğe geri sürükleyince eve döner.</p>
+  <h3>Sesler</h3>
+  <table>
+    <tr><td>Havlama</td><td>Soru geldiğinde, « OK Pepe » duyulduğunda</td></tr>
+    <tr><td>İzin isteği</td><td>İzin istendiğinde, hatırlatma ve otomasyon zamanında</td></tr>
+    <tr><td>İş bitti</td><td>Bir oturum bittiğinde</td></tr>
+    <tr><td>Dürtme</td><td>Pepe'ye tıkladığında</td></tr>
+    <tr><td>Selam</td><td>Uygulama açılırken (“hav hav!”)</td></tr>
+    <tr><td>Dosya bırakma · Fırlayış · Hata</td><td>Masaüstü Pepe'nin hareketleri ve başarısız ekran görüntüsü</td></tr>
+  </table>
+  <p>Sesler dosyasızdır, açılışta sentezlenir. Kendi sesini koymak için <code>~/Library/Application Support/Serce/Sesler/</code> klasörüne sesin adıyla bir dosya bırak (ör. <code>done.wav</code>; wav, mp3, aiff, m4a). <b>Ayarlar → Karakter → Sesler</b>'de her birini ▶ ile dinlersin. Sesleri kapatmak için <kbd>⌃⌥M</kbd> ya da üst çubuktaki hoparlör.</p>
+</section>
+
+<!-- 13 -->
+<section id="kisayol">
+  <p class="kicker">13<i></i>Hızlı erişim</p>
+  <h2>Kısayollar ve menüler</h2>
+  <p>Genel kısayollar her uygulamadayken çalışır; <b>Ayarlar → Kısayollar</b>'dan tıklayıp yeniden kaydedebilirsin.</p>
+  <table>
+    <tr><td><kbd>⌃⌥Space</kbd></td><td>Çentiği aç / kapat</td></tr>
+    <tr><td><kbd>⌃⌥C</kbd></td><td>Sohbeti aç</td></tr>
+    <tr><td><kbd>⌃⌥A</kbd></td><td>Bekleyen uyarıya git</td></tr>
+    <tr><td><kbd>⌃⌥T</kbd></td><td>Son oturumun terminaline git</td></tr>
+    <tr><td><kbd>⌃⌥P</kbd></td><td>Sonraki pill</td></tr>
+    <tr><td><kbd>⌃⌥M</kbd></td><td>Sesi aç / kapat</td></tr>
+    <tr><td><kbd>⌃⌥D</kbd></td><td>Pepe'yi masaüstüne gönder / eve çağır</td></tr>
+    <tr><td><kbd>⌃⌥W</kbd></td><td>Gardırobu aç</td></tr>
+    <tr><td><kbd>⌃⌥S</kbd></td><td>Pepe'ye konuş (« OK Pepe » demeden)</td></tr>
+  </table>
+  <p>Kartlarda: <kbd>Return</kbd> izin ver ya da gönder, <kbd>Esc</kbd> reddet, <kbd>⌘V</kbd> görsel yapıştır, <kbd>Tab</kbd> komutu tamamla, <kbd>⌘Return</kbd> sohbette gönder.</p>
+  <h3>Menü çubuğu ve pencere</h3>
+  <p>Pati simgesinin menüsü: Claude Code bağlantısı, Sesler, Girişte başlat, Pencerede aç, Ayarlar… (<kbd>⌘,</kbd>), Demo göster, Pepe'den çık (<kbd>⌘Q</kbd>; bekleyen izinler önce terminale devredilir).</p>
+  <p><b>Pencerede aç</b>, çentiğin içeriğini büyütülebilir normal bir pencerede gösterir (12 oturuma kadar). Pencere açıkken Pepe Dock'ta ve <kbd>⌘Tab</kbd>'da görünür.</p>
+</section>
+
+<!-- 14 -->
+<section id="gizlilik">
+  <p class="kicker">14<i></i>Güven</p>
+  <h2>Gizlilik ve veriler</h2>
+  <ul class="list">
+    <li><b>Yerel sunucu</b>: hook'lar yalnızca bu Mac'teki <code>127.0.0.1:47823</code> adresine, gizli bir anahtarla (<code>Serce/token</code>, yalnızca sana okunur) gelir. Dışarıdan erişilemez.</li>
+    <li><b>Anahtarlar</b>: API anahtarları <code>~/Library/Application Support/Serce/anahtarlar.json</code> dosyasında, yalnızca senin okuyabileceğin izinlerle saklanır (gh ve Claude Code gibi). Eski sürümlerden kalanlar <b>Ayarlar → Genel → Eski anahtarlar → Taşı</b> ile aktarılır.</li>
+    <li><b>Ağ</b>: Pepe yalnızca anahtarını girdiğin servislere bağlanır. Brifing, hatırlatma, otomasyon zamanlaması, oturum günlüğü ve haftalık özet yapay zekâ kullanmaz.</li>
+    <li><b>Yapılandırma dosyaları</b>: ajan ayarlarına dokunmadan önce bir kez yedek alınır, yalnızca Pepe'nin satırları değişir; geçersiz bir dosyaya hiç dokunulmaz.</li>
+    <li><b>İzinler</b> yalnızca gerektiğinde istenir: mikrofon ve konuşma tanıma (dikte, ses), Kişiler (isimle e-posta), Otomasyon (müzik, terminal), Ekran Kaydı (masaüstü Pepe ile pencere görüntüsü).</li>
+  </ul>
+  <h3>Pepe'nin dosyaları</h3>
+  <p>Hepsi <code>~/Library/Application Support/Serce/</code> altında:</p>
+  <table>
+    <tr><td>Hafiza/</td><td>Proje hafızaları, <code>_ben.md</code>, arşivler</td></tr>
+    <tr><td>sohbet.json</td><td>Son 60 sohbet mesajı</td></tr>
+    <tr><td>hatirlatmalar.json · otomasyonlar.json</td><td>Hatırlatıcılar ve otomasyonlar</td></tr>
+    <tr><td>haftalik.json · kullanim.json</td><td>Haftalık sayılar, token ve maliyet kullanımı</td></tr>
+    <tr><td>mcp.json</td><td>Eklediğin MCP sunucuları</td></tr>
+    <tr><td>Sesler/ · Projesiz/</td><td>Kendi seslerin, projesiz oturumların klasörü</td></tr>
+  </table>
+</section>
+
+<footer>
+  <p>Pepe 0.2 · macOS 14 ve üstü · Erken erişim: <a href="mailto:hi@tahayerdekalmazer.com">hi@tahayerdekalmazer.com</a></p>
+</footer>
+
+</div>
+</main>
+
+<script>
+// Kaydırırken yan menüde bulunulan bölümü vurgula.
+const links = [...document.querySelectorAll('nav li a')];
+const obs = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id));
+}), { rootMargin: '-30% 0px -60% 0px' });
+document.querySelectorAll('section').forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

@@ -375,8 +375,9 @@ struct Approval: Identifiable {
 
     /// Kartlar yerinde güncellenir; tıklamak üzereyken altından kaymasın diye yalnızca yeni oturum en üste girer.
     /// Pepe'nin başlattığı oturumu hook'lar gelmeden önce kart olarak göster.
-    func registerLaunched(id: String, cwd: String, prompt: String) {
+    func registerLaunched(id: String, cwd: String, prompt: String, agent: String = AgentCatalog.claude) {
         var s = sessions.first { $0.id == id } ?? AgentSession(id: id, cwd: cwd)
+        s.agent = agent
         s.status = .working
         s.action = "Başlatılıyor…"
         s.prompt = prompt
@@ -385,11 +386,40 @@ struct Approval: Identifiable {
         upsert(s)
     }
 
+    /// Kayıttan geçmiş yüklenirken (Codex izleyicisi açılışta) ses ve kutlama yok.
+    var replaying = false
+
+    /// Kullanıcı ajanı durdurdu (Codex turn_aborted): kart sessizce boşta kalır.
+    func markStopped(_ id: String) {
+        guard let i = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[i].status = .idle
+        sessions[i].action = "Durduruldu"
+        for j in sessions[i].steps.indices where sessions[i].steps[j].status == .running || sessions[i].steps[j].status == .waiting {
+            sessions[i].steps[j].status = .done
+        }
+        sessions[i].updated = Date()
+    }
+
+    /// Pepe'nin yürüttüğü Codex/Gemini çalıştırması hatayla bitti: kart "bitti" sevinci olmadan durur.
+    func markFailed(_ id: String, message: String) {
+        guard let i = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[i].status = .idle
+        sessions[i].finished = false
+        sessions[i].action = "Hata: " + message
+        sessions[i].lastReply = "⚠︎ " + message
+        for j in sessions[i].steps.indices where sessions[i].steps[j].status == .running || sessions[i].steps[j].status == .waiting {
+            sessions[i].steps[j].status = .failed
+        }
+        sessions[i].updated = Date()
+        play(.error)
+    }
+
     private func upsert(_ s: AgentSession) {
         if let i = sessions.firstIndex(where: { $0.id == s.id }) { sessions[i] = s } else { sessions.insert(s, at: 0) }
     }
 
     private func celebrate(_ project: String) {
+        guard !replaying else { return }
         happy = true
         happyTask?.cancel()
         happyTask = Task { [weak self] in
@@ -439,6 +469,7 @@ struct Approval: Identifiable {
     }
 
     private func play(_ cue: SoundEngine.Cue) {
+        guard !replaying else { return }
         SoundEngine.shared.play(cue)
     }
 

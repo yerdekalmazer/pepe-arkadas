@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Pepe — Aklın işinde kalsın. (Motion)</title>
+<style>
+/* Codex'in videosunun (codex/reklam-codex.html) cümleleri, renkleri, yazı tipleri ve sahne zamanları;
+   sunum yerine MacBook'ta gerçekten kullanılıyormuş gibi: imleç, çentik, yazma, tetiklenen hatırlatma. */
+@font-face{font-family:Montserrat;src:url('fonts/Montserrat.ttf')}
+@font-face{font-family:Playfair;src:url('fonts/Playfair.ttf')}
+@font-face{font-family:Playfair;src:url('fonts/PlayfairItalic.ttf');font-style:italic}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#252721}
+body{font-family:Montserrat,sans-serif;-webkit-font-smoothing:antialiased}
+#stage{position:absolute;inset:0;overflow:hidden;background:#252721;color:#f5f0e4}
+.abs{position:absolute}
+
+/* Codex'in tipografisi */
+.top{position:absolute;left:100px;right:100px;top:58px;display:flex;align-items:center;justify-content:space-between;font-size:21px;font-weight:600;letter-spacing:1.5px;z-index:40}
+.brand{font-weight:850;font-size:32px;letter-spacing:6px}
+.copy{position:absolute;left:100px;top:294px;width:620px;z-index:30;opacity:0}
+.eyebrow{font-size:21px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:32px}
+h1,h2{font-weight:620}
+h2{font-size:94px;line-height:1.08;letter-spacing:-5px}
+.ln{display:block}
+em{font-family:Playfair,serif;font-weight:500;font-style:italic}
+.desc{font-size:27px;line-height:1.65;margin-top:36px;max-width:570px;font-weight:500;letter-spacing:-.4px}
+.foot{position:absolute;bottom:77px;left:100px;font-size:20px;font-weight:550;letter-spacing:.2px;z-index:40;opacity:0}
+.folio{position:absolute;bottom:77px;right:100px;font-size:20px;font-weight:600;letter-spacing:2px;z-index:40;opacity:0}
+.track{position:absolute;bottom:42px;left:100px;width:1720px;height:2px;background:currentColor;opacity:.2;z-index:40}
+#trackfill{position:absolute;bottom:42px;left:100px;width:1720px;height:3px;background:currentColor;transform-origin:left;transform:scaleX(0);z-index:40}
+.halo{position:absolute;border:1px solid currentColor;border-radius:50%;opacity:0}
+.circle{position:absolute;border-radius:50%}
+.dog{position:absolute;object-fit:contain;transform-origin:0 0}
+.pill{border:1px solid currentColor;border-radius:40px;padding:16px 25px;display:inline-block;font-size:21px;font-weight:550}
+
+/* MacBook ekranının üst kısmı (yakın çekim) */
+#mac{position:absolute;left:760px;top:160px;width:1100px;height:800px;border-radius:30px;background:#0b0b0c;
+  box-shadow:0 40px 80px rgba(0,0,0,.28),0 0 0 2px #2b2b2e inset;z-index:10;opacity:0;transform-origin:50% 0}
+#screen{position:absolute;left:14px;top:14px;right:14px;bottom:14px;border-radius:18px;overflow:hidden;
+  background:radial-gradient(circle at 78% 62%,#f19a7e 0,#ef8a6c 18%,rgba(239,138,108,0) 46%),
+             radial-gradient(circle at 18% 20%,#f7e7cf 0,rgba(247,231,207,0) 50%),linear-gradient(160deg,#f4ede1,#ead9c4)}
+#menubar{position:absolute;left:0;right:0;top:0;height:34px;background:rgba(250,246,240,.62);backdrop-filter:blur(18px);
+  display:flex;align-items:center;justify-content:space-between;padding:0 18px;font:500 15px -apple-system,"Helvetica Neue",sans-serif;color:#1d1d1f}
+#menubar b{font-weight:700;margin-right:18px}
+#menubar span{margin-right:16px}
+#menubar .r{display:flex;align-items:center;gap:14px}
+#clock{position:relative;display:inline-block;width:110px;text-align:right}
+#clock i{font-style:normal;position:absolute;right:0;top:-10px}
+/* Arkadaki terminal */
+#term{position:absolute;left:34px;top:300px;width:560px;height:300px;border-radius:12px;background:#1c1d1a;
+  box-shadow:0 18px 40px rgba(0,0,0,.25);overflow:hidden;transform-origin:20px 20px}
+#term .bar{height:30px;background:#2a2b27;display:flex;align-items:center;gap:8px;padding-left:12px}
+#term .bar i{width:12px;height:12px;border-radius:50%;display:block}
+#term pre{font:15px/1.6 ui-monospace,"SF Mono",Menlo,monospace;color:#d8d4c8;padding:14px 16px;white-space:pre-wrap}
+#term .p{color:#7fc38f}
+/* Çentik ve Pepe'nin adası */
+/* Ortalamayı kapsayıcı yapar: Motion adanın transform'unu (ölçek) kullanır. */
+.center{position:absolute;left:0;right:0;display:flex;justify-content:center;pointer-events:none}
+#island{position:relative;flex:none;transform-origin:50% 0;width:440px;height:46px;background:#000;
+  border-radius:0 0 20px 20px;overflow:hidden;z-index:5}
+#island .pane{position:absolute;left:50%;top:0;width:1056px;transform:translateX(-50%);opacity:0}
+#island .pane img{display:block;width:1056px}
+#wingPepe{position:absolute;left:12px;top:3px;width:40px;height:40px}
+.wing{position:absolute;right:16px;top:12px;height:22px;display:flex;align-items:center;gap:4px;opacity:0}
+.wing i{display:block;width:6px;height:6px;border-radius:50%;background:#5b9cf5}
+#wAlert{width:22px;border-radius:50%;background:#f0a43a;color:#000;font:800 15px -apple-system,sans-serif;justify-content:center}
+#wDone{width:22px;border-radius:50%;background:#4cc38a;color:#000;font:800 13px -apple-system,sans-serif;justify-content:center}
+.ov{position:absolute;background:rgb(36,36,38)}
+.typed{position:absolute;white-space:nowrap;color:#fff;font-family:-apple-system,"Helvetica Neue",sans-serif}
+.ph{color:rgba(255,255,255,.35)}
+.caret{display:inline-block;width:2px;height:1.05em;background:#fff;vertical-align:-2px;margin-left:1px}
+.send{position:absolute;width:29px;height:29px;border-radius:50%;background:#fff;opacity:0;display:grid;place-items:center;font:700 16px -apple-system;color:#000}
+.voice{display:block;flex:none;opacity:0;transform-origin:50% 0}
+.ring{position:absolute;border:4px solid #ffce6b;border-radius:48px;opacity:0;z-index:50}
+/* İmleç ve tıklama halkası */
+#cursor{position:absolute;left:0;top:0;width:34px;height:34px;z-index:60;opacity:0}
+#ripple{position:absolute;left:0;top:0;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;border:3px solid rgba(255,255,255,.9);
+  box-shadow:0 0 0 2px rgba(0,0,0,.15);z-index:59;opacity:0}
+#bark{position:absolute;top:536px;left:655px;font-family:Playfair,serif;font-style:italic;font-size:68px;color:#ffc86a;transform:rotate(-12deg);opacity:0;z-index:31}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="top" id="topbar"><span class="brand">PEPE</span><span style="position:relative;display:block;width:300px;height:26px">
+    <span class="abs" id="tr1" style="right:0;top:0;white-space:nowrap">AKLIN İŞİNDE KALSIN.</span>
+    <span class="abs" id="tr2" style="right:0;top:0;white-space:nowrap;opacity:0">ERKEN ERİŞİM</span></span></div>
+  <div class="track" id="track"></div><div id="trackfill"></div>
+
+  <!-- 0–3 kanca ve 24–30 kapanışın çizimleri -->
+  <div class="halo" id="halo0" style="width:1050px;height:1050px;left:930px;top:30px"></div>
+  <div class="circle" id="circle0" style="width:650px;height:650px;left:1135px;top:235px;background:#ff7958"></div>
+  <div class="halo" id="halo8" style="width:850px;height:850px;left:1010px;top:108px"></div>
+  <div class="circle" id="circle8" style="width:710px;height:710px;left:1080px;top:179px;background:#e97555;opacity:0"></div>
+  <img class="dog" id="dog" src="assets/pepe.png" style="width:680px;height:680px;left:1150px;top:242px;z-index:20">
+
+  <!-- MacBook -->
+  <div id="mac"><div id="screen">
+    <div id="term"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+      <pre id="termText"></pre></div>
+    <div id="menubar"><div><b></b><b>Terminal</b><span>Kabuk</span><span>Düzenle</span><span>Görünüm</span><span>Pencere</span></div>
+      <div class="r"><span>⌁</span><span>􀙇</span><span id="clock"><i id="ck1">Pzt 13 Eki 09:59</i><i id="ck2" style="opacity:0">Pzt 13 Eki 10:00</i></span></div></div>
+    <div class="center" style="top:0;z-index:5"><div id="island">
+      <div class="pane" id="pAdim"><img src="assets/r-adimlar.png"><div class="ov" id="adimCover" style="left:299px;top:112px;width:705px;height:398px;background:rgb(11,12,14)"></div></div>
+      <div class="pane" id="pIzin"><img src="assets/2-izin.png"></div>
+      <div class="pane" id="pYaz1"><img src="assets/r-oturuma-yaz.png">
+        <div class="ov" style="left:344px;top:551px;width:600px;height:44px"></div>
+        <div class="typed" id="yazText" style="left:353px;top:562px;font-size:19.2px"></div></div>
+      <div class="pane" id="pYaz2"><img src="assets/r-oturuma-yaz-2.png"></div>
+      <div class="pane" id="pAjan"><img src="assets/7-ajanlar.png">
+        <div class="ov" style="left:46px;top:84px;width:964px;height:458px;background:rgb(19,19,22)"></div>
+        <div class="ov ajanKart" id="k1" style="left:53px;top:90px;width:951px;height:164px;background:url(assets/7-ajanlar.png) -53px -90px/1056px auto"></div>
+        <div class="ov ajanKart" id="k2" style="left:53px;top:266px;width:951px;height:117px;background:url(assets/7-ajanlar.png) -53px -266px/1056px auto"></div>
+        <div class="ov ajanKart" id="k3" style="left:53px;top:395px;width:951px;height:141px;background:url(assets/7-ajanlar.png) -53px -395px/1056px auto"></div></div>
+      <div class="pane" id="pBitti"><img src="assets/3-ana-bitti.png"></div>
+      <div class="pane" id="pHat1"><img src="assets/r-sohbet-hatirlat.png">
+        <div class="ov" style="left:144px;top:477px;width:776px;height:38px"></div>
+        <div class="typed" id="hatText" style="left:149px;top:484px;font-size:20.8px"></div>
+        <div class="send" id="hatSend" style="left:963px;top:481px">↑</div></div>
+      <div class="pane" id="pHat2"><img src="assets/r-sohbet-otomasyon.png"></div>
+      <div class="pane" id="pRem"><img src="assets/r-hatirlatma.png"></div>
+      <div class="pane" id="pGit"><img src="assets/8-pill-github.png"></div>
+      <div class="pane" id="pStripe"><img src="assets/8-pill-stripe.png"></div>
+      <img id="wingPepe" src="assets/pepe.png">
+      <div class="wing" id="wDots"><i></i><i></i><i></i></div>
+      <div class="wing" id="wAlert">!</div>
+      <div class="wing" id="wDone">✓</div>
+    </div></div>
+    <div class="center" style="top:56px;z-index:6"><img class="voice" id="v1" src="assets/12-ses-dinliyor.png" style="width:688px"></div>
+    <div class="center" style="top:56px;z-index:6"><img class="voice" id="v2" src="assets/r-ses-konusuyor.png" style="width:832px"></div>
+  </div></div>
+  <div class="ring" id="ring" style="left:1668px;top:661px;width:110px;height:52px"></div>
+
+  <!-- Sahne metinleri: Codex'in cümleleri -->
+  <div class="copy" id="c0" style="top:265px;width:1070px"><div class="eyebrow">Mac’inin çentiğinde bir yardımcı.</div>
+    <h1 style="font-size:150px;line-height:1.03;letter-spacing:-8px;font-weight:600"><span class="ln">Ajanın</span><span class="ln"><em style="color:#ff7958">ne yapıyor?</em></span></h1>
+    <p class="desc" style="font-size:32px;max-width:940px">Bir bakış. Her şey gözünün önünde.</p></div>
+  <div class="copy" id="c1"><div class="eyebrow">01 / Takip et</div><h2><span class="ln">Her adımı</span><span class="ln"><em style="color:#c64931">gör.</em></span></h2>
+    <p class="desc">Dosyalar. Komutlar.<br>Satır satır değişiklikler.</p></div>
+  <div class="copy" id="c2"><div class="eyebrow">02 / Karar ver</div><h2><span class="ln">İzin mi</span><span class="ln">lazım?</span><span class="ln"><em style="color:#895226">Bir dokunuş.</em></span></h2>
+    <p class="desc">Terminali aramadan.<br>Doğrudan çentikten.</p></div>
+  <div class="copy" id="c3"><div class="eyebrow">03 / Devam et</div><h2><span class="ln">Terminal</span><span class="ln">kapalı.</span><span class="ln"><em style="color:#c64931">Sohbet açık.</em></span></h2>
+    <p class="desc">Oturumuna çentikten yaz.<br>Kaldığın yerden devam et.</p></div>
+  <div class="copy" id="c4"><div class="eyebrow">04 / Birlikte çalış</div><h2><span class="ln">Birden</span><span class="ln">fazla ajan.</span><span class="ln"><em style="color:#ffe0a5">Tek çentik.</em></span></h2>
+    <p class="desc" style="max-width:590px">Paralel oturumlar.<br>Hepsi aynı yerde.</p></div>
+  <div class="copy" id="c5" style="top:211px"><div class="eyebrow">05 / Haberin olsun</div><h2><span class="ln">İş bitti mi?</span><span class="ln"><em style="color:#ffc86a">Pepe ses verir.</em></span></h2></div>
+  <div class="copy" id="c6" style="top:292px"><div class="eyebrow">06 / Aklında tutma</div><h2><span class="ln">Söyle.</span><span class="ln"><em style="color:#c64931">Hatırlatsın.</em></span></h2>
+    <p class="desc">Hatırlatıcılar ve<br>tekrarlayan otomasyonlar.</p></div>
+  <div class="copy" id="c7" style="top:296px"><div class="eyebrow">07 / Seslen</div><h2><span class="ln"><em style="color:#32646e">“OK Pepe”</em></span><span class="ln">İşler nasıl?</span></h2>
+    <p class="desc">Stripe · GitHub<br>Vercel · Cal.com</p></div>
+  <div class="copy" id="c8" style="top:208px;width:1050px"><div class="eyebrow">Mac’inin yeni yardımcısı.</div>
+    <h1 style="font-size:220px;letter-spacing:-10px;line-height:1;font-weight:750">PEPE</h1>
+    <h2 style="font-size:72px;letter-spacing:-2px;margin-top:31px;font-family:Playfair,serif;font-style:italic;font-weight:500">Aklın işinde kalsın.</h2>
+    <p style="font-size:29px;margin-top:57px;line-height:1.8;letter-spacing:-.6px;font-weight:550">Erken erişim · hi@tahayerdekalmazer.com</p>
+    <div class="pill" style="margin-top:32px">Çentiğinde buluşalım.</div></div>
+  <img class="dog" id="happy" src="assets/pepe-mutlu.png" style="width:450px;height:450px;left:200px;top:490px;opacity:0;z-index:31;transform-origin:50% 100%">
+  <span id="bark">Hav!</span>
+
+  <div id="feet"></div>
+  <svg id="cursor" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15 L12.5 22 L15.5 20.6 L12 13.8 L19 13.8 Z" fill="#000" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>
+  <div id="ripple"></div>
+</div>
+
+<script src="node_modules/motion/dist/motion.js"></script>
+<script>
+const { animate } = Motion;
+const $ = id => document.getElementById(id);
+const S = 3;                                    // her sahne 3 sn (Codex'in müziğindeki kesmeler)
+const BG  = ['#252721','#f2eee5','#f7c86f','#f2eee5','#d65c41','#252721','#f2eee5','#dce6e8','#f2eee5'];
+const INK = ['#f5f0e4','#23241f','#23241f','#23241f','#fff5e6','#f5f0e4','#23241f','#23241f','#23241f'];
+const FEET = ['Claude Code · Codex · Gemini CLI · Cursor', 'Ajanın çalışırken sen de ne yaptığını bil.', 'Kontrol sende. Akış devam etsin.',
+  'Bir sonraki adım, tek mesaj uzağında.', 'Claude Code · Codex · Gemini CLI · Cursor', 'Sen işine odaklan. Pepe haber versin.',
+  'Zamanı gelince, yine çentikte.', 'Servislerin de çentikte. Cevaplar bir ses uzağında.', 'macOS için.'];
+FEET.forEach((f, i) => {
+  $('feet').insertAdjacentHTML('beforeend', `<div class="foot" id="f${i}">${f}</div><div class="folio" id="n${i}">${String(i + 1).padStart(2, '0')} / 09</div>`);
+});
+
+// --- Zaman çizelgesi: tek bir Motion dizisi, kare kare `time` ile sarılır ---
+const seq = [];
+const at = (el, kf, t, d = .5, ease = 'easeInOut') => seq.push([typeof el === 'string' ? $(el) : el, kf, { at: t, duration: d, ease }]);
+const spring = (el, kf, t, d = .7, bounce = .22) => seq.push([typeof el === 'string' ? $(el) : el, kf, { at: t, type: 'spring', duration: d, bounce }]);
+const outQuint = [0.22, 1, 0.36, 1];
+
+// Zemin ve mürekkep renkleri sahneden sahneye yumuşak geçer.
+for (let i = 1; i < 9; i++) {
+  at('stage', { backgroundColor: [BG[i - 1], BG[i]], color: [INK[i - 1], INK[i]] }, i * S - .25, .55);
+}
+at('trackfill', { scaleX: [0, 1] }, 0, 30, 'linear');
+at('tr1', { opacity: [1, 0] }, 24 - .2, .4); at('tr2', { opacity: [0, 1] }, 24 + .1, .4);
+
+// Metin blokları: satır satır yükselir, sahne sonunda yukarı süzülerek çıkar.
+for (let i = 0; i < 9; i++) {
+  const c = $('c' + i), a = i * S, b = a + S;
+  const parts = [c.querySelector('.eyebrow'), ...c.querySelectorAll('.ln, h1:not(:has(.ln)), h2:not(:has(.ln))'), ...c.querySelectorAll('.desc, p, .pill')]
+    .filter((x, k, arr) => x && arr.indexOf(x) === k);
+  if (i === 0) {
+    at(c, { opacity: [1, 1] }, 0, .01);
+    parts.forEach((p, k) => at(p, { opacity: [0, 1], y: [34, 0] }, .1 + k * .12, .7, outQuint));
+  } else {
+    at(c, { opacity: [0, 1] }, a, .01);
+    parts.forEach((p, k) => at(p, { opacity: [0, 1], y: [40, 0] }, a + .12 + k * .09, .65, outQuint));
+  }
+  if (i < 8) at(c, { opacity: [1, 0], y: [0, -28] }, b - .32, .32, 'easeIn');
+  at('f' + i, { opacity: [0, 1] }, a + .2, .4); at('n' + i, { opacity: [0, 1] }, a + .2, .4);
+  if (i < 8) { at('f' + i, { opacity: [1, 0] }, b - .3, .3); at('n' + i, { opacity: [1, 0] }, b - .3, .3); }
+}
+
+// --- 0–3: kanca. Pepe dairede; sonra küçülüp MacBook'un çentiğine konar. ---
+at('halo0', { opacity: [0, .1] }, 0, .8);
+spring('circle0', { scale: [.85, 1] }, 0, .9, .2);
+at('dog', { y: [30, 0], rotate: [-6, 0] }, 0, .9, outQuint);
+at('halo0', { opacity: [.1, 0] }, 2.3, .5);
+at('circle0', { scale: [1, .2], opacity: [1, 0] }, 2.35, .6, 'easeIn');
+spring('mac', { opacity: [0, 1], y: [120, 0], scale: [.94, 1] }, 2.35, .9, .12);
+// Çentikteki Pepe'nin yeri: ada solu (sahne koordinatları).
+const WING = { x: 760 + 14 + 536 - 220 + 12, y: 160 + 14 + 3 };
+at('dog', { x: [0, WING.x - 1150], y: [0, WING.y - 242], scale: [1, 40 / 680] }, 2.4, .75, [0.6, 0, 0.2, 1]);
+at('dog', { opacity: [1, 0] }, 3.1, .12);
+
+// Ada (Pepe'nin çentikteki yüzü) yardımcıları
+const PANE = { pAdim: 643, pIzin: 595, pYaz1: 643, pYaz2: 643, pAjan: 632, pBitti: 394, pHat1: 563, pHat2: 563, pRem: 178, pGit: 373, pStripe: 373 };
+let isl = { w: 440, h: 46 };
+function openIsland(t, pane, d = .62) {
+  spring('island', { width: [isl.w, 1056], height: [isl.h, PANE[pane]], borderRadius: ['0 0 20px 20px', '0 0 34px 34px'] }, t, d, .18);
+  at(pane, { opacity: [0, 1] }, t + .08, .3);
+  at('wingPepe', { opacity: [1, 0] }, t, .15);
+  isl = { w: 1056, h: PANE[pane] };
+}
+function swapPane(t, from, to, d = .5) {
+  spring('island', { height: [isl.h, PANE[to]] }, t, d, .15);
+  // Yeni ekran (DOM'da sonra gelir, üstte) önce tam görünür, eskisi ancak sonra kalkar: arada kararma olmaz.
+  at(to, { opacity: [0, 1] }, t + .03, .22); at(from, { opacity: [1, 0] }, t + .26, .05);
+  isl = { w: 1056, h: PANE[to] };
+}
+function closeIsland(t, pane, d = .45) {
+  at(pane, { opacity: [1, 0] }, t, .18);
+  spring('island', { width: [isl.w, 440], height: [isl.h, 46], borderRadius: ['0 0 34px 34px', '0 0 20px 20px'] }, t, d, .1);
+  at('wingPepe', { opacity: [0, 1] }, t + .2, .2);
+  isl = { w: 440, h: 46 };
+}
+
+// İmleç: son konumdan yenisine doğal bir eğriyle gider; tıklamada küçülür, halka yayılır.
+let cur = { x: 1700, y: 900 };
+// (x, y) imlecin ucunun gideceği nokta; okun ucu kutunun (6, 3) noktasında.
+function moveTo(x, y, t, d = .6) {
+  at('cursor', { x: [cur.x - 6, x - 6], y: [cur.y - 3, y - 3] }, t, d, [0.45, 0, 0.2, 1]);
+  cur = { x, y };
+}
+function click(t) {
+  at('cursor', { scale: [1, .82, 1] }, t, .2);
+  // Motion iki parça arasını doldurur: görünürlük her tıklamada 0'dan başlayıp 0'a döner.
+  at('ripple', { x: [cur.x, cur.x], y: [cur.y, cur.y], scale: [.3, 1.4], opacity: [0, .9, 0] }, t, .45, 'easeOut');
+}
+// Yazma: harf harf, imleç yanıp söner. Harf sayısı doğrudan zamandan (seek içinde) hesaplanır.
+const typers = [];
+function type(el, text, t, d, placeholder = '') {
+  typers.push({ el, text, placeholder, a: t, b: t + d });
+}
+
+// Arka plandaki terminal: ajan komutu yazılıyor.
+const TERM = '~/Projeler/kesit $ claude "KDV oranını %20 yap ve testleri çalıştır"\n\n✻ Çalışıyor… fatura.ts okunuyor\n✻ npm test';
+const TERM_AT = [2.9, 4.3];
+
+// --- 3–6: Her adımı gör. İmleç çentiğe gider, ada açılır, adımlar akar. ---
+at('wDots', { opacity: [0, 1] }, 3.05, .3);
+at('cursor', { opacity: [0, 1] }, 3.2, .3);
+moveTo(1310, 196, 3.25, .7);
+spring('island', { scale: [1, 1.05, 1] }, 3.9, .35, .3);
+openIsland(4.0, 'pAdim');
+at('wDots', { opacity: [1, 0] }, 4.0, .15);
+const adimRows = [205, 315, 400, 490, 600].map(y => (y - 140) * .8);   // görüntüdeki adım bloklarının altları
+adimRows.forEach((y, k) => at('adimCover', { top: [112 + (k ? adimRows[k - 1] : 0), 112 + y], height: [398 - (k ? adimRows[k - 1] : 0), Math.max(0, 398 - y)] }, 4.25 + k * .28, .22, 'easeOut'));
+moveTo(1500, 760, 4.6, .9);
+
+// --- 6–9: İzin. Ada kapanır, "!" yanıp söner, kart kendiliğinden açılır; imleç "İzin ver"e basar. ---
+closeIsland(5.95, 'pAdim');
+at('wAlert', { opacity: [0, 1], scale: [.5, 1.15, 1] }, 6.25, .35);
+at('wAlert', { opacity: [1, .55, 1] }, 6.6, .3);
+openIsland(6.75, 'pIzin');
+at('wAlert', { opacity: [1, 0] }, 6.75, .15);
+moveTo(1722, 688, 7.15, .7);
+at('ring', { opacity: [0, .9] }, 7.25, .3);
+click(7.95);
+at('ring', { opacity: [.9, 0], scale: [1, 1.15] }, 8.05, .3);
+
+// --- 9–12: Terminal kapalı, sohbet açık. Terminal kapanır; oturuma yazılır, cevap gelir. ---
+closeIsland(8.6, 'pIzin', .4);
+moveTo(826, 489, 8.85, .5);                       // terminalin kırmızı kapatma düğmesi
+click(9.4);
+at('term', { scale: [1, .2], opacity: [1, 0] }, 9.45, .35, 'easeIn');
+moveTo(1310, 196, 9.6, .4);
+spring('island', { scale: [1, 1.05, 1] }, 9.95, .3, .3);
+openIsland(10.0, 'pYaz1', .55);
+moveTo(1342, 747, 10.25, .35);
+click(10.6);
+type($('yazText'), 'evet, PDF şablonunu da güncelle', 10.65, .85, 'kesit oturumuna yaz — terminal kapalı olsa da devam eder');
+moveTo(1748, 747, 11.25, .25);
+click(11.5);
+swapPane(11.55, 'pYaz1', 'pYaz2', .4);
+
+// --- 12–15: Birden fazla ajan. Kartlar tek tek düşer. ---
+swapPane(12.0, 'pYaz2', 'pAjan', .5);
+['k1', 'k2', 'k3'].forEach((k, j) => at(k, { opacity: [0, 1], y: [-18, 0] }, 12.25 + j * .3, .45, outQuint));
+moveTo(1640, 860, 12.3, 1.2);
+
+// --- 15–18: İş bitti. Yeşil ✓, ada açılır, Pepe iki kez zıplayıp havlar (müzikte 15,60 ve 15,94). ---
+closeIsland(14.75, 'pAjan', .4);
+at('wDone', { opacity: [0, 1], scale: [.4, 1.2, 1] }, 15.05, .35);
+openIsland(15.35, 'pBitti');
+at('wDone', { opacity: [1, 0] }, 15.35, .15);
+at('happy', { opacity: [0, 1], y: [40, 0] }, 15.05, .4, outQuint);
+[15.60, 15.94].forEach(t => at('happy', { y: [0, -26, 0], rotate: [0, -5, 0] }, t - .08, .3, 'easeInOut'));
+spring('bark', { opacity: [0, 1], scale: [.5, 1] }, 15.57, .4, .45);
+at('bark', { scale: [1, 1.12, 1] }, 15.9, .2);
+at('happy', { opacity: [1, 0], y: [0, 30] }, 17.7, .3);
+at('bark', { opacity: [1, 0] }, 17.7, .3);
+at('cursor', { opacity: [1, 0] }, 15.1, .3);
+
+// --- 18–21: Söyle, hatırlatsın. Sohbete yazılır, otomasyon kurulur; saat 10:00 olunca hatırlatma düşer. ---
+swapPane(17.85, 'pBitti', 'pHat1', .5);
+at('cursor', { opacity: [0, 1] }, 18.1, .25);
+moveTo(1260, 670, 18.1, .45);
+type($('hatText'), "Hafta içi her sabah 9'da günün planını çıkar", 18.45, 1.05, 'Devam et…');
+at('hatSend', { opacity: [0, 1] }, 18.5, .15);
+moveTo(1760, 672, 19.4, .3);
+click(19.68);
+swapPane(19.72, 'pHat1', 'pHat2', .35);
+closeIsland(20.15, 'pHat2', .35);
+at($('clock').children[0], { opacity: [1, 0], y: [0, -8] }, 20.3, .2);
+at($('clock').children[1], { opacity: [0, 1], y: [8, 0] }, 20.32, .2);
+openIsland(20.45, 'pRem', .45);
+at('cursor', { opacity: [1, 0] }, 20.4, .2);
+
+// --- 21–24: Seslen. Pill'e tıklanır (GitHub → Stripe); sonra « OK Pepe »: dinliyor, cevaplıyor. ---
+swapPane(20.95, 'pRem', 'pGit', .45);
+at('cursor', { opacity: [0, 1] }, 21.1, .2);
+moveTo(1694, 288, 21.15, .5);
+click(21.7);
+swapPane(21.75, 'pGit', 'pStripe', .3);
+closeIsland(22.45, 'pStripe', .4);
+at('v1', { opacity: [0, 1], y: [-10, 0] }, 22.7, .3, outQuint);
+at('v1', { opacity: [1, 0] }, 23.15, .15);
+spring('v2', { opacity: [0, 1], scale: [.92, 1] }, 23.2, .5, .25);
+moveTo(1820, 900, 22.5, .8);
+at('cursor', { opacity: [1, 0] }, 23.1, .3);
+
+// --- 24–30: Kapanış. MacBook çekilir; Pepe çentikten çıkıp dairesine döner. ---
+at('v2', { opacity: [1, 0] }, 23.7, .25);
+at('mac', { opacity: [1, 0], y: [0, 80], scale: [1, .96] }, 23.75, .5, 'easeIn');
+at('dog', { opacity: [0, 1] }, 23.8, .1);
+at('dog', { x: [WING.x - 1150, 1103 - 1150], y: [WING.y - 242, 214 - 242], scale: [40 / 680, 650 / 680] }, 23.8, .8, [0.4, 0, 0.2, 1]);
+at('halo8', { opacity: [0, .1] }, 24.0, .8);
+spring('circle8', { opacity: [0, 1], scale: [.6, 1] }, 24.0, .9, .2);
+at('dog', { y: [214 - 242, 214 - 242 - 10, 214 - 242] }, 26.5, 1.6, 'easeInOut');
+at('dog', { y: [214 - 242, 214 - 242 - 8, 214 - 242] }, 28.1, 1.6, 'easeInOut');
+
+const controls = animate(seq);
+controls.pause();
+
+// Codex'in final kare (30 sn) ve 30 fps render'ı için.
+window.DURATION = 30;
+const termEl = $('termText');
+const prog = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+// Motion stilleri bir sonraki çizim karesinde uygular: kare alınmadan önce iki kare beklenir.
+const frames = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+window.seek = function (t) {
+  controls.time = t;
+  const n = Math.round(prog(t, ...TERM_AT) * TERM.length);
+  termEl.innerHTML = TERM.slice(0, n).replace(/^(~\/Projeler\/kesit \$)/, '<span class="p">$1</span>');
+  for (const ty of typers) {
+    const k = Math.round(prog(t, ty.a, ty.b) * ty.text.length);
+    const caretOn = t >= ty.a - .3 && (t < ty.b + .4) && Math.floor(t * 3) % 2 === 0 || (t >= ty.a && t < ty.b);
+    ty.el.innerHTML = k === 0 && t < ty.a ? `<span class="ph">${ty.placeholder}</span>`
+      : ty.text.slice(0, k).replace(/ /g, '&nbsp;') + (caretOn && t < ty.b + .4 ? '<span class="caret"></span>' : '');
+  }
+  return frames();
+};
+window.seek(0);
+</script>
+</body>
+</html>

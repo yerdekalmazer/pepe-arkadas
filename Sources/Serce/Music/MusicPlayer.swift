@@ -211,7 +211,8 @@ enum ScriptRunner {
     func start() {
         guard timer == nil else { return }
         poll()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        // İlerleme çubuğu konumu yerelde hesaplar; yoklama yalnızca parça/durum değişikliği için, seyrek yeterli.
+        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
     }

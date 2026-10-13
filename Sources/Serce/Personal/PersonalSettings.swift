@@ -25,6 +25,7 @@ struct PersonalSettings: View {
             Toggle("« OK Pepe » açıksa sesli oku", isOn: $spoken).disabled(!briefingOn)
             Button("Şimdi göster") { Briefing.shared.show() }
         }
+        AutomationSettings(automations: .shared)
         SettingsGroup(title: "Hatırlatmalar", footer: "Sohbette ya da sesle kur: « yarın 10'da Tessera'yı hatırlat ».") {
             if reminders.upcoming.isEmpty {
                 Text("Bekleyen hatırlatma yok.").foregroundStyle(.secondary)
@@ -52,6 +53,7 @@ enum PersonalFeature {
         AboutMe.seedIfNeeded()
         Reminders.shared.start()
         Briefing.shared.start()
+        Automations.shared.start()
         let trello = TrelloPill()
         app.pills.register(trello)
         // Trello anahtarı varsa pill ilk açılışta kendiliğinden açılır.

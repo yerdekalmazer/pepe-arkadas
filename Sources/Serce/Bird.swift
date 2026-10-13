@@ -11,7 +11,7 @@ enum MouseTracker {
 /// Gözlerin neyi referans alarak imleci izleyeceği.
 enum EyeAnchor { case notch, desktop, fixed }
 
-/// Pepe: çentikte oturan bir Akbaş (çivili tasmalı, kıvrık kuyruklu), yandan. Tamamen çizimle üretilir, görsel dosyası yok.
+/// Pepe: çentikte oturan krem-beyaz bir köpek (açık kahve kulaklar, bal rengi gözler, kırmızı tasma), yandan. Tamamen çizimle üretilir, görsel dosyası yok.
 struct Bird: View {
     var mood: Mood
     var size: CGFloat
@@ -29,14 +29,17 @@ struct Bird: View {
     /// Yalnızca bir tepki oynarken kare çizilir; geri kalan zamanda kuş tamamen durur (işlemci harcamaz).
     @State private var playing = false
 
-    // Akbaş: krem-beyaz kısa tüy, biraz daha koyu krem kulaklar.
-    private static let baseFur = Color(red: 0.99, green: 0.975, blue: 0.94)
-    private static let baseShade = Color(red: 0.91, green: 0.88, blue: 0.83)
-    private static let baseEar = Color(red: 0.94, green: 0.88, blue: 0.79)
-    private static let baseLine = Color(red: 0.60, green: 0.56, blue: 0.52)
-    private static let nose = Color(red: 0.12, green: 0.10, blue: 0.10)
-    private static let collar = Color(red: 0.32, green: 0.21, blue: 0.15)
-    private static let stud = Color(red: 0.82, green: 0.84, blue: 0.87)
+    // Gerçek Pepe: sıcak krem-beyaz kısa tüy, açık kahve (bisküvi) kulaklar, pembe-kahve burun, bal rengi gözler, kırmızı tasma.
+    private static let baseFur = Color(red: 0.99, green: 0.96, blue: 0.91)
+    private static let baseShade = Color(red: 0.92, green: 0.86, blue: 0.78)
+    private static let baseEar = Color(red: 0.86, green: 0.70, blue: 0.52)
+    private static let baseLine = Color(red: 0.62, green: 0.55, blue: 0.48)
+    /// Göz çerçevesi, kirpik ve ağız çizgisi.
+    private static let ink = Color(red: 0.16, green: 0.11, blue: 0.10)
+    private static let nose = Color(red: 0.45, green: 0.27, blue: 0.26)
+    private static let iris = Color(red: 0.74, green: 0.50, blue: 0.24)
+    private static let collar = Color(red: 0.86, green: 0.16, blue: 0.20)
+    private static let tag = Color(red: 0.95, green: 0.78, blue: 0.35)
 
     private var fur: Color { tint ?? Self.baseFur }
     private var furShade: Color { tint.map { Self.shade($0, 0.14) } ?? Self.baseShade }
@@ -212,26 +215,17 @@ struct Bird: View {
                        with: .color(line), style: StrokeStyle(lineWidth: 0.009, lineCap: .round))
         }
 
-        // Çivili tasma: boynun etrafında.
+        // Kırmızı tasma ve küçük künye.
         if worn != .scarf {
             var collar = Path()
             collar.move(to: CGPoint(x: 0.50, y: 0.43))
             collar.addQuadCurve(to: CGPoint(x: 0.745, y: 0.47), control: CGPoint(x: 0.62, y: 0.55))
             var neck = ctx
             neck.clip(to: body)
-            neck.stroke(collar, with: .color(Self.collar), style: StrokeStyle(lineWidth: 0.045, lineCap: .round))
-            for u in stride(from: 0.15, through: 0.9, by: 0.15) {
-                let a = CGPoint(x: 0.50, y: 0.43), c = CGPoint(x: 0.62, y: 0.55), b = CGPoint(x: 0.745, y: 0.47)
-                let px = (1 - u) * (1 - u) * a.x + 2 * (1 - u) * u * c.x + u * u * b.x
-                let py = (1 - u) * (1 - u) * a.y + 2 * (1 - u) * u * c.y + u * u * b.y
-                var spike = Path()
-                spike.move(to: CGPoint(x: px - 0.013, y: py + 0.012))
-                spike.addLine(to: CGPoint(x: px, y: py + 0.045))
-                spike.addLine(to: CGPoint(x: px + 0.013, y: py + 0.012))
-                spike.closeSubpath()
-                neck.fill(spike, with: .color(Self.stud))
-                neck.fill(oval(px, py, 0.016, 0.016), with: .color(Self.stud))
-            }
+            neck.stroke(collar, with: .color(Self.collar), style: StrokeStyle(lineWidth: 0.04, lineCap: .round))
+            let t = CGPoint(x: 0.595, y: 0.515)
+            ctx.fill(oval(t.x, t.y, 0.045, 0.045), with: .color(Self.tag))
+            ctx.stroke(oval(t.x, t.y, 0.045, 0.045), with: .color(Self.shade(Self.tag, 0.35)), style: StrokeStyle(lineWidth: 0.008))
         }
 
         if annoyed {
@@ -254,16 +248,18 @@ struct Bird: View {
             mouth.addQuadCurve(to: CGPoint(x: 0.915, y: 0.37), control: CGPoint(x: 0.85, y: 0.46))
             mouth.closeSubpath()
             ctx.fill(mouth, with: .color(Color(red: 0.25, green: 0.10, blue: 0.11)))
-            ctx.fill(oval(0.855, 0.425, 0.05, 0.065), with: .color(Color(red: 1.0, green: 0.50, blue: 0.58)))
+            ctx.fill(oval(0.85, 0.44, 0.06, 0.095), with: .color(Color(red: 0.96, green: 0.45, blue: 0.52)))
+            ctx.stroke(Path { p in p.move(to: CGPoint(x: 0.85, y: 0.415)); p.addLine(to: CGPoint(x: 0.85, y: 0.465)) },
+                       with: .color(Color(red: 0.80, green: 0.30, blue: 0.38)), style: StrokeStyle(lineWidth: 0.008, lineCap: .round))
         } else {
             ctx.stroke(Path { p in
                 p.move(to: CGPoint(x: 0.905, y: 0.32))
                 p.addLine(to: CGPoint(x: 0.90, y: 0.365))
                 p.addQuadCurve(to: CGPoint(x: 0.77, y: 0.375), control: CGPoint(x: 0.85, y: 0.40))
-            }, with: .color(Self.nose), style: StrokeStyle(lineWidth: 0.013, lineCap: .round))
+            }, with: .color(Self.ink), style: StrokeStyle(lineWidth: 0.013, lineCap: .round))
         }
         ctx.fill(Path(roundedRect: CGRect(x: 0.875, y: 0.258, width: 0.065, height: 0.058), cornerRadius: 0.025), with: .color(Self.nose))
-        ctx.fill(oval(0.895, 0.271, 0.025, 0.013), with: .color(.white.opacity(0.65)))
+        ctx.fill(oval(0.895, 0.271, 0.025, 0.013), with: .color(Color(red: 1, green: 0.80, blue: 0.80).opacity(0.7)))
         ctx.fill(oval(0.70, 0.36, 0.06, 0.035), with: .color(Color(red: 1.0, green: 0.62, blue: 0.62).opacity(0.3)))
 
         // Sarkık üçgen kulak: başın tepesinden yanağa iner; sevinçte sallanır, selamda kalkar.
@@ -296,7 +292,7 @@ struct Bird: View {
                 p.move(to: CGPoint(x: eye.x - 0.035, y: eye.y))
                 p.addQuadCurve(to: CGPoint(x: eye.x + 0.035, y: eye.y),
                                control: CGPoint(x: eye.x, y: eye.y + (up ? -0.045 : 0.03)))
-            }, with: .color(Self.nose), style: StrokeStyle(lineWidth: 0.02, lineCap: .round))
+            }, with: .color(Self.ink), style: StrokeStyle(lineWidth: 0.02, lineCap: .round))
         } else {
             var dx = 0.0, dyy = 0.0
             if eyes != .fixed && !still {
@@ -305,10 +301,12 @@ struct Bird: View {
                 dx = max(-1, min(1, (m.x - a.x) / 300))
                 dyy = max(-1, min(1, (a.y - m.y) / 200))
             }
-            ctx.fill(oval(eye.x, eye.y, 0.075, 0.072), with: .color(Self.nose))
+            // Gözün çevresindeki açık kahve gölge.
+            ctx.fill(oval(eye.x - 0.005, eye.y - 0.012, 0.11, 0.09), with: .color(Self.baseEar.opacity(tint == nil ? 0.35 : 0)))
+            ctx.fill(oval(eye.x, eye.y, 0.075, 0.072), with: .color(Self.ink))
             let px = eye.x + dx * 0.01, py = eye.y + dyy * 0.01
-            ctx.fill(oval(px, py, 0.056, 0.056), with: .color(Color(red: 0.30, green: 0.19, blue: 0.12)))
-            ctx.fill(oval(px, py, 0.032, 0.032), with: .color(Self.nose))
+            ctx.fill(oval(px, py, 0.056, 0.056), with: .color(Self.iris))
+            ctx.fill(oval(px, py, 0.03, 0.03), with: .color(Self.ink))
             ctx.fill(oval(px + 0.013, py - 0.014, 0.023, 0.023), with: .color(.white))
             ctx.fill(oval(px - 0.013, py + 0.015, 0.009, 0.009), with: .color(.white.opacity(0.8)))
         }

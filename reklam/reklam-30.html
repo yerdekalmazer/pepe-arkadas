@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Pepe · 30 sn tanıtım</title>
+<style>
+  /* reklam.html ile aynı kimlik; 120 bpm'e oturan hızlı kurgu (her vuruş 0.5 sn), 30 sn'de bütün özellikler. */
+  @font-face { font-family: "Playfair Display"; src: url(fonts/Playfair.ttf); font-weight: 400 900; }
+  @font-face { font-family: "Playfair Display"; src: url(fonts/PlayfairItalic.ttf); font-weight: 400 900; font-style: italic; }
+  @font-face { font-family: "Montserrat"; src: url(fonts/Montserrat.ttf); font-weight: 100 900; }
+  :root { --black: #161616; --paper: #f5f1ea; --dim: #8a837a; --soft: #cfc8bd; --line: rgba(255,255,255,.14);
+    --serif: "Playfair Display", Georgia, serif; --sans: "Montserrat", sans-serif; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--black); }
+  body { font-family: var(--sans); color: var(--paper); -webkit-font-smoothing: antialiased; }
+  #stage { position: absolute; inset: 0; overflow: hidden; }
+  .o { position: absolute; opacity: 0; }
+
+  .corner { position: absolute; top: 40px; font-size: 17px; font-weight: 600; letter-spacing: .14em; color: #d9d3c9; z-index: 60; }
+  .corner span { display: block; font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+  #cl { left: 56px; } #cr { right: 56px; text-align: right; }
+
+  .notch { position: absolute; left: 50%; top: 0; width: 330px; height: 52px; margin-left: -165px;
+    background: #000; border-radius: 0 0 24px 24px; z-index: 40; }
+  .notch::before, .notch::after { content: ""; position: absolute; top: 0; width: 16px; height: 16px; }
+  .notch::before { left: -16px; background: radial-gradient(circle at 0 100%, transparent 15px, #000 16px); }
+  .notch::after { right: -16px; background: radial-gradient(circle at 100% 100%, transparent 15px, #000 16px); }
+
+  .arch { position: absolute; overflow: hidden; clip-path: url(#arch); background: #1f1d1b; }
+  .arch img { position: absolute; object-fit: contain; inset: 12% 8% 4%; width: 84%; height: 84%; }
+
+  .serif { font-family: var(--serif); font-weight: 700; color: #fff; }
+  .kicker { font-size: 15px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--dim); }
+  .body { font-size: 27px; line-height: 1.7; color: var(--soft); }
+  .w { display: inline-block; opacity: 0; }
+
+  .panel { position: absolute; left: 50%; top: 0; z-index: 30; opacity: 0; transform-origin: 50% 0; }
+  .panel img { display: block; width: 100%; }
+  .panel .stack { position: relative; }
+  .panel .stack img + img { position: absolute; left: 0; top: 0; opacity: 0; }
+  .card { position: absolute; z-index: 30; opacity: 0; }
+  .card img { display: block; width: 100%; border-radius: 26px; box-shadow: 0 0 0 1px var(--line); }
+
+  .cap { position: absolute; left: 150px; bottom: 104px; width: 1620px; z-index: 50; opacity: 0; }
+  .cap .num { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+  .cap .num i { display: block; width: 56px; height: 1px; background: var(--dim); }
+  .cap h2 { font-family: var(--serif); font-weight: 700; font-size: 66px; line-height: 1.12; color: #fff; }
+
+  .bubble { position: absolute; z-index: 45; padding: 12px 26px 14px; border-radius: 26px; background: var(--paper); color: #161616;
+    font-family: var(--serif); font-style: italic; font-weight: 700; font-size: 38px; opacity: 0; transform-origin: 0 100%; }
+  .bubble::after { content: ""; position: absolute; left: 22px; bottom: -10px; width: 22px; height: 22px; background: var(--paper);
+    clip-path: polygon(0 0, 100% 0, 0 100%); }
+
+  .cursor { position: absolute; z-index: 55; width: 32px; height: 32px; opacity: 0; }
+  .bird { position: absolute; }
+  .bird img { position: absolute; inset: 0; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <clipPath id="arch" clipPathUnits="objectBoundingBox">
+      <path d="M 0 1 L 0 0.26 C 0 0.10 0.17 0.065 0.37 0.038 C 0.455 0.026 0.49 0.014 0.5 0 C 0.51 0.014 0.545 0.026 0.63 0.038 C 0.83 0.065 1 0.10 1 0.26 L 1 1 Z"/>
+    </clipPath>
+  </defs>
+</svg>
+
+<div id="stage">
+  <p class="corner o" id="cl"><span>Uygulama</span>Pepe</p>
+  <p class="corner o" id="cr"><span>Platform</span>macOS</p>
+
+  <!-- 0–3: kanca -->
+  <div class="o" id="hook" style="left:0;right:0;top:360px;text-align:center">
+    <h1 class="serif" id="h1" style="font-size:96px;line-height:1.1">Ajanın izin istiyor.</h1>
+    <h1 class="serif" id="h2" style="font-size:96px;line-height:1.1;font-style:italic;font-weight:400;color:var(--soft);margin-top:18px">Sen başka penceredesin.</h1>
+  </div>
+
+  <!-- 3–5: çentikten Pepe -->
+  <div class="notch o" id="notch"></div>
+  <div class="bird o" id="peek" style="left:50%;width:170px;height:170px;margin-left:-85px;top:0;z-index:35"><img src="assets/pepe.png"></div>
+  <div class="bubble" id="hav1" style="left:1060px;top:150px">hav!</div>
+  <div class="o" id="title" style="left:0;right:0;top:420px;text-align:center">
+    <h1 class="serif" style="font-weight:900;font-size:200px;letter-spacing:.05em;line-height:1">PEPE</h1>
+    <p class="body" style="margin-top:34px">Ajanların, MacBook'un çentiğinde.</p>
+  </div>
+
+  <div id="scenes"></div>
+  <div class="bubble" id="hav2" style="left:1160px;top:70px">hav hav!</div>
+
+  <!-- 27–30: kapanış -->
+  <div class="arch o" id="endPhoto" style="left:810px;top:110px;width:300px;height:400px"><img src="assets/pepe-mutlu.png"></div>
+  <div class="bubble" id="hav3" style="left:1070px;top:120px">hav!</div>
+  <div class="o" id="end" style="left:0;right:0;top:560px;text-align:center">
+    <h1 class="serif" style="font-weight:900;font-size:124px;letter-spacing:.05em;line-height:1">PEPE</h1>
+    <p class="serif" style="font-style:italic;font-weight:400;font-size:36px;color:var(--soft);margin-top:22px">Ajanların ne yaptığını görmek için.</p>
+  </div>
+  <div class="o" id="end2" style="left:0;right:0;top:830px;text-align:center">
+    <p class="kicker" style="color:#d9d3c9">Claude Code &nbsp;·&nbsp; Codex &nbsp;·&nbsp; Cursor &nbsp;·&nbsp; Gemini CLI</p>
+    <p class="kicker" style="margin-top:22px">Erken erişim &nbsp;·&nbsp; hi@tahayerdekalmazer.com</p>
+  </div>
+
+  <svg class="cursor" id="cur" viewBox="0 0 24 24"><path d="M4 2 L4 20 L9 15 L12.5 22 L15.5 20.6 L12 13.8 L19 13.8 Z" fill="#fff" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/></svg>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const easeOut = k => 1 - Math.pow(1 - k, 3);
+const easeInOut = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const backOut = k => 1 + 2.70158 * Math.pow(k - 1, 3) + 1.70158 * Math.pow(k - 1, 2);
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const vis = (t, a, b, d = .35) => Math.min(easeOut(prog(t, a, a + d)), 1 - easeInOut(prog(t, b - d, b)));
+
+// Başlık kelime kelime, vuruşa oturarak gelir.
+function words(el, at, gap) {
+  el.innerHTML = el.textContent.split(' ').map(w => `<span class="w">${w}</span>`).join(' ');
+  return [...el.querySelectorAll('.w')].map((s, i) => ({ s, at: at + i * gap }));
+}
+const W1 = words($('h1'), .2, .25), W2 = words($('h2'), 1.2, .25);
+
+// Sahne süreleri vuruşun katları; havlama ve zil zamanları muzik-kisa.py'deki 30 sn akışıyla aynı.
+// swap: yığındaki bir sonraki görüntüye geçiş anları (sahne başından saniye).
+const T0 = 5;
+const SCENES = [
+  { dur: 2, kind: 'panel', imgs: ['2-izin'], s: .9, cursor: [.89, .86], h: 'İzni çentikten ver.' },
+  { dur: 2, kind: 'panel', imgs: ['r-adimlar'], s: .88, h: 'Her adımı, her satırı gör.' },
+  { dur: 2.5, kind: 'panel', imgs: ['r-oturuma-yaz', 'r-oturuma-yaz-2'], s: .88, swap: [1.3], cursor: [.915, .89],
+    h: 'Terminal kapalıyken bile oturuma yaz.' },
+  { dur: 2, kind: 'panel', imgs: ['3-ana-bitti'], s: 1, bark: 1.0, h: 'İş bitince havlar.' },
+  { dur: 2, kind: 'panel', imgs: ['7-ajanlar'], s: .85, h: 'Birden fazla ajan, aynı anda.' },
+  { dur: 2, kind: 'panel', imgs: ['r-sohbet-oturum'], s: .95, h: 'Pepe\'ye söyle, oturuma o iletsin.' },
+  { dur: 2.5, kind: 'panel', imgs: ['r-sohbet-hatirlat', 'r-sohbet-otomasyon'], s: .95, swap: [1.25],
+    h: 'Hatırlatıcıyı da otomasyonu da sohbetten kur.' },
+  { dur: 1.5, kind: 'panel', imgs: ['r-hatirlatma'], s: 1.15, h: 'Saati gelince çentikten dürter.' },
+  { dur: 2, kind: 'panel', imgs: ['8-pill-stripe', '8-pill-github', '8-pill-vercel', '8-pill-calcom'], s: 1, swap: [.5, 1, 1.5],
+    h: 'Stripe, GitHub, Vercel de çentikte.' },
+  { dur: 1.5, kind: 'panel', imgs: ['k-kisisel'], s: .72, h: 'Her sabah günün özeti hazır.' },
+  { dur: 2, kind: 'voice', imgs: ['12-ses-dinliyor', 'r-ses-konusuyor'], w: [860, 1040], swap: [.9], h: '“OK Pepe” de, sesle sor.' },
+];
+let at = T0;
+SCENES.forEach((sc, i) => {
+  sc.a = at; sc.b = at + sc.dur; at = sc.b;
+  const root = $('scenes'), src = n => `assets/${n}.png`;
+  if (sc.kind === 'voice') {
+    // Sesli asistanın baloncuğu çentiğin hemen altında belirir.
+    sc.els = sc.imgs.map((n, j) => {
+      const d = document.createElement('div'), W = sc.w[j] * 1.3; d.className = 'o';
+      d.style.cssText = `left:50%;top:${j ? 50 : 76}px;width:${W}px;margin-left:${-W / 2}px;z-index:30`;
+      d.innerHTML = `<img src="${src(n)}" style="display:block;width:100%">`; root.appendChild(d); return d;
+    });
+  } else {
+    const d = document.createElement('div'); d.className = 'panel';
+    const W = 1320 * sc.s; d.style.width = W + 'px'; d.style.marginLeft = -W / 2 + 'px';
+    d.innerHTML = sc.imgs.length > 1 ? `<div class="stack">${sc.imgs.map(n => `<img src="${src(n)}">`).join('')}</div>`
+                                     : `<img src="${src(sc.imgs[0])}">`;
+    root.appendChild(d); sc.el = d;
+  }
+  const c = document.createElement('div'); c.className = 'cap';
+  c.innerHTML = `<div class="num kicker">${String(i + 1).padStart(2, '0')}<i></i></div><h2>${sc.h}</h2>`;
+  root.appendChild(c); sc.cap = c;
+});
+const END = at;  // 27
+
+// Panel çentikten açılır: önce çentik genişliğinde, sonra tam boy.
+function panel(el, t, a, b) {
+  const k = easeOut(prog(t, a, a + .45)) * (1 - easeInOut(prog(t, b - .3, b)));
+  const w = el.offsetWidth, h = el.offsetHeight;
+  const ix = lerp(Math.max(0, (w - 330) / 2) / w * 100, 0, k), iy = lerp(Math.max(0, h - 52) / h * 100, 0, k);
+  el.style.opacity = t < a || t > b ? 0 : 1;
+  el.style.clipPath = `inset(0 ${ix}% ${iy}% ${ix}% round 0 0 ${lerp(24, 40, k)}px ${lerp(24, 40, k)}px)`;
+  el.style.transform = `scale(${lerp(1.025, 1, easeOut(prog(t, a, b)))})`;
+}
+function rise(el, t, a, b, d = .35, dy = 22) {
+  el.style.opacity = vis(t, a, b, d);
+  el.style.transform = `translateY(${lerp(dy, 0, easeOut(prog(t, a, a + d * 1.4)))}px)`;
+}
+// Konuşma balonu: havlamayla birlikte fırlar, kısa süre kalır.
+function bubble(el, t, at, d = .55) {
+  const k = prog(t, at, at + .18), out = easeInOut(prog(t, at + d, at + d + .15));
+  el.style.opacity = t < at ? 0 : 1 - out;
+  el.style.transform = `scale(${t < at ? 0 : lerp(.4, 1, backOut(k))}) rotate(-4deg)`;
+}
+
+window.seek = function (t) {
+  // 0–3: kanca
+  $('hook').style.opacity = 1 - easeInOut(prog(t, 2.6, 2.85));
+  for (const { s, at } of [...W1, ...W2]) {
+    const k = easeOut(prog(t, at, at + .3));
+    s.style.opacity = k;
+    s.style.transform = `translateY(${lerp(30, 0, k)}px)`;
+  }
+
+  // 3–5: çentik iner, Pepe fırlar ve havlar, başlık vurur
+  const n = easeOut(prog(t, 2.6, 2.95)) * (1 - easeInOut(prog(t, END, END + .4)));
+  $('notch').style.opacity = n > 0 ? 1 : 0;
+  $('notch').style.transform = `translateY(${lerp(-52, 0, n)}px)`;
+  const pk = backOut(prog(t, 3, 3.35)) * (1 - easeInOut(prog(t, 4.6, 4.95)));
+  $('peek').style.opacity = t >= 3 && t < 4.95 ? 1 : 0;
+  $('peek').style.transform = `translateY(${lerp(-150, 60, pk)}px)`;
+  bubble($('hav1'), t, 3.1, .9);
+  const ti = prog(t, 3, 3.4);
+  $('title').style.opacity = ti * (1 - easeInOut(prog(t, 4.65, 4.95)));
+  $('title').style.transform = `scale(${lerp(1.18, 1, easeOut(ti))})`;
+  $('cl').style.opacity = $('cr').style.opacity = Math.max(vis(t, 3.3, END + .1, .4), easeOut(prog(t, END + 1.5, END + 2)));
+
+  $('cur').style.opacity = 0;
+  for (const sc of SCENES) {
+    if (sc.kind === 'panel') panel(sc.el, t, sc.a, sc.b);
+    else sc.els.forEach((el, j) => {
+      const a = j ? sc.a + sc.swap[0] : sc.a, b = j ? sc.b : sc.a + sc.swap[0] + .1;
+      el.style.opacity = vis(t, a, b, .2);
+      el.style.transform = `scale(${lerp(.9, 1, backOut(prog(t, a, a + .3)))})`;
+      el.style.transformOrigin = '50% 40px';
+    });
+    rise(sc.cap, t, sc.a + .15, sc.b - .02, .3);
+    if (sc.kind === 'panel' && sc.swap) {
+      sc.el.querySelectorAll('.stack img').forEach((im, j) => {
+        if (j) im.style.opacity = easeInOut(prog(t, sc.a + sc.swap[j - 1] - .1, sc.a + sc.swap[j - 1] + .08));
+      });
+    }
+    if (sc.cursor && t > sc.a && t < sc.b) {
+      const W = 1320 * sc.s, H = sc.el.offsetHeight;
+      const tx = 960 - W / 2 + sc.cursor[0] * W, ty = sc.cursor[1] * H;
+      const click = sc.swap ? sc.swap[0] - .15 : 1.15;
+      const m = easeInOut(prog(t, sc.a + click - .7, sc.a + click - .05));
+      $('cur').style.opacity = vis(t, sc.a + .3, sc.b - .25, .2);
+      $('cur').style.transform = `translate(${lerp(tx - 180, tx, m)}px, ${lerp(ty + 240, ty, m)}px) scale(${t > sc.a + click && t < sc.a + click + .15 ? .82 : 1})`;
+    }
+    if (sc.bark) bubble($('hav2'), t, sc.a + sc.bark, .7);
+  }
+
+  // 27–30: kapanış
+  rise($('endPhoto'), t, END + .2, 99, .5, 40);
+  bubble($('hav3'), t, END + 1, .8);
+  rise($('end'), t, END + .5, 99, .5);
+  rise($('end2'), t, END + 1.3, 99, .5);
+};
+window.DURATION = 30;
+window.seek(0);
+</script>
+</body>
+</html>

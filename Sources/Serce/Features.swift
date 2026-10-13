@@ -11,6 +11,7 @@ import SwiftUI
         Integrations.register(app)
         // ajanlar
         AgentFeatures.register(app)
+        CodexWatcherFeature.register(app)
         // karakter
         CharacterFeature.register(app)
         // sohbet

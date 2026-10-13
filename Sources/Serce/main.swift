@@ -59,6 +59,11 @@ import SwiftUI
         let store = self.store
         server = HookServer(token: Support.token) { event, responder, onClose in
             Task { @MainActor in
+                // Codex oturumları kayıt dosyalarından izleniyorsa hook'tan yalnızca izin istekleri alınır (çift adım olmasın).
+                if event.agent == "codex", CodexWatcher.shared.enabled, event.name != "PermissionRequest" {
+                    responder?.respond("")
+                    return
+                }
                 guard let id = store.handle(event, responder: responder) else { return }
                 onClose { Task { @MainActor in store.dropApproval(id) } }
             }
@@ -192,8 +197,11 @@ MainActor.assumeIsolated {
     if let i = CommandLine.arguments.firstIndex(of: "--render-pepe"), i + 1 < CommandLine.arguments.count {
         let dir = URL(fileURLWithPath: CommandLine.arguments[i + 1])
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        for (name, mood) in [("pepe", Mood.idle), ("pepe-mutlu", Mood.happy), ("pepe-uyku", Mood.sleep)] {
-            let r = ImageRenderer(content: Bird(mood: mood, size: 800, outfit: Outfit.none, eyes: .fixed).frame(width: 800, height: 800))
+        let renders: [(String, Mood, Outfit)] = [("pepe", .idle, .none), ("pepe-mutlu", .happy, .none), ("pepe-uyku", .sleep, .none),
+                                                 ("pepe-gozluk", .idle, .sunglasses), ("pepe-papyon", .idle, .bowtie),
+                                                 ("pepe-kulaklik", .idle, .headphones), ("pepe-parti", .happy, .partyHat)]
+        for (name, mood, outfit) in renders {
+            let r = ImageRenderer(content: Bird(mood: mood, size: 800, outfit: outfit, eyes: .fixed).frame(width: 800, height: 800))
             r.scale = 1
             if let img = r.nsImage, let tiff = img.tiffRepresentation,
                let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
@@ -302,6 +310,118 @@ MainActor.assumeIsolated {
             print("görsel:", r.send("Bu görselin rengi ne? Tek kelime.", images: [png], to: s) ?? "ok")
             await wait(sid)
             print("3. yanıt:", r.lastResult[sid]?.text ?? "-", "| hata:", r.lastError[sid] ?? "yok")
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
+    // Gemini olay akışı çevirisi, örnek satırlarla (CLI çalıştırmadan): Serce --gemini-akis-testi
+    if CommandLine.arguments.contains("--gemini-akis-testi") {
+        Task { @MainActor in
+            let sid = "gemini-ornek-oturum"
+            AppState.shared.store.registerLaunched(id: sid, cwd: "/tmp/ornek", prompt: "dosya yaz", agent: "gemini")
+            let st = AgentStream(agent: .gemini, cwd: "/tmp/ornek", prompt: "dosya yaz", sessionId: sid)
+            st.begin()
+            let lines = [
+                #"{"type":"init","session_id":"gemini-ornek-oturum","model":"gemini-2.5-pro"}"#,
+                #"{"type":"message","role":"user","content":"dosya yaz"}"#,
+                #"{"type":"tool_use","tool_name":"write_file","tool_id":"t1","parameters":{"file_path":"/tmp/ornek/a.txt","content":"selam"}}"#,
+                #"{"type":"tool_result","tool_id":"t1","status":"success","output":"Dosya yazıldı"}"#,
+                #"{"type":"tool_use","tool_name":"run_shell_command","tool_id":"t2","parameters":{"command":"ls"}}"#,
+                #"{"type":"tool_result","tool_id":"t2","status":"error","output":"","error":{"type":"x","message":"komut bulunamadı"}}"#,
+                #"{"type":"message","role":"assistant","content":"Ta","delta":true}"#,
+                #"{"type":"message","role":"assistant","content":"mam","delta":true}"#,
+                #"{"type":"result","status":"success","stats":{}}"#,
+            ]
+            for l in lines { st.feed(Data(l.utf8)) }
+            st.end(status: 0, stderr: "")
+            if let s = AppState.shared.store.sessions.first(where: { $0.id == sid }) {
+                print("durum:", s.status, "| eylem:", s.action, "| yanıt:", s.lastReply, "| ajan:", s.agent)
+                for x in s.steps { print("  adım:", x.tool, x.status) }
+            }
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
+    // Bir oturumdaki hatayı başka bir ajana aktarma (yeni Codex oturumu): Serce --aktar-testi git-deposu [codex-modeli]
+    if let i = CommandLine.arguments.firstIndex(of: "--aktar-testi"), i + 1 < CommandLine.arguments.count {
+        let dir = CommandLine.arguments[i + 1]
+        let model = i + 2 < CommandLine.arguments.count ? CommandLine.arguments[i + 2] : nil
+        Task { @MainActor in
+            let store = AppState.shared.store
+            // Kaynak: testi kırık bir Claude oturumu (gerçek ajan çalıştırmadan, hook olaylarıyla).
+            let src = "kaynak-oturum"
+            @MainActor func ev(_ name: String, _ p: [String: Any]) {
+                var p = p; p["session_id"] = src; p["cwd"] = dir
+                _ = store.handle(HookEvent(name: name, payload: p, bundleId: "", term: ""))
+            }
+            ev("UserPromptSubmit", ["prompt": "topla.sh testini çalıştır"])
+            ev("PreToolUse", ["tool_name": "Bash", "tool_input": ["command": "sh test.sh"]])
+            ev("PostToolUse", ["tool_name": "Bash", "tool_input": ["command": "sh test.sh"],
+                               "tool_response": "HATA: topla 2 3 → beklenen 5, gelen 6"])
+            ev("Stop", ["last_assistant_message": "test.sh başarısız: topla.sh iki sayıyı yanlış topluyor."])
+            guard let s = store.sessions.first(where: { $0.id == src }) else { exit(1) }
+            let parts = Forward.defaultParts(in: s)
+            let text = Forward.message(from: s, parts: parts, note: "Bu hatayı düzelt ve testi tekrar çalıştır. Sonucu tek cümleyle yaz.")
+            print("parçalar:", parts.map(\.rawValue).sorted(), "\n--- mesaj ---\n\(text)\n-------------")
+            AgentRunner.shared.pendingOptions = AgentRunner.RunOptions(mode: "workspace-write", model: model, effort: nil)
+            print("aktar:", Forward.send(text, from: s, to: .new(.codex), in: store) ?? "ok")
+            try? await Task.sleep(for: .milliseconds(500))
+            while !AgentRunner.shared.running.isEmpty { try? await Task.sleep(for: .milliseconds(300)) }
+            if let c = store.sessions.first(where: { $0.agent == "codex" }) {
+                print("hedef:", c.agentName, "| durum:", c.action, "| adımlar:", c.steps.map(\.tool), "\n  yanıt:", c.lastReply.prefix(200))
+                print("  hata:", AgentRunner.shared.lastError[c.id] ?? "yok")
+            }
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
+    // Codex oturum kayıtlarını okuyup kartları basar (son 3 saat): Serce --codex-kayit-testi
+    if CommandLine.arguments.contains("--codex-kayit-testi") {
+        Task { @MainActor in
+            CodexWatcher.shared.start()
+            for s in AppState.shared.store.sessions where s.agent == "codex" {
+                print("•", s.project, "|", s.id.prefix(13), "| durum:", s.status, "| eylem:", s.action.prefix(60))
+                print("  istek:", s.prompt.prefix(90).replacingOccurrences(of: "\n", with: " "))
+                print("  adımlar:", s.steps.count, s.steps.suffix(4).map { "\($0.tool):\($0.status)" })
+                print("  yanıt:", s.lastReply.prefix(140).replacingOccurrences(of: "\n", with: " "))
+            }
+            exit(0)
+        }
+        RunLoop.main.run()
+    }
+    // Codex ya da Gemini oturumunu terminalsiz başlatıp sürdürme: Serce --ajan-calistir-testi klasor codex|gemini [model]
+    if let i = CommandLine.arguments.firstIndex(of: "--ajan-calistir-testi"), i + 2 < CommandLine.arguments.count {
+        let dir = CommandLine.arguments[i + 1]
+        let agent = RunnableAgent(agent: CommandLine.arguments[i + 2]) ?? .codex
+        let model = i + 3 < CommandLine.arguments.count && !CommandLine.arguments[i + 3].hasPrefix("--") ? CommandLine.arguments[i + 3] : nil
+        Task { @MainActor in
+            let r = AgentRunner.shared
+            let store = AppState.shared.store
+            @MainActor func wait() async {
+                try? await Task.sleep(for: .milliseconds(500))
+                while !r.running.isEmpty { try? await Task.sleep(for: .milliseconds(300)) }
+            }
+            @MainActor func dump(_ title: String) {
+                guard let s = store.sessions.first(where: { $0.agent == agent.rawValue }) else { print(title, "kart yok"); return }
+                print(title, "| kimlik:", s.id.prefix(13), "| durum:", s.status, "| eylem:", s.action, "| istek:", s.prompt.prefix(50),
+                      "| klasör:", s.cwd, "| kopya:", s.worktree ?? "-", "| proje:", s.project)
+                for st in s.steps { print("   adım:", st.tool, st.title, st.status) }
+                print("   yanıt:", s.lastReply.prefix(160))
+            }
+            var o = agent.defaultOptions
+            o.model = model
+            r.pendingOptions = o
+            let worktree = CommandLine.arguments.contains("--worktree")
+            print("başlat:", r.start("hello.txt adında, içinde 'merhaba' yazan bir dosya oluştur, sonra 'ls' çalıştır ve tek kelimeyle 'tamam' yaz.",
+                                     in: dir, worktree: worktree, agent: agent) ?? "ok")
+            await wait()
+            dump("1.")
+            guard let s = store.sessions.first(where: { $0.agent == agent.rawValue }) else { exit(1) }
+            print("hata:", r.lastError[s.id] ?? "yok")
+            print("devam:", r.send("Az önce oluşturduğun dosyanın adı neydi? Sadece adı yaz.", to: s) ?? "ok")
+            await wait()
+            dump("2.")
+            print("hata:", r.lastError[s.id] ?? "yok")
             exit(0)
         }
         RunLoop.main.run()

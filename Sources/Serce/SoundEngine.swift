@@ -33,6 +33,8 @@ import AVFoundation
     private let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
     private var buffers: [Cue: AVAudioPCMBuffer] = [:]
     private var overrides: [Cue: NSSound] = [:]
+    /// Ses motoru açık kaldıkça sessizlikte bile ses çıkışı işlenir (Pepe ve coreaudiod işlemci harcar); son sesten sonra kapatılır.
+    private var idleStop: DispatchWorkItem?
 
     private var enabled: Bool { !UserDefaults.standard.bool(forKey: "sesKapali") }
 
@@ -54,6 +56,18 @@ import AVFoundation
         p.stop()
         p.scheduleBuffer(buffer, at: nil, options: [])
         p.play()
+        scheduleIdleStop()
+    }
+
+    private func scheduleIdleStop() {
+        idleStop?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.players.forEach { $0.stop() }
+            self.engine.stop()
+        }
+        idleStop = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: work)
     }
 
     private func override(_ cue: Cue) -> NSSound? {
@@ -106,9 +120,8 @@ enum Synth {
     static func render(_ cue: SoundEngine.Cue) -> [Float] {
         switch cue {
         case .chirp:
-            // Küçük bir "hav": hızlı yükselip düşen, gürültülü, harmonikli kısa ses.
-            return mix([Note(f0: 560, f1: 900, dur: 0.045, amp: 0.45, harmonic: 0.8, noise: 0.12),
-                         Note(f0: 900, f1: 480, dur: 0.09, at: 0.04, amp: 0.45, harmonic: 0.8, noise: 0.12)])
+            // Küçük bir "hav".
+            return barks([(0, 430)])
         case .approval:
             return mix([Note(f0: 880, f1: 880, dur: 0.16, amp: 0.4, harmonic: 0.3),
                         Note(f0: 1320, f1: 1320, dur: 0.22, at: 0.12, amp: 0.4, harmonic: 0.3)])
@@ -123,10 +136,7 @@ enum Synth {
             return mix([Note(f0: 1300, f1: 380, dur: 0.65, amp: 0.35, vibrato: 0.08)])
         case .greet:
             // "Hav hav!"
-            return mix([Note(f0: 600, f1: 980, dur: 0.045, amp: 0.42, harmonic: 0.8, noise: 0.1),
-                        Note(f0: 980, f1: 520, dur: 0.09, at: 0.04, amp: 0.42, harmonic: 0.8, noise: 0.1),
-                        Note(f0: 660, f1: 1080, dur: 0.045, at: 0.22, amp: 0.45, harmonic: 0.8, noise: 0.1),
-                        Note(f0: 1080, f1: 560, dur: 0.11, at: 0.26, amp: 0.45, harmonic: 0.8, noise: 0.1)])
+            return barks([(0, 430), (0.24, 480)])
         case .drop:
             return mix([Note(f0: 700, f1: 140, dur: 0.12, amp: 0.55)])
         case .error:
@@ -137,6 +147,60 @@ enum Synth {
         case .whoosh:
             return mix([Note(f0: 300, f1: 900, dur: 0.35, amp: 0.25, noise: 0.9)])
         }
+    }
+
+    /// Havlama: sinüs yerine ses teli gibi titreyen testere dalgası + nefes gürültüsü,
+    /// ağız boşluğu gibi davranan üç rezonans süzgecinden (formant) geçer; "vu" → "AF" → "f" diye açılıp kapanır.
+    private static func barks(_ list: [(at: Double, pitch: Double)], dur: Double = 0.17, amp: Float = 0.6) -> [Float] {
+        let total = (list.map(\.at).max() ?? 0) + dur
+        var out = [Float](repeating: 0, count: Int((total + 0.03) * rate))
+        var seed: UInt32 = 987_654
+        func noise() -> Double {
+            seed = seed &* 1_664_525 &+ 1_013_904_223
+            return Double(seed) / Double(UInt32.max) * 2 - 1
+        }
+        for (at, pitch) in list {
+            let start = Int(at * rate), count = Int(dur * rate)
+            var shot = [Double](repeating: 0, count: count)
+            var phase = 0.0
+            // Her formant için biquad (bant geçiren) durumu: x1, x2, y1, y2.
+            var state = [[Double]](repeating: [0, 0, 0, 0], count: 3)
+            for i in 0..<count {
+                let p = Double(i) / Double(count)
+                // Perde hızla tırmanır, sonra düşer; ses teli düzensizliği için biraz titreme.
+                let contour = p < 0.2 ? 0.8 + 0.4 * (p / 0.2) : 1.2 - 0.55 * ((p - 0.2) / 0.8)
+                let f0 = pitch * contour * (1 + 0.03 * noise())
+                phase += f0 / rate
+                phase -= floor(phase)
+                let saw = 2 * phase - 1
+                // Hırıltı: başta ve sonda daha nefesli.
+                let breath = 0.25 + 0.35 * abs(p - 0.35)
+                let src = saw * (1 - breath) + noise() * breath
+                // Ağız açılıp kapanırken formantlar kayar.
+                let open = sin(min(1, p * 1.6) * .pi)
+                let formants = [(300 + 550 * open, 6.0, 1.0),
+                                (900 + 500 * open, 7.0, 0.7),
+                                (2500 + 300 * open, 9.0, 0.3)]
+                var v = 0.0
+                for (k, (f, q, g)) in formants.enumerated() {
+                    let w = 2 * .pi * f / rate, alpha = sin(w) / (2 * q)
+                    let a0 = 1 + alpha, a1 = -2 * cos(w), a2 = 1 - alpha
+                    let s = state[k]
+                    let y = (alpha * src - alpha * s[1] - a1 * s[2] - a2 * s[3]) / a0
+                    state[k] = [src, s[0], y, s[2]]
+                    v += y * g
+                }
+                // Göğüsten gelen tok kısım.
+                v += sin(phase * 2 * .pi) * 0.25 * (1 - p)
+                let env = min(1, p * 25) * pow(1 - p, 1.3)
+                shot[i] = v * env
+            }
+            let peak = shot.map(abs).max() ?? 1
+            for i in 0..<count where start + i < out.count {
+                out[start + i] += Float(shot[i] / max(peak, 1e-6)) * amp
+            }
+        }
+        return out.map { max(-1, min(1, $0)) }
     }
 
     private static func mix(_ notes: [Note]) -> [Float] {

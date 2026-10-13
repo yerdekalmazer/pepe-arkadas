@@ -229,7 +229,7 @@ struct MessageRow: View {
 
 struct TypingDots: View {
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20)) { tl in
+        TimelineView(.animation(minimumInterval: 1.0 / 12)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             HStack(spacing: 4) {
                 ForEach(0..<3, id: \.self) { i in

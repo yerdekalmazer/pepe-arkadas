@@ -2,3 +2,8 @@
 build/
 *.app
 .DS_Store
+.swiftpm/
+.claude/settings.local.json
+.env
+*.wav
+*.mp4

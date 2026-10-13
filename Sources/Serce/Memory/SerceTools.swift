@@ -4,7 +4,8 @@ import Foundation
 /// Hepsi bu Mac'te çalışır; modele yalnızca kısa sonuçları döner.
 @MainActor enum SerceTools {
     static let names: Set<String> = ["project_memory", "search_memory", "send_to_session", "start_session", "set_reminder",
-                                     "list_reminders", "cancel_reminder", "briefing", "trello_cards", "trello_add_card", "trello_move_card"]
+                                     "list_reminders", "cancel_reminder", "set_automation", "list_automations",
+                                     "cancel_automation", "briefing", "trello_cards", "trello_add_card", "trello_move_card"]
 
     static func owns(_ name: String) -> Bool { names.contains(name) }
 
@@ -14,13 +15,19 @@ import Foundation
                  ["project": ["type": "string", "description": "Proje adı"]], required: ["project"]),
             tool("search_memory", "Tüm proje hafızalarında kelime araması yapar (ör. 'supabase pooler').",
                  ["query": ["type": "string"]], required: ["query"]),
-            tool("send_to_session", "Var olan bir Claude Code oturumuna mesaj gönderir; terminal açık olmasa da arka planda devam eder.",
+            tool("read_session", "Bir ajan oturumunun durumunu, görevini, son yanıtını ve hata veren adımını okur. Bir oturumdaki sorunu başka bir ajana aktarmadan önce kullan.",
                  ["project": ["type": "string", "description": "Oturumun proje adı; boşsa en son oturum"],
+                  "agent": ["type": "string", "description": "claude, codex, gemini, cursor… (isteğe bağlı)"]],
+                 required: []),
+            tool("send_to_session", "Var olan bir Claude Code, Codex ya da Gemini CLI oturumuna mesaj gönderir; terminal açık olmasa da arka planda devam eder. Oturum çalışıyorsa mesaj sıraya girer, bitince gider. Başka bir oturumdan aktarırken read_session ile okuduğun hatayı/yanıtı mesaja koy.",
+                 ["project": ["type": "string", "description": "Oturumun proje adı; boşsa en son oturum"],
+                  "agent": ["type": "string", "enum": ["claude", "codex", "gemini"], "description": "Hedef ajan (isteğe bağlı)"],
                   "message": ["type": "string", "description": "Ajana gönderilecek talimat, kullanıcının ağzından"]],
                  required: ["message"]),
-            tool("start_session", "Bir projenin klasöründe yeni bir Claude Code oturumu başlatır ve görevi verir.",
+            tool("start_session", "Bir projenin klasöründe yeni bir ajan oturumu (varsayılan Claude Code; Codex ya da Gemini CLI da olur) başlatır ve görevi verir.",
                  ["project": ["type": "string", "description": "Hafızadaki proje adı"],
                   "message": ["type": "string", "description": "Görev"],
+                  "agent": ["type": "string", "enum": ["claude", "codex", "gemini"], "description": "Hangi ajan; kullanıcı belirtmediyse claude"],
                   "worktree": ["type": "boolean", "description": "Ayrı git çalışma kopyasında aç (projede başka oturum çalışıyorsa önerilir)"]],
                  required: ["project", "message"]),
             tool("set_reminder", "Hatırlatma kurar. Zamanı ya 'at' (yerel saat, 'YYYY-MM-DD HH:mm') ya da 'in_minutes' ile ver.",
@@ -28,6 +35,14 @@ import Foundation
                   "project": ["type": "string", "description": "İlgili proje (isteğe bağlı)"]], required: ["text"]),
             tool("list_reminders", "Bekleyen hatırlatmaları listeler.", [:], required: []),
             tool("cancel_reminder", "Metni eşleşen bekleyen hatırlatmaları iptal eder.",
+                 ["query": ["type": "string"]], required: ["query"]),
+            tool("set_automation", "Tekrarlayan otomasyon kurar: her gün (ya da seçili günlerde) belirlenen saatte 'message' sohbete gönderilir ve sen cevaplarsın. Tek seferlik iş için set_reminder kullan.",
+                 ["message": ["type": "string", "description": "O saatte sohbete gidecek mesaj, kullanıcının ağzından (ör. 'Bugünün planını çıkar')"],
+                  "time": ["type": "string", "description": "Yerel saat, 'HH:mm'"],
+                  "days": ["description": "'everyday' (varsayılan), 'weekdays', 'weekends' ya da gün numaraları dizisi (1 = pazartesi … 7 = pazar)"]],
+                 required: ["message", "time"]),
+            tool("list_automations", "Kurulu otomasyonları listeler.", [:], required: []),
+            tool("cancel_automation", "Mesajı eşleşen otomasyonları siler.",
                  ["query": ["type": "string"]], required: ["query"]),
             tool("briefing", "Günün brifingini verir: dün çalışılan projeler, kalınan yerler, hatırlatmalar, Trello/GitHub/takvim.",
                  ["weekly": ["type": "boolean", "description": "Geçen haftanın özetini de ekle"]], required: []),
@@ -62,6 +77,7 @@ import Foundation
     static func progress(_ name: String) -> String {
         switch name {
         case "project_memory", "search_memory": "Proje hafızası"
+        case "read_session": "Oturum okunuyor"
         default: "Oturuma yazılıyor"
         }
     }
@@ -82,26 +98,41 @@ import Foundation
             let hits = ProjectMemory.search(input["query"] as? String ?? "")
             return (hits.isEmpty ? "Eşleşme yok." : hits.joined(separator: "\n"), false)
 
+        case "read_session":
+            let q = (input["project"] as? String ?? "").lowercased()
+            let agent = (input["agent"] as? String ?? "").lowercased()
+            guard let s = store.sessions.filter({ (q.isEmpty || $0.project.lowercased().contains(q)) && (agent.isEmpty || $0.agent == agent) })
+                .max(by: { $0.updated < $1.updated }) else { return ("Böyle bir oturum yok.", true) }
+            var out = ["\(s.project) · \(s.agentName) · durum: \(s.action)", "Klasör: \(s.cwd)"]
+            if !s.prompt.isEmpty { out.append("Görev: " + String(s.prompt.prefix(1500))) }
+            if let f = Forward.failedStep(in: s) { out.append("Hata veren adım:\n" + String(Forward.text(of: f).prefix(3000))) }
+            if !s.lastReply.isEmpty { out.append("Son yanıt:\n" + String(s.lastReply.prefix(3000))) }
+            return (out.joined(separator: "\n\n"), false)
+
         case "send_to_session":
             let q = (input["project"] as? String ?? "").lowercased()
             let message = input["message"] as? String ?? ""
-            let candidates = store.sessions.filter { $0.agent == AgentCatalog.claude }
+            let agent = (input["agent"] as? String ?? "").lowercased()
+            let candidates = store.sessions.filter { AgentRunner.canWrite($0.agent) && (agent.isEmpty || $0.agent == agent) }
             // Aynı projede birden fazla oturum varsa: çalışmayan, en son güncellenen.
             let matching = candidates.filter { q.isEmpty || $0.project.lowercased().contains(q) }
                 .sorted { $0.updated > $1.updated }
             guard let s = matching.first(where: { $0.status != .working }) ?? matching.first else {
-                return ("Açık ya da yakın zamanda çalışmış bir Claude Code oturumu bulunamadı; start_session kullanılabilir.", true)
+                return ("Açık ya da yakın zamanda çalışmış bir Claude Code, Codex ya da Gemini oturumu bulunamadı; start_session kullanılabilir.", true)
             }
-            if let err = AgentRunner.shared.send(message, to: s) { return (err, true) }
-            return ("\(s.project) oturumuna gönderildi; ilerleme notch'ta görünecek.", false)
+            let busy = s.status == .working || AgentRunner.shared.isRunning(s.id)
+            if let err = ComposerStore.shared.enqueue(message, for: s) { return (err, true) }
+            return (busy ? "\(s.project) (\(s.agentName)) çalışıyor; mesaj sıraya alındı, bitince gidecek."
+                         : "\(s.project) (\(s.agentName)) oturumuna gönderildi; ilerleme notch'ta görünecek.", false)
 
         case "start_session":
             guard let doc = ProjectMemory.find(input["project"] as? String ?? ""), !doc.root.isEmpty else {
                 return ("Bu proje hafızada yok ya da klasörü bilinmiyor.", true)
             }
             let wt = input["worktree"] as? Bool ?? AgentRunner.shared.hasActiveSession(in: doc.root)
-            if let err = AgentRunner.shared.start(input["message"] as? String ?? "", in: doc.root, worktree: wt) { return (err, true) }
-            return ("\(doc.name) projesinde yeni oturum başladı\(wt ? " (ayrı çalışma kopyasında)" : "").", false)
+            let agent = RunnableAgent(agent: input["agent"] as? String ?? "") ?? .claude
+            if let err = AgentRunner.shared.start(input["message"] as? String ?? "", in: doc.root, worktree: wt, agent: agent) { return (err, true) }
+            return ("\(doc.name) projesinde yeni \(agent.title) oturumu başladı\(wt ? " (ayrı çalışma kopyasında)" : "").", false)
 
         case "set_reminder":
             let text = input["text"] as? String ?? ""
@@ -119,6 +150,24 @@ import Foundation
         case "cancel_reminder":
             let n = Reminders.shared.cancel(matching: input["query"] as? String ?? "")
             return (n == 0 ? "Eşleşen hatırlatma yok." : "\(n) hatırlatma iptal edildi.", n == 0)
+
+        case "set_automation":
+            let message = input["message"] as? String ?? ""
+            guard !message.isEmpty, let minute = Automations.parseTime(input["time"] as? String ?? "") else {
+                return ("Mesaj ya da saat anlaşılmadı; 'time' 'HH:mm' olmalı.", true)
+            }
+            let item = Automations.shared.add(message, minute: minute, days: Automations.parseDays(input["days"]))
+            return ("Kuruldu: \(Automations.daysLabel(item.days)) \(Automations.time(item.minute)) · \(message)", false)
+
+        case "list_automations":
+            let items = Automations.shared.items
+            return (items.isEmpty ? "Kurulu otomasyon yok." : items.map {
+                "\(Automations.daysLabel($0.days)) \(Automations.time($0.minute))\($0.enabled ? "" : " (kapalı)"): \($0.message)"
+            }.joined(separator: "\n"), false)
+
+        case "cancel_automation":
+            let n = Automations.shared.cancel(matching: input["query"] as? String ?? "")
+            return (n == 0 ? "Eşleşen otomasyon yok." : "\(n) otomasyon silindi.", n == 0)
 
         case "briefing":
             return (Briefing.shared.text(weekly: input["weekly"] as? Bool ?? false), false)

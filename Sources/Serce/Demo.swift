@@ -83,6 +83,12 @@ enum DemoScript {
         for (_, e) in after { _ = store.handle(e) }
         model.selectedSession = nil
         shot("3-ana-bitti")
+        // Başka ajana aktar: biten oturumun hatası ve yanıtı yeni bir Codex oturumuna.
+        if let sid = store.sessions.first?.id {
+            model.forwardFrom = sid
+            shot("19-aktar")
+            model.forwardFrom = nil
+        }
         model.selectedSession = store.sessions.first?.id
         shot("4-detay-terminal")
         model.pinnedStep = store.sessions.first?.steps.first { $0.tool == "Edit" }?.id
@@ -196,7 +202,27 @@ enum DemoScript {
             ChatMessage(role: .assistant, text: ""),
         ]
         shot("8-sohbet")
-        chat.messages.removeLast()
+        // Tanıtım videosu: Pepe'ye yazarak oturuma mesaj, hatırlatıcı ve otomasyon.
+        chat.messages = [
+            ChatMessage(role: .user, text: "kesit oturumuna yaz: fatura PDF'ini de yeniden üret"),
+            ChatMessage(role: .assistant, text: "**kesit** oturumuna ilettim. Terminal kapalı ama oturum arka planda devam ediyor; bitince haber veririm."),
+        ]
+        shot("r-sohbet-oturum")
+        chat.messages = [
+            ChatMessage(role: .user, text: "Yarın 10'da Tessera'yı App Store'a göndermemi hatırlat"),
+            ChatMessage(role: .assistant, text: "Tamam, yarın **10:00**'da hatırlatırım."),
+        ]
+        shot("r-sohbet-hatirlat")
+        chat.messages += [
+            ChatMessage(role: .user, text: "Hafta içi her sabah 9'da günün planını çıkar"),
+            ChatMessage(role: .assistant, text: "Otomasyon kuruldu: **hafta içi 09:00**'da günün planı burada olacak."),
+        ]
+        shot("r-sohbet-otomasyon")
+        chat.messages = [
+            ChatMessage(role: .user, text: "Günümü özetle"),
+            ChatMessage(role: .assistant, text: "**kesit** oturumu bitti: KDV oranı %20'ye çekildi, `npm test` ile 48 testin hepsi geçti. Başka açık oturum yok."),
+            ChatMessage(role: .user, text: "Bu dosyada ne var?", attachmentNames: ["fatura.ts"]),
+        ]
         app.attachments = [Attachment(name: "rapor.pdf", kind: .text("")), Attachment(name: "ekran.png", kind: .text(""))]
         chat.draft = "Bunları karşılaştır"
         shot("9-sohbet-ekli")
@@ -235,6 +261,18 @@ enum DemoScript {
         try? lines.map { String(data: try! JSONSerialization.data(withJSONObject: $0), encoding: .utf8)! }.joined(separator: "\n")
             .write(to: tx, atomically: true, encoding: .utf8)
         if let sid = store.sessions.first(where: { $0.project == "kesit" })?.id {
+            // Tanıtım videosu: terminal kapalıyken oturuma yazmak — önce taslak, sonra gönderilmiş hâli.
+            let txShort = dir.appendingPathComponent("ornek-dokum-kisa.jsonl")
+            try? lines.prefix(lines.count - 2).map { String(data: try! JSONSerialization.data(withJSONObject: $0), encoding: .utf8)! }
+                .joined(separator: "\n").write(to: txShort, atomically: true, encoding: .utf8)
+            _ = store.handle(HookEvent(name: "Notification", payload: ["session_id": sid, "cwd": FileManager.default.homeDirectoryForCurrentUser.path + "/Projeler/kesit",
+                                                                      "transcript_path": txShort.path, "message": "x"], bundleId: "", term: ""))
+            app.tab = .home
+            model.selectedSession = sid
+            model.pinnedStep = SessionDetail.historyId
+            ComposerStore.shared.setText("evet güncelle", for: sid)
+            shot("r-oturuma-yaz")
+            ComposerStore.shared.setText("", for: sid)
             _ = store.handle(HookEvent(name: "Notification", payload: ["session_id": sid, "cwd": FileManager.default.homeDirectoryForCurrentUser.path + "/Projeler/kesit",
                                                                       "transcript_path": tx.path, "message": "x"], bundleId: "", term: ""))
             app.tab = .home
@@ -253,15 +291,15 @@ enum DemoScript {
         Reminders.shared.showForSnapshot("Tessera 1.4'ü App Store incelemesine gönder", project: "tessera-ios")
         let trello = TrelloPill()
         trello.preview(lists: [("📥 Lead Takip", 1), ("📝 İçerik Kuyruğu", 3), ("Inbox", 3), ("Ürün Geliştirme", 3),
-                               ("Divizyon", 4), ("Deepdive", 1), ("Diğer", 1)],
-                       cards: ["📊 Hafta 32 Raporu", "Tessera ekran görüntüleri", "VizeX bülten taslağı"])
+                               ("Müşteriler", 4), ("Araştırma", 1), ("Diğer", 1)],
+                       cards: ["📊 Hafta 32 Raporu", "Tessera ekran görüntüleri", "Bülten taslağı"])
         app.pills.persists = false
         app.pills.register(trello)
         app.pills.setActive("trello", true)
         _ = Briefing.shared.text(weekly: true)
         Briefing.shared.visible = true
         shot("15-kisisel")
-        model.newSessionCwd = FileManager.default.homeDirectoryForCurrentUser.path + "/Desktop/Projeler/Bireysel/serce"
+        model.newSessionCwd = FileManager.default.homeDirectoryForCurrentUser.path + "/Projeler/serce"
         shot("16-yeni-oturum")
         model.newSessionCwd = nil
         Briefing.shared.visible = false

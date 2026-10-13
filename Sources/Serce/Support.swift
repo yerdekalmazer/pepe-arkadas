@@ -40,6 +40,8 @@ enum Support {
         AGENT=""
         if [ "$1" = "--agent" ]; then AGENT="$2"; shift 2; fi
         EVENT="$1"
+        # Pepe'nin olay akışını kendisi okuduğu çalıştırmalar (Codex, Gemini): olaylar iki kez gelmesin.
+        if [ -n "${SERCE_STREAM:-}" ]; then cat >/dev/null; exit 0; fi
 
         # Claude Code durum satırı: plan kullanımını aktar, sonra kullanıcının önceki durum satırını çalıştır.
         if [ "$EVENT" = "--statusline" ]; then
