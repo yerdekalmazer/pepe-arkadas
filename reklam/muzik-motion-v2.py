@@ -77,8 +77,19 @@ def bark(start):
         formant=math.sin(TAU*730*t)*.22+math.sin(TAU*1250*t)*.12
         return env*(glottal*.6+formant+rng.uniform(-1,1)*.21)
     add(start,.23,sound,.48,-.12)
-# A two-bark motif synchronized with the character's two hops.
-bark(DONE+.60);bark(DONE+.94)
+# Pepe'nin uygulamadaki gerçek havlaması (Serce --render-sound chirp sesler/pepe-havlama.wav), iki zıplamayla aynı anda.
+# Codex'in sentez havlaması (bark) yukarıda tanımlı kalır ama kullanılmaz.
+def app_bark(start, gain=.8):
+    with wave.open(str(Path(__file__).resolve().with_name('sesler') / 'pepe-havlama.wav'), 'rb') as w:
+        src_rate = w.getframerate(); raw = array('h'); raw.frombytes(w.readframes(w.getnframes()))
+    if sys.byteorder != 'little': raw.byteswap()
+    src = [v / 32767 for v in raw]
+    n = int(len(src) * SR / src_rate)
+    def sound(t, j):
+        x = j * src_rate / SR; k = int(x); f = x - k
+        return src[k] * (1 - f) + (src[k + 1] if k + 1 < len(src) else 0) * f if k < len(src) else 0
+    add(start, n / SR, sound, gain, -.12)
+app_bark(DONE+.60);app_bark(DONE+.94)
 # Closing sonic signature and a soft resolved chord.
 for tm,m in [(0,74),(.25,78),(.5,81),(3,74),(3.25,78),(3.5,86)]:pluck(END+tm,m,.18)
 for m in [50,57,61,66,74]:

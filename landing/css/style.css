@@ -106,7 +106,7 @@ h2 { font-size: clamp(40px, 5.4vw, 76px); }
 .steps li { counter-increment: s; position: relative; background: #fff; border-radius: 22px; padding: 64px 22px 24px; font-size: 16px; line-height: 1.6;
   box-shadow: 0 1px 0 rgba(0, 0, 0, .04), 0 12px 30px rgba(35, 36, 31, .06); }
 .steps li::before { content: counter(s); position: absolute; left: 22px; top: 18px; font: italic 500 34px var(--serif); color: var(--coral); }
-.steps b { display: block; font-size: 18px; margin-bottom: 4px; }
+.steps li > b:first-child { display: block; font-size: 18px; margin-bottom: 4px; }
 .steps em { font-family: var(--sans); font-style: normal; font-weight: 600; color: inherit; }
 .steps a { color: var(--coral); font-weight: 650; }
 .req { font-size: 15px; opacity: .7; margin-bottom: 30px; }
@@ -139,10 +139,10 @@ details p { padding: 0 0 26px; max-width: 760px; font-size: 17px; opacity: .85; 
 .foot { display: flex; justify-content: space-between; padding: 28px 32px; font-size: 14px; opacity: .6; }
 
 /* İndirme bildirimi */
-.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 140%); z-index: 60; width: min(560px, calc(100vw - 32px));
+.toast { visibility: hidden; position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 140%); z-index: 60; width: min(560px, calc(100vw - 32px));
   display: flex; gap: 14px; align-items: center; background: var(--dark); color: var(--paper); border-radius: 20px; padding: 14px 16px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, .3); transition: transform .5s var(--ease); font-size: 15px; line-height: 1.5; }
-.toast.is-on { transform: translate(-50%, 0); }
+.toast.is-on { visibility: visible; transform: translate(-50%, 0); }
 .toast img { width: 52px; flex: none; }
 .toast button { margin-left: auto; align-self: flex-start; background: none; border: 0; color: inherit; font-size: 24px; cursor: pointer; opacity: .6; }
 
@@ -160,6 +160,8 @@ details p { padding: 0 0 26px; max-width: 760px; font-size: 17px; opacity: .85; 
   .feat { padding: 80px 24px; gap: 36px; }
   .feat--flip .feat__copy { order: 0; }
   .steps, .grid3 { grid-template-columns: 1fr; }
+  .cta .btn { width: 100%; justify-content: center; white-space: normal; text-align: center; }
+  .shot--dog .hav { font-size: 38px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

@@ -193,6 +193,22 @@ MainActor.assumeIsolated {
         }
         exit(0)
     }
+    // Tanıtım videoları için uygulamanın kendi seslerini dışa aktarır: Serce --render-sound greet cikti.wav
+    if let i = CommandLine.arguments.firstIndex(of: "--render-sound"), i + 2 < CommandLine.arguments.count {
+        guard let cue = SoundEngine.Cue(rawValue: CommandLine.arguments[i + 1]) else {
+            print("Bilinmeyen ses. Seçenekler:", SoundEngine.Cue.allCases.map(\.rawValue).joined(separator: ", ")); exit(1)
+        }
+        let samples = Synth.render(cue)
+        var data = Data()
+        func le<T: FixedWidthInteger>(_ v: T) { withUnsafeBytes(of: v.littleEndian) { data.append(contentsOf: $0) } }
+        let rate = UInt32(Synth.rate), bytes = UInt32(samples.count * 2)
+        data.append(contentsOf: Array("RIFF".utf8)); le(36 + bytes); data.append(contentsOf: Array("WAVEfmt ".utf8))
+        le(UInt32(16)); le(UInt16(1)); le(UInt16(1)); le(rate); le(rate * 2); le(UInt16(2)); le(UInt16(16))
+        data.append(contentsOf: Array("data".utf8)); le(bytes)
+        for s in samples { le(Int16(max(-1, min(1, s)) * 32767)) }
+        do { try data.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 2])) } catch { print(error); exit(1) }
+        exit(0)
+    }
     // Tanıtım videosu ve sayfa için şeffaf karakter görselleri: Serce --render-pepe <klasör>
     if let i = CommandLine.arguments.firstIndex(of: "--render-pepe"), i + 1 < CommandLine.arguments.count {
         let dir = URL(fileURLWithPath: CommandLine.arguments[i + 1])
